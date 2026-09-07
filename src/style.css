@@ -320,30 +320,14 @@ a.featured-work-item {
   text-decoration: none;
   color: inherit;
 }
-@keyframes featured-work-shake {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  20% { transform: translate(-2px, 1px) rotate(-1deg); }
-  40% { transform: translate(2px, -1px) rotate(1deg); }
-  60% { transform: translate(-2px, -1px) rotate(-1deg); }
-  80% { transform: translate(2px, 1px) rotate(1deg); }
-}
-a.featured-work-item:hover,
-a.featured-work-item:active {
-  /* Only promoted to its own compositing layer while actually hovered,
-     instead of always-on — still set alongside (not after) the animation
-     so the browser gets the hint before the first animated frame paints. */
-  will-change: transform;
-  animation: featured-work-shake 0.4s ease;
-}
 .featured-work-item-title {
   display: inline-block;
   width: fit-content;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: #f9dcc7;
+  font-family: 'Microgramma', sans-serif;
+  font-size: clamp(1.1rem, 2.2vw, 1.6rem);
+  font-weight: 400;
+  line-height: 1.0;
+  color: #ffffff;
 }
 .featured-work-item-overlay {
   position: absolute;
@@ -365,10 +349,10 @@ a.featured-work-item:active {
 }
 .featured-work-item-desc {
   font-family: 'Montserrat', sans-serif;
-  font-size: 0.75rem;
   font-weight: 400;
-  line-height: 1.4;
-  color: rgba(249, 220, 199, 0.9);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.65);
 }
 .featured-work-item img,
 .featured-work-item-media {
@@ -376,6 +360,18 @@ a.featured-work-item:active {
   height: 100%;
   object-fit: cover;
   display: block;
+  transform: scale(1);
+  transition: transform 0.3s ease;
+}
+a.featured-work-item:hover .featured-work-item-media,
+a.featured-work-item:active .featured-work-item-media {
+  /* Escalado en el vídeo, no en la tarjeta (.featured-work-item ya recibe
+     un transform inline de GSAP para su animación de entrada/scroll, que
+     pisaría cualquier transform de :hover puesto en ese mismo elemento —
+     ver updateFloatingCards/heroScrollTimeline en main.js). Recortado por
+     el overflow:hidden de .featured-work-item. */
+  will-change: transform;
+  transform: scale(1.08);
 }
 
 /* No z-index here on purpose: position:absolute + an explicit z-index

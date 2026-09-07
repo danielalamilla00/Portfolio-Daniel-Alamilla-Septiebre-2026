@@ -347,6 +347,13 @@ function updateOutroCta(progress) {
   const opacity = clamp((progress - FLOAT_FADE_START) / (FLOAT_FADE_END - FLOAT_FADE_START), 0, 1);
   outroCtaQuestion.style.opacity = opacity;
   outroCtaLink.style.opacity = opacity;
+  // .outro-cta-link has pointer-events:auto in CSS (needed once it's the
+  // visible CTA), but while opacity is still 0 it sits invisibly on top of
+  // whatever else occupies that same screen position (e.g. the
+  // featured-work grid, since #outro-cta shares the pinned section's
+  // coordinate space the whole time) and silently steals hover/clicks from
+  // it. Only actually enable pointer events once it's visible.
+  outroCtaLink.style.pointerEvents = opacity > 0 ? "auto" : "none";
 }
 
 let scrollProgress = 0;
