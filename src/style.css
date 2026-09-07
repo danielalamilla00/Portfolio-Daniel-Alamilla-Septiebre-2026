@@ -1,0 +1,523 @@
+@font-face {
+  font-family: 'Microgramma';
+  src: url('/Microgramma D Extended Bold.otf') format('opentype');
+  font-display: swap;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  background-color: #f9dcc7;
+  background-image: url('/fondo-4.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Pinned by GSAP ScrollTrigger (see main.js) during the scroll storytelling
+   transition — position:relative so it's a stable containing block for its
+   absolutely-positioned children both before the pin engages (scrollY = 0,
+   where this section already exactly fills the viewport) and while GSAP
+   switches it to position:fixed internally during the pin itself. Its
+   children used to be position:fixed to the viewport directly; now that
+   this whole section can be released back into normal flow after the pin,
+   they're position:absolute within it instead, so they keep moving/pinning
+   together as one coherent unit. */
+#hero-section {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  /* GSAP's pin applies its own inline `transform` to this element (even
+     while at rest it's `translate(0px, 0px)`, not `none`) — per spec, any
+     non-none transform creates a new stacking context. isolation:isolate
+     makes that boundary explicit and spec-clean instead of relying on it
+     as a side effect, which is what was making mix-blend-mode below
+     compute incorrectly. */
+  isolation: isolate;
+  /* GSAP's pin switches this to position:fixed while scrolling through it,
+     which (per spec) makes it its own stacking context — mix-blend-mode on
+     the text inside can then no longer "see" the body's background color
+     through that boundary to blend against. Giving this element the same
+     background itself puts that backdrop back inside the same context the
+     text blends within.
+     NOTE: this must be an explicit color/image, not `inherit` — GSAP's pin
+     wraps this element in its own ".pin-spacer" div, which becomes its new
+     immediate DOM parent, so `inherit` would pull that (transparent)
+     spacer's background instead of body's. Keep this in sync with the
+     html/body background above if that ever changes. */
+  background-color: #f9dcc7;
+  background-image: url('/fondo-4.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+#sphere-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.leaf-left,
+.leaf-right {
+  height: 175px;
+  width: auto;
+  display: block;
+}
+
+/* left/top are set in pixels by main.js every frame, projecting the
+   sphere's pole from 3D world space to screen coordinates, so the leaves
+   stay anchored to the actual sphere regardless of its position/scale
+   instead of a guessed percentage. The wrapper (not the <img> itself) is
+   what's positioned and scaled as a rigid group — scaling the image's own
+   height instead broke .leaf-left's fixed-pixel matrix() below (see main.js
+   history), since that matrix's translate component is calibrated for
+   exactly 175px and doesn't scale with it. */
+.leaf-left-wrap,
+.leaf-right-wrap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  pointer-events: none;
+  transform-origin: 0 0;
+}
+
+/* Both leaves reuse the same source image (hoja-1.png). The tip in the
+   artwork isn't at the image's bbox corner (there's a soft glow fade
+   beyond the visually perceptible point) — measured from the actual
+   alpha data at ~16.5% across, 94% down.
+
+   The right leaf just rotates the artwork 30deg around that tip (its
+   natural curve already leans up-and-right, so this widens it into half
+   of the wing shape). The left leaf needs to be the mirror image of that
+   *exact* rotated shape, tip-for-tip — but a CSS scaleX(-1) mirrored
+   around any single fixed point can't reproduce that together with the
+   rotation (a mirror + rotation is a "glide" transform: no single
+   transform-origin percentage reproduces it, only an explicit matrix
+   does). So the left leaf's transform below is that matrix, computed
+   once (mirroring the right leaf's translate(-16.5%,-94%) rotate(30deg)
+   around the shared tip) — if the rotation angle or the 16.5%/94% tip
+   measurement ever changes, recompute this matrix to match. */
+.leaf-right {
+  transform: translate(-16.5%, -94%) rotate(30deg);
+  transform-origin: 16.5% 94%;
+  animation: leaf-breathe-right 8.5s ease-in-out infinite;
+  animation-delay: -2.6s;
+}
+.leaf-left {
+  transform: matrix(-0.8660254, 0.5, 0.5, 0.8660254, -71.8306, -148.4768);
+  transform-origin: 0 0;
+  animation: leaf-breathe-left 7.5s ease-in-out infinite;
+}
+
+/* Anchoring the leaves to the sphere's rigid position/scale (done in
+   main.js) keeps them glued when the sphere moves or resizes, but the
+   sphere's surface also has a constant, organic "breathing" noise
+   animation (see shaders/sphere.vert.glsl) that a rigid anchor can't
+   track exactly. Rather than replicate that shader noise in JS (fragile,
+   and easy to get subtly out of sync), this idle sway approximates the
+   same "alive, attached" feeling with a plain CSS loop — pivoting at each
+   leaf's anchored tip so it still reads as growing out of the sphere.
+   Slightly different durations/delay/angle per side so the two don't
+   sway in obvious lockstep. Tune TIMING/ANGLE here if the sphere's own
+   breathing speed changes.
+
+   leaf-left's matrix already sends the tip to this element's local
+   (0,0), so — because transform-origin is 0 0 — any rotate()/scale()
+   placed BEFORE the matrix() in the function list (i.e. applied after it
+   to the point) still pivots exactly on that same tip. That's why the
+   50% keyframe below prepends rotate/scale instead of trying to fold
+   them into the matrix itself. */
+@keyframes leaf-breathe-right {
+  0%,
+  100% {
+    transform: translate(-16.5%, -94%) rotate(30deg);
+  }
+  50% {
+    transform: translate(-16.5%, -94%) rotate(32deg) scale(1.045);
+  }
+}
+@keyframes leaf-breathe-left {
+  0%,
+  100% {
+    transform: matrix(-0.8660254, 0.5, 0.5, 0.8660254, -71.8306, -148.4768);
+  }
+  50% {
+    transform: rotate(-2deg) scale(1.045)
+      matrix(-0.8660254, 0.5, 0.5, 0.8660254, -71.8306, -148.4768);
+  }
+}
+
+/* Deliberately NO position/transform/opacity of its own — see main.js,
+   which animates .headline-word directly rather than this wrapper. Any
+   non-none transform (or opacity<1) on an ANCESTOR of a mix-blend-mode
+   element makes that ancestor a new stacking context, and the blend can
+   then no longer "see" the page background behind it to blend against
+   (it renders as if mix-blend-mode were "normal" instead). Animating the
+   .headline-word spans themselves sidesteps this entirely, since a
+   transform on the blend element itself doesn't isolate it from its own
+   backdrop — only from blend-mode descendants, which it has none of. */
+#hero-headline {
+  pointer-events: none;
+}
+
+.headline-word {
+  position: absolute;
+  z-index: 2;
+  mix-blend-mode: difference;
+  font-family: 'Microgramma', sans-serif;
+  font-size: clamp(2.5rem, 7.5vw, 5.5rem);
+  font-weight: 400;
+  text-transform: uppercase;
+  color: #ffffff;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.word-different {
+  top: 18%;
+  left: 6%;
+}
+
+.word-creative {
+  top: 46%;
+  left: 55%;
+}
+
+.word-approach {
+  bottom: 18%;
+  left: 6%;
+}
+
+/* Second, smaller tagline that replaces the headline as the hero section
+   scrolls/pins (see the GSAP timeline in main.js), which animates the
+   .tagline-line spans directly — not this wrapper. Centering is done with
+   flexbox (not a transform: translate(-50%,-50%)), and — just as important
+   — this wrapper has NO z-index. position:absolute + an explicit z-index
+   together (not just transform/opacity) also create a stacking context,
+   which would isolate .tagline-line's mix-blend-mode from the page
+   background the exact same way documented on #hero-headline above.
+   z-index instead lives on .tagline-line itself (see below), same as
+   .headline-word does — a stacking context from the blend element's own
+   z-index doesn't isolate IT, only descendants, which it has none of. */
+#hero-headline-2 {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 13vh 10% 0 8%;
+  pointer-events: none;
+}
+.tagline-line {
+  position: relative;
+  z-index: 2;
+  font-family: 'Microgramma', sans-serif;
+  font-size: clamp(1.8rem, 4.2vw, 3.4rem);
+  line-height: 1.15;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: #ffffff;
+  mix-blend-mode: difference;
+  white-space: nowrap;
+  opacity: 0; /* initial state; the scroll timeline animates this per-line */
+}
+
+#hero-subtext {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 58%;
+  z-index: 2;
+  display: flex;
+  gap: 6vw;
+  pointer-events: none;
+}
+.subtext-col-left {
+  flex: 0 0 26%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.subtext-col-right {
+  flex: 1;
+  max-width: 34ch;
+}
+.subtext-headline,
+.subtext-link,
+.subtext-paragraph {
+  font-family: 'Montserrat', sans-serif;
+  color: #062338;
+  mix-blend-mode: difference;
+  white-space: normal; /* sobreescribe el nowrap que .tagline-line trae por defecto */
+  opacity: 0; /* GSAP lo anima igual que a .tagline-line */
+}
+.subtext-headline,
+.subtext-link {
+  font-size: clamp(0.7rem, 0.95vw, 0.9rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+.subtext-link {
+  pointer-events: auto;
+}
+.subtext-paragraph {
+  font-size: clamp(0.7rem, 0.95vw, 0.9rem);
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+#featured-work {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.featured-work-grid {
+  position: absolute;
+  top: 15%;
+  left: 42%;
+  right: 3%;
+  display: flex;
+  gap: 1.5rem;
+  /* no "bottom" here: height now comes from the content (square cards +
+     gap), not a fixed-row grid. */
+}
+.featured-work-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.featured-work-col-a {
+  margin-top: 15%; /* offsets the left column lower than the right one — tune by eye */
+}
+.featured-work-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: auto;
+}
+a.featured-work-item {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+@keyframes featured-work-shake {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(-2px, 1px) rotate(-1deg); }
+  40% { transform: translate(2px, -1px) rotate(1deg); }
+  60% { transform: translate(-2px, -1px) rotate(-1deg); }
+  80% { transform: translate(2px, 1px) rotate(1deg); }
+}
+a.featured-work-item:hover,
+a.featured-work-item:active {
+  /* Only promoted to its own compositing layer while actually hovered,
+     instead of always-on — still set alongside (not after) the animation
+     so the browser gets the hint before the first animated frame paints. */
+  will-change: transform;
+  animation: featured-work-shake 0.4s ease;
+}
+.featured-work-item-title {
+  display: inline-block;
+  width: fit-content;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #f9dcc7;
+}
+.featured-work-item-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(to top, rgba(6, 35, 56, 0.8) 0%, rgba(6, 35, 56, 0.2) 45%, transparent 70%);
+  pointer-events: none;
+}
+.featured-work-item-meta {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  pointer-events: none;
+}
+.featured-work-item-desc {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: rgba(249, 220, 199, 0.9);
+}
+.featured-work-item img,
+.featured-work-item-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* No z-index here on purpose: position:absolute + an explicit z-index
+   together create a stacking context, which isolates the mix-blend-mode
+   children below from the page background they need to blend against
+   (same bug documented on #hero-headline-2 above). z-index instead lives
+   directly on .nav-logo/.nav-label. */
+#site-nav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.75rem 2.5rem;
+  pointer-events: none;
+}
+#site-nav .nav-logo {
+  position: relative;
+  z-index: 50;
+  height: 2.2rem;
+  pointer-events: auto;
+}
+#site-nav .nav-label {
+  position: relative;
+  z-index: 50;
+  font-family: 'Microgramma', sans-serif;
+  font-size: 0.95rem;
+  color: #062338;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  #site-nav {
+    padding: 1.25rem 1.5rem;
+  }
+  #site-nav .nav-logo {
+    height: 1.7rem;
+  }
+  #site-nav .nav-label {
+    font-size: 0.75rem;
+  }
+}
+
+#floating-cards {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+.floating-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--fc-size);
+  aspect-ratio: var(--fc-aspect, 1 / 1);
+  border-radius: 0;
+  overflow: hidden;
+  opacity: 0;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+  will-change: transform, opacity;
+}
+.floating-card video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Contenedor sin opacity/transform propios a propósito — cualquier
+   transform (incluido translate(-50%,-50%), probado y confirmado roto)
+   crea un stacking context que aísla el mix-blend-mode de sus hijos del
+   fondo de la página, el mismo bug ya documentado en #hero-headline-2 y
+   #site-nav. Centrado en su lugar con left/right:0 + margin-inline:auto
+   (horizontal) y top calculado en vez de translateY (vertical) — ninguno
+   de los dos necesita transform. El valor de `top` aquí ancla el borde
+   SUPERIOR del bloque (no su centro, a diferencia de translate(-50%,-50%)),
+   así que no es literalmente "42%" — se ajustó a ojo para que quede en la
+   misma posición visual pedida, justo debajo de la esfera ya subida.
+   .outro-cta-link ya no usa mix-blend-mode (tiene fondo propio), así que
+   ese hijo en concreto no dependía de esto — pero .outro-cta-question sí. */
+#outro-cta {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: fit-content;
+  max-width: 90vw; /* lets the title wrap instead of overflowing the viewport at this font-size */
+  top: calc(48% + 5px); /* tune by eye */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  text-align: center;
+  pointer-events: none;
+}
+.outro-cta-question {
+  position: relative;
+  z-index: 2;
+  font-family: 'Microgramma', sans-serif;
+  font-size: clamp(1.7rem, 3.6vw, 2.8rem);
+  font-weight: 400;
+  text-transform: uppercase;
+  color: #ffffff;
+  mix-blend-mode: difference;
+  opacity: 0;
+}
+.outro-cta-link {
+  position: relative;
+  isolation: isolate;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Montserrat', sans-serif;
+  font-size: clamp(0.85rem, 1.1vw, 1rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-decoration: none;
+  pointer-events: auto;
+  opacity: 0;
+  padding: 1rem 2.3rem;
+  /* esquina superior izquierda apenas redondeada, el resto en píldora completa */
+  border-radius: 28px 999px 999px 999px;
+  /* degradado vertical, de arriba abajo */
+  background: linear-gradient(180deg, #f7b787 0%, #f2935a 100%);
+  box-shadow:
+    0 0 8px 1px rgba(255, 255, 255, 0.7),
+    0 0 16px 4px rgba(255, 255, 255, 0.5),
+    0 0 24px 8px rgba(255, 255, 255, 0.3);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.outro-cta-link:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 10px 1px rgba(255, 255, 255, 0.85),
+    0 0 20px 6px rgba(255, 255, 255, 0.6),
+    0 0 30px 10px rgba(255, 255, 255, 0.4);
+}

@@ -1,0 +1,1508 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALAMILLA | Motion & AI Designer</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preload" as="image" href="/fondo-4.jpg">
+<link rel="preload" as="font" type="font/woff2" href="Coolvetica Font/Coolvetica Rg Cond.woff2" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300&display=swap" rel="stylesheet">
+<style>
+  #page-transition-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    pointer-events: none;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    background: rgba(0,0,0,0.25);
+    transition: backdrop-filter 0.45s ease, -webkit-backdrop-filter 0.45s ease, background 0.45s ease;
+  }
+  #page-transition-overlay.out {
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+    background: rgba(0,0,0,0);
+  }
+  @font-face { font-family: 'Coolvetica';     src: url('Coolvetica Font/Coolvetica Rg.woff2') format('woff2'), url('Coolvetica Font/Coolvetica Rg.otf') format('opentype');           font-weight: 300; font-display: swap; }
+  @font-face { font-family: 'CoolveticaCond'; src: url('Coolvetica Font/Coolvetica Rg Cond.woff2') format('woff2'), url('Coolvetica Font/Coolvetica Rg Cond.otf') format('opentype'); font-display: swap; }
+  @font-face { font-family: 'Microgramma';    src: url('/Microgramma D Extended Bold.otf') format('opentype'); font-display: swap; }
+  :root { --ease-out: cubic-bezier(0.16, 1, 0.3, 1); }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background-color: #000;
+    background-image: url('/fondo-4.jpg');
+    background-size: 100% 100%; background-position: center;
+    background-repeat: no-repeat; background-attachment: fixed;
+    color: #fff; min-height: 100vh; overflow-x: clip;
+  }
+
+  /* ── Nav ────────────────────────────────────────────────────────────────── */
+  #wk-nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.5rem 2.5rem; z-index: 50;
+  }
+  #wk-nav img { height: 28px; }
+  .wk-nav-brand { display: flex; align-items: center; gap: 1rem; }
+  .wk-nav-label {
+    font-family: 'Microgramma', sans-serif; font-size: 0.85rem;
+    color: #062338; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  #wk-nav a {
+    font-family: 'Montserrat', sans-serif; font-size: 0.85rem;
+    color: rgba(255,255,255,0.5); text-decoration: none;
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+
+  /* ── Body ───────────────────────────────────────────────────────────────── */
+  #wk-body { padding: 11.5rem 4rem 0; }
+
+  /* ── Reel embed (below the grid) ────────────────────────────────────────── */
+  .wk-reel-section { padding: 5rem 0; }
+  .wk-reel-section .ex-letter       { color: #191919; }
+  .wk-reel-section .ex-body-text    { color: #191919; }
+  .wk-reel-section .ex-section-divider { background: rgba(25,25,25,0.2); }
+  /* ── Reel thumbnail (collapsed state) ───────────────────────────────── */
+  .wk-reel-thumb {
+    padding: 0 3rem 1rem; cursor: pointer;
+  }
+  .wk-reel-thumb-inner {
+    position: relative; max-width: 720px; margin: 0 auto;
+    aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden;
+    background: #0c0c0c;
+  }
+  .wk-reel-play {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 200ms var(--ease-out);
+  }
+  .wk-reel-thumb:hover .wk-reel-play { transform: scale(1.08); }
+  .wk-reel-play svg { filter: drop-shadow(0 2px 12px rgba(0,0,0,0.6)); }
+
+  /* ── Reel lightbox (fullscreen state) ───────────────────────────────── */
+  #reel-lightbox {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.92);
+    visibility: hidden; opacity: 0; pointer-events: none;
+    transition: opacity 300ms var(--ease-out);
+  }
+  #reel-lightbox.is-open { visibility: visible; opacity: 1; pointer-events: auto; }
+  #reel-lightbox-frame {
+    position: absolute; inset: 0;
+    transform-origin: top left; will-change: transform;
+  }
+  #reel-lightbox-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+  #reel-lightbox-close {
+    position: fixed; top: 1.5rem; right: 1.5rem;
+    width: 2.2rem; height: 2.2rem; border-radius: 50%;
+    background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.18);
+    color: #fff; font-size: 1.15rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 510; opacity: 0; pointer-events: none;
+    transition: opacity 250ms var(--ease-out) 200ms, background 140ms;
+  }
+  #reel-lightbox.is-open #reel-lightbox-close { opacity: 1; pointer-events: auto; }
+  #reel-lightbox-close:hover { background: rgba(0,0,0,0.7); }
+
+  /* ── SELECTED PROJECTS letter-reveal heading ────────────────────────────── */
+  .ex-section-heading {
+    display: flex; flex-direction: column; align-items: flex-start;
+    overflow: hidden; margin: 0 0 1.5rem; width: fit-content;
+  }
+  .ex-marquee-row {
+    display: flex; flex-wrap: nowrap; align-items: flex-end;
+    overflow: hidden; line-height: 0.9; margin-bottom: -1.25rem;
+  }
+  .ex-marquee-row:last-child { margin-bottom: 0; }
+  .ex-letter-wrap { display: inline-block; overflow: hidden; line-height: 1.0; }
+  .ex-letter {
+    display: inline-block; font-family: 'Microgramma', sans-serif; font-size: 5.5rem;
+    color: rgba(255,255,255,0.9); text-transform: uppercase;
+    letter-spacing: -0.02em; line-height: 1.05; white-space: pre;
+    transform: translateY(110%);
+  }
+  .ex-section-heading .ex-letter { font-size: 6rem; }
+  .ex-section-divider {
+    position: relative; left: 50%;
+    width: calc(100vw - 10rem); height: 2px;
+    background: rgba(255,255,255,0.15);
+    margin-left: calc(-50vw + 5rem);
+    margin-top: 0.5rem; margin-bottom: 2.5rem;
+  }
+
+  /* ── Project grid (3 blocks x 3 cards, fluid expanding layout) ─────────── */
+  #wk-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4rem;
+    padding-bottom: 5rem;
+    max-width: 68%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .wk-grid-block { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .wk-grid-card  { position: relative; border-radius: 18px; overflow: hidden; cursor: pointer; opacity: 0; transform: translateY(48px) translateZ(0); transition: opacity 0.6s ease, transform 0.6s ease; -webkit-mask-image: -webkit-radial-gradient(white, black); }
+  .wk-grid-card.card-visible { opacity: 1; transform: translateY(0) translateZ(0); }
+  .wk-grid-card--paired { aspect-ratio: 1 / 1; order: 0; }
+  .wk-grid-card--solo   { aspect-ratio: 2 / 1; grid-column: 1 / span 2; order: 1; }
+  .wk-grid-card .c-meta  { padding: 1.5rem 2rem 2rem; }
+  .wk-grid-card .c-title { font-size: clamp(1.2rem, 2.2vw, 2.2rem); }
+  .wk-media-wrap {
+    position: absolute; inset: 0; overflow: hidden;
+    border-radius: inherit;
+    background-image: url('/fondo-4.jpg');
+    background-size: 100% 100vh; background-position: center; background-attachment: fixed;
+  }
+  .wk-media {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    display: block; object-fit: cover;
+    will-change: transform; transform-origin: center center;
+  }
+  .wk-media-empty {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .wk-media-empty span {
+    font-family: 'Montserrat', sans-serif; font-weight: 300;
+    font-size: 0.7rem; color: #333; text-transform: uppercase; letter-spacing: 0.2em;
+  }
+  .wk-media-wrap::before {
+    content: "";
+    position: absolute; inset: 0; z-index: 1;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+    opacity: 0.15; mix-blend-mode: overlay; pointer-events: none;
+  }
+  .c-noise {
+    position: absolute;
+    top: -50%; left: -50%; right: -50%; bottom: -50%;
+    width: 200%; height: 200%;
+    border-radius: 18px; pointer-events: none; z-index: 1; opacity: 0.18;
+    background: transparent url('data:image/png;base64,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') repeat 0 0;
+    background-repeat: repeat;
+    animation: bg-animation 0.2s infinite;
+    mix-blend-mode: multiply;
+  }
+  @keyframes bg-animation {
+    0%   { transform: translate(0,0); }
+    10%  { transform: translate(-5%,-5%); }
+    20%  { transform: translate(-10%,5%); }
+    30%  { transform: translate(5%,-10%); }
+    40%  { transform: translate(-5%,15%); }
+    50%  { transform: translate(-10%,5%); }
+    60%  { transform: translate(15%,0); }
+    70%  { transform: translate(0,10%); }
+    80%  { transform: translate(-15%,0); }
+    90%  { transform: translate(10%,5%); }
+    100% { transform: translate(5%,0); }
+  }
+  .c-gradient {
+    position: absolute; inset: 0; pointer-events: none; z-index: 2;
+    background: linear-gradient(
+      to top,
+      rgba(0,0,0,0.72) 0%,
+      rgba(0,0,0,0.18) 40%,
+      transparent 65%
+    );
+  }
+  .c-meta {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 3;
+    padding: 3rem 4rem 3.5rem;
+    display: flex; flex-direction: column; align-items: flex-start;
+    pointer-events: none;
+  }
+  .c-title {
+    font-family: 'Microgramma', sans-serif;
+    font-size: clamp(1.8rem, 4.5vw, 3.8rem);
+    font-weight: 400; color: #062338; line-height: 1.0;
+    display: block; margin-bottom: 0.55rem;
+  }
+  .c-desc {
+    font-family: 'Montserrat', sans-serif; font-weight: 300;
+    font-size: clamp(0.85rem, 1.2vw, 1rem);
+    color: rgba(255,255,255,0.65); line-height: 1.5;
+    max-width: 480px; display: block;
+  }
+  /* Project index counter */
+  .c-index {
+    position: absolute; top: 2rem; right: 3rem; z-index: 3;
+    font-family: 'Montserrat', sans-serif; font-size: 0.7rem;
+    font-weight: 300; color: rgba(255,255,255,0.35);
+    letter-spacing: 0.14em; text-transform: uppercase;
+  }
+
+  /* ── Section intro wrapper + body text ─────────────────────────────────── */
+  .ex-body-section {
+    width: 650px; max-width: 100%; margin: 0 auto;
+  }
+  .ex-body-text {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 300;
+    font-size: 1.1rem;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.75;
+    margin: 0 0 4rem 0;
+    max-width: 650px;
+    text-align: left;
+  }
+
+  /* ── Footer ─────────────────────────────────────────────────────────────── */
+  .shared-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 2.5rem 2rem;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 300;
+    font-size: 1rem;
+    color: #161616;
+  }
+  .shared-footer img {
+    height: 1.4rem;
+    width: auto;
+    filter: brightness(0);
+  }
+  #wk-footer { padding: 0; }
+  @media (max-width: 768px) { #wk-footer { padding: 2rem 2rem 3.5rem; } }
+  #card-expand-body .shared-footer { color: #161616; }
+  #card-expand-body .shared-footer img { filter: brightness(0); }
+
+  /* ── Responsive ─────────────────────────────────────────────────────────── */
+
+  @media (max-width: 768px) {
+    .ex-letter { font-size: clamp(1rem, 10vw, 12vw) !important; }
+    .ex-marquee-row { margin-bottom: -0.3rem; }
+    .ex-marquee-row + .ex-marquee-row { margin-top: 0.15em; }
+    #wk-body { padding: 8rem 2.5rem 0; }
+    .wk-reel-section { padding: 3rem 0; }
+  }
+  @media (max-width: 768px) {
+    html, body { background-attachment: scroll; background-size: cover; }
+    .wk-media-wrap { background-attachment: scroll; background-size: cover; }
+    #card-expand-panel { background-attachment: scroll; }
+    #card-expand-body  { background-attachment: scroll; }
+    #wk-nav a:last-child { display: none; }
+    .wk-reel-thumb { padding: 0 0 1rem; }
+    .wk-reel-thumb-inner { max-width: 100%; aspect-ratio: 4 / 3; border-radius: 18px; }
+    #wk-grid { max-width: 100%; gap: 0.75rem; }
+    .wk-grid-block { display: flex; flex-direction: column; gap: 0.75rem; }
+    .wk-grid-card  { aspect-ratio: 4 / 3; }
+    .wk-grid-card .c-title { font-size: clamp(1.4rem, 5vw, 2rem); }
+    .c-meta {
+      top: 0;
+      bottom: auto;
+      padding: 1.5rem 2.25rem 3rem;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 100%);
+    }
+    .c-index { top: auto; bottom: 1.25rem; right: 2rem; }
+  }
+  @media (max-width: 640px) {
+    #wk-nav { padding: 1rem 1.25rem; }
+    .c-meta { padding: 1.25rem 2rem 3rem; }
+  }
+  @media (max-width: 600px) {
+    .ex-section-divider { width: calc(100vw - 6rem); margin-left: calc(-50vw + 3rem); }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .wk-grid-card:hover .c-title { opacity: 0.85; }
+  }
+
+  /* ── Card expand overlay ──────────────────────────────────────────────────── */
+  #card-expand {
+    position: fixed; inset: 0; z-index: 500;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none; overflow: hidden;
+  }
+  #card-expand-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    opacity: 0; pointer-events: none;
+    transition: opacity 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #card-expand.is-open #card-expand-backdrop { opacity: 1; pointer-events: auto; }
+  #card-expand-panel {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    border-radius: 0; overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    scrollbar-width: none; visibility: hidden;
+    background-image: url('/fondo-4.jpg');
+    background-size: cover; background-position: top center;
+    background-attachment: fixed; background-repeat: no-repeat;
+    transform-origin: top left; will-change: transform, border-radius;
+    display: flex; flex-direction: column;
+    transition: transform 800ms cubic-bezier(0.22, 1, 0.36, 1),
+                border-radius 800ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  #card-expand-panel::-webkit-scrollbar { display: none; }
+  #card-expand-hero {
+    position: sticky; top: 0; width: 100%; height: 100vh;
+    flex-shrink: 0; overflow: hidden; z-index: 0; border-radius: 0;
+  }
+  #card-expand-hero video {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover; will-change: transform; transition: none; border-radius: 0;
+  }
+  #card-expand-meta {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 2.5rem;
+    background: linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.15) 55%, transparent 100%);
+    opacity: 0; transition: opacity 320ms var(--ease-out) 200ms;
+    border-radius: 0; will-change: transform; transform-origin: center center;
+  }
+  .ex-headline { font-family: 'Microgramma', sans-serif; font-size: 0.65rem; color: rgba(255,255,255,0.65); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
+  .ex-title    { font-family: 'Microgramma', sans-serif; font-size: clamp(1.5rem, 3.5vw, 2.5rem); color: #fff; line-height: 1.05; margin-bottom: 0.5rem; display: block; }
+  .ex-desc     { font-family: 'Montserrat', sans-serif; font-size: 0.9rem; color: rgba(255,255,255,0.7); max-width: 520px; line-height: 1.45; margin-bottom: 1.5rem; display: block; }
+  #card-expand-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .ex-btn {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    padding: 0.55rem 1.4rem; border-radius: 9999px;
+    font-family: 'Microgramma', sans-serif; font-size: 0.85rem;
+    letter-spacing: 0.04em; cursor: pointer; border: none;
+    transition: transform 140ms var(--ease-out), background 160ms;
+  }
+  .ex-btn:active { transform: scale(0.95); }
+  .ex-btn-primary { background: #fff; color: #000; }
+  .ex-btn-ghost   { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.22); }
+  #card-expand-body {
+    position: relative; z-index: 1; color: #161616;
+    background-image: url('/fondo-4.jpg');
+    background-size: cover; background-position: top center;
+    background-attachment: fixed; background-repeat: no-repeat;
+    border-radius: 0; padding: 3.5rem 2.5rem 5rem;
+    max-width: 100%; margin: 0; margin-top: -2px;
+  }
+  #card-expand-body .ex-body-section { margin: 8rem auto 3rem; width: 650px; max-width: 100%; }
+  #card-expand-body .ex-body-section:first-of-type { margin-top: 4rem; }
+  #card-expand-body .ex-section-divider { margin-bottom: 1.5rem; background: rgba(22,22,22,0.2); }
+  #card-expand-body .ex-body-text { margin: 0 0 1rem 0; color: #161616; }
+  #card-expand-body .ex-letter { color: #ffffff; mix-blend-mode: difference; }
+  .ex-meta-stack { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
+  .ex-meta-label { font-family: 'Montserrat', sans-serif; font-weight: 300; font-size: 1.1rem; color: rgba(22,22,22,0.7); }
+  .ex-meta-label strong { font-weight: 500; font-style: italic; color: #161616; }
+  #card-expand-styleframes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+  #card-expand-styleframes:empty { display: none; }
+  #card-expand-challenge-videos,
+  #card-expand-process-videos,
+  #card-expand-process-images,
+  #card-expand-final-videos {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    align-items: start; gap: 1rem; margin: 2rem 0;
+  }
+  #card-expand-challenge-videos:empty,
+  #card-expand-process-videos:empty,
+  #card-expand-process-images:empty,
+  #card-expand-final-videos:empty { display: none; }
+  #card-expand-challenge-videos video,
+  #card-expand-process-videos video,
+  #card-expand-final-videos video {
+    width: 100%; height: auto; object-fit: contain;
+    border-radius: 14px; display: block; background: #111;
+  }
+  #card-expand-process-videos[data-project="1"] video {
+    aspect-ratio: 1 / 1; object-fit: cover;
+  }
+  #card-expand-process-images img {
+    width: 100%; height: auto; object-fit: contain;
+    border-radius: 14px; display: block; background: #111;
+  }
+  #card-expand-styleframes img, #card-expand-styleframes video {
+    width: 100%; aspect-ratio: 16 / 9; object-fit: cover;
+    border-radius: 14px; display: block; background: #111;
+  }
+  .ex-final-video-sticky { position: relative; width: 0; height: auto; overflow: visible; }
+  .ex-final-video { position: relative; width: 80vw; height: 45vw; border-radius: 14px; overflow: hidden; }
+  .ex-final-video iframe { width: 100%; height: 100%; border: 0; border-radius: inherit; display: block; }
+  #card-expand-scroll-hint {
+    position: absolute; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+    opacity: 0; pointer-events: none; transition: opacity 400ms var(--ease-out); z-index: 20;
+  }
+  #card-expand-scroll-hint span {
+    font-family: 'Microgramma', sans-serif; font-size: 0.55rem;
+    letter-spacing: 0.15em; color: rgba(255,255,255,0.5); text-transform: uppercase;
+  }
+  #card-expand-scroll-hint svg { width: 18px; height: 18px; animation: hintBounce 1.4s ease-in-out infinite; }
+  @keyframes hintBounce {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(5px); }
+  }
+  #card-expand.is-open #card-expand-scroll-hint { opacity: 1; }
+  #card-expand-scroll-hint.hidden { opacity: 0 !important; }
+  #card-expand-close {
+    position: fixed; top: 1.5rem; right: 1.5rem;
+    width: 2.2rem; height: 2.2rem; border-radius: 50%;
+    background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.18);
+    color: #fff; font-size: 1.15rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 510; opacity: 0; pointer-events: none;
+    transition: opacity 250ms var(--ease-out) 350ms, background 140ms;
+  }
+  #card-expand.is-open { pointer-events: auto; }
+  #card-expand.is-open #card-expand-meta  { opacity: 1; }
+  #card-expand.is-open #card-expand-close { opacity: 1; pointer-events: auto; }
+  @media (max-width: 768px) {
+    #card-expand-challenge-videos, #card-expand-process-videos,
+    #card-expand-process-images,   #card-expand-final-videos { grid-template-columns: 1fr; }
+    #card-expand-body .ex-body-section { margin: 4rem auto 2rem; }
+    #card-expand-body .ex-body-section:first-of-type { margin-top: 2rem; }
+    .ex-meta-label { font-size: 0.95rem; }
+    .ex-final-video { width: 90vw; height: 50.625vw; }
+    #card-expand-meta {
+      justify-content: flex-start;
+      padding: 5rem 1.75rem 2rem;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.18) 55%, transparent 100%);
+    }
+    .ex-headline { font-size: 0.85rem; }
+    .ex-title { font-size: clamp(2.5rem, 10vw, 3.5rem); }
+    .ex-desc { font-size: 1.05rem; margin-bottom: 1rem; }
+  }
+  @media (max-width: 600px) { #card-expand-body { padding: 2.5rem 1.5rem 4rem; } }
+  @media (max-width: 480px) { #card-expand-body { padding: 2rem 1rem 3rem; } }
+  @media (prefers-reduced-motion: reduce) {
+    #card-expand-panel, #card-expand-backdrop, #card-expand-meta,
+    #card-expand-close, #card-expand-scroll-hint, #card-expand-scroll-hint svg {
+      transition: none; animation: none;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="page-transition-overlay"></div>
+<script>
+  (function(){
+    const overlay = document.getElementById('page-transition-overlay');
+    requestAnimationFrame(() => requestAnimationFrame(() => overlay.classList.add('out')));
+  })();
+</script>
+
+<nav id="wk-nav">
+  <div class="wk-nav-brand">
+    <a href="index.html"><img src="Logo Alamilla.svg" alt="Alamilla"></a>
+    <span class="wk-nav-label">Motion & AI Designer</span>
+  </div>
+  <a href="index.html#projects">← Back</a>
+</nav>
+
+<!-- ── Body ──────────────────────────────────────────────────────────────── -->
+<div id="wk-body">
+
+  <section id="wk-grid">
+
+    <!-- Block 1: Spotify Daylist · Waapiti · Hummel x Valencia Basket -->
+    <div class="wk-grid-block" data-block="0">
+
+      <article class="wk-grid-card" data-project-index="0" tabindex="0">
+        <div class="wk-media-wrap">
+          <video class="wk-media" data-src="proyectos/Spotify/Portada_Spotify Daylist_thumb.mp4" muted loop playsinline preload="none"></video>
+          <div class="c-noise"></div>
+          <div class="c-gradient"></div>
+        </div>
+        <span class="c-index">01 / 11</span>
+        <div class="c-meta">
+          <span class="c-title">Spotify Daylist</span>
+          <span class="c-desc">A bold, mobile-first promo translating Spotify's ever-changing playlists into motion.</span>
+        </div>
+      </article>
+
+      <article class="wk-grid-card" data-project-index="1" tabindex="0">
+        <div class="wk-media-wrap">
+          <video class="wk-media" data-src="proyectos/ISE/Portada_thumb.mp4" muted loop playsinline preload="none"></video>
+          <div class="c-noise"></div>
+          <div class="c-gradient"></div>
+        </div>
+        <span class="c-index">02 / 11</span>
+        <div class="c-meta">
+          <span class="c-title">Waapiti</span>
+          <span class="c-desc">A kinetic typography spot introducing Waapiti's CMS for digital signage.</span>
+        </div>
+      </article>
+
+      <article class="wk-grid-card" data-project-index="2" tabindex="0">
+        <div class="wk-media-wrap">
+          <video class="wk-media" data-src="proyectos/Hummel Valencia Baket/Hummel Valencia Basket_Tarjeta_thumb.mp4" muted loop playsinline preload="none"></video>
+          <div class="c-noise"></div>
+          <div class="c-gradient"></div>
+        </div>
+        <span class="c-index">03 / 11</span>
+        <div class="c-meta">
+          <span class="c-title">Hummel x Valencia Basket</span>
+          <span class="c-desc">A sponsorship film born to move — generated with Veo and composited in After Effects.</span>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- Block 2: Caprabo · Sitges Film Festival · Barceló -->
+    <div class="wk-grid-block" data-block="1">
+
+      <article class="wk-grid-card" data-project-index="3" tabindex="0">
+        <div class="wk-media-wrap">
+          <video class="wk-media" data-src="/projects/caprabo-tienda-1.mp4" muted loop playsinline preload="none"></video>
+          <div class="c-noise"></div>
+          <div class="c-gradient"></div>
+        </div>
+        <span class="c-index">04 / 11</span>
+        <div class="c-meta">
+          <span class="c-title">Caprabo</span>
+          <span class="c-desc">Holographic 3D animations with a realistic floating effect.</span>
+        </div>
+      </article>
+
+      <article class="wk-grid-card" data-project-index="4" tabindex="0">
+        <div class="wk-media-wrap">
+          <video class="wk-media" data-src="/projects/Styleframes_SItges_1.2.mp4" muted loop playsinline preload="none"></video>
+          <div class="c-noise"></div>
+          <div class="c-gradient"></div>
+        </div>
+        <span class="c-index">05 / 11</span>
+        <div class="c-meta">
+          <span class="c-title">Sitges Film Festival</span>
+          <span class="c-desc">2D animations celebrating the cult community that defines the spirit of Sitges.</span>
+        </div>
+      </article>
+
+      <article class="wk-grid-card" data-project-index="5" tabindex="0">
+        <div class="wk-media-wrap">
+          <video class="wk-media" data-src="proyectos/Estiu TMM/Styleframes/Styleframes 1_thumb.mp4" muted loop playsinline preload="none"></video>
+          <div class="c-noise"></div>
+          <div class="c-gradient"></div>
+        </div>
+        <span class="c-index">06 / 11</span>
+        <div class="c-meta">
+          <span class="c-title">Barceló</span>
+          <span class="c-desc">A short promotional spot capturing a vibrant, sun-soaked summer atmosphere.</span>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- Block 3: Sensory Sync · Hummel x Betis · Fallas Valencia -->
+    <div class="wk-grid-block" data-block="2">
+
+      <article class="wk-grid-card" data-project-index="6" tabindex="0">
+        <div class="wk-media-wrap">
+          <video class="wk-media" data-src="/projects/Proyector.mp4" muted loop playsinline preload="none"></video>
+          <div class="c-noise"></div>
+          <div class="c-gradient"></div>
+        </div>
+        <span class="c-index">07 / 11</span>
+        <div class="c-meta">
+          <span class="c-title">Sensory Sync</span>
+          <span class="c-desc">Immersive screen content blending narrative, environment, and AI.</span>
+        </div>
+      </article>
+
+      <article class="wk-grid-card" data-project-index="7" tabindex="0">
+        <div class="wk-media-wrap">
+          <video class="wk-media" data-src="proyectos/Hummel Betis/Hummel Betis_Tarjeta_thumb.mp4" muted loop playsinline preload="none"></video>
+          <div class="c-noise"></div>
+          <div class="c-gradient"></div>
+        </div>
+        <span class="c-index">08 / 11</span>
+        <div class="c-meta">
+          <span class="c-title">Hummel x Betis</span>
+          <span class="c-desc">A sponsorship film built for the pitch — verdiblanco identity in motion.</span>
+        </div>
+      </article>
+
+      <article class="wk-grid-card" data-project-index="8" tabindex="0">
+        <div class="wk-media-wrap">
+          <video class="wk-media" data-src="/projects/Styleframes_5_1.mp4" muted loop playsinline preload="none"></video>
+          <div class="c-noise"></div>
+          <div class="c-gradient"></div>
+        </div>
+        <span class="c-index">09 / 11</span>
+        <div class="c-meta">
+          <span class="c-title">Fallas Valencia</span>
+          <span class="c-desc">2D animation recreating the Ofrenda, the Mascletà, and the Cremà in motion.</span>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- Block 4: Gemini 3 · BizLunch -->
+    <div class="wk-grid-block" data-block="3">
+
+      <article class="wk-grid-card" data-project-index="9" tabindex="0">
+        <div class="wk-media-wrap">
+          <video class="wk-media" data-src="/projects/Gemini_Portada.mp4" muted loop playsinline preload="none"></video>
+          <div class="c-noise"></div>
+          <div class="c-gradient"></div>
+        </div>
+        <span class="c-index">10 / 11</span>
+        <div class="c-meta">
+          <span class="c-title">Gemini 3</span>
+          <span class="c-desc">A concept spot imagining how Gemini 3 could be introduced — blending real product UI with AI-generated payoff.</span>
+        </div>
+      </article>
+
+      <article class="wk-grid-card" data-project-index="10" tabindex="0">
+        <div class="wk-media-wrap">
+          <video class="wk-media" data-src="proyectos/Bizlunch/Portada_thumb.mp4" muted loop playsinline preload="none"></video>
+          <div class="c-noise"></div>
+          <div class="c-gradient"></div>
+        </div>
+        <span class="c-index">11 / 11</span>
+        <div class="c-meta">
+          <span class="c-title">BizLunch</span>
+          <span class="c-desc">A promo spot for a business-lunch matching app, cutting between a real meetup and the screens that make it happen.</span>
+        </div>
+      </article>
+
+    </div>
+
+  </section>
+
+  <!-- ── Motion Design Reel ─────────────────────────────────────────────── -->
+  <div class="wk-reel-section">
+    <div class="ex-body-section">
+      <div class="ex-section-heading" id="wk-reel-heading"></div>
+      <div class="ex-section-divider"></div>
+      <p class="ex-body-text">A short reel that brings together some of my favorite motion design work.<br><strong><em>— "hope you enjoy the ride."</em></strong></p>
+    </div>
+    <div class="wk-reel-thumb" id="wk-reel-thumb" role="button" tabindex="0" aria-label="Play showreel">
+      <div class="wk-reel-thumb-inner">
+        <div class="wk-reel-play">
+          <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+            <circle cx="36" cy="36" r="35" stroke="white" stroke-opacity="0.35" stroke-width="1.5"/>
+            <path d="M29 22l22 14-22 14V22z" fill="white"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Reel lightbox ──────────────────────────────────────────────────── -->
+  <div id="reel-lightbox" aria-modal="true" role="dialog" aria-label="Showreel">
+    <div id="reel-lightbox-frame"></div>
+    <button id="reel-lightbox-close" aria-label="Close reel">&#x2715;</button>
+  </div>
+
+</div>
+
+<footer id="wk-footer" class="shared-footer">
+  <span>Made with love by</span>
+  <img src="Logo Alamilla.svg" alt="Alamilla">
+</footer>
+
+<div id="card-expand">
+  <div id="card-expand-backdrop"></div>
+  <div id="card-expand-panel">
+    <div id="card-expand-hero">
+      <video id="card-expand-video" autoplay loop muted playsinline></video>
+      <div id="card-expand-meta">
+        <span class="ex-headline" id="card-expand-headline"></span>
+        <span class="ex-title"    id="card-expand-title"></span>
+        <span class="ex-desc"     id="card-expand-desc"></span>
+        <div id="card-expand-actions">
+          <button class="ex-btn ex-btn-primary" id="card-expand-vimeo">&#9654; Watch on Vimeo</button>
+        </div>
+      </div>
+    </div>
+    <div id="card-expand-body">
+      <div class="ex-body-section">
+        <div class="ex-meta-stack">
+          <span class="ex-meta-label" id="ex-meta-role"></span>
+          <span class="ex-meta-label" id="ex-meta-tools"></span>
+        </div>
+        <div class="ex-section-heading" id="ex-heading-1"></div>
+        <div class="ex-section-divider"></div>
+        <p class="ex-body-text" id="ex-challenge-text"></p>
+      </div>
+      <div id="card-expand-challenge-videos"></div>
+      <div id="card-expand-styleframes"></div>
+      <div class="ex-body-section">
+        <div class="ex-section-heading" id="ex-heading-2"></div>
+        <div class="ex-section-divider"></div>
+        <p class="ex-body-text" id="ex-process-text"></p>
+      </div>
+      <div id="card-expand-process-videos"></div>
+      <div id="card-expand-process-images"></div>
+      <div class="ex-body-section">
+        <div class="ex-section-heading" id="ex-heading-3"></div>
+        <div class="ex-section-divider"></div>
+        <p class="ex-body-text" id="ex-final-text"></p>
+        <div class="ex-final-video-sticky" id="ex-final-video-sticky" style="display:none;">
+          <div class="ex-final-video" id="ex-final-video">
+            <iframe id="ex-final-video-iframe" src="" title="Final result video" frameborder="0" allow="autoplay; picture-in-picture"></iframe>
+          </div>
+        </div>
+      </div>
+      <div id="card-expand-final-videos"></div>
+
+      <div class="shared-footer">
+        <span>Made with love by</span>
+        <img src="Logo Alamilla.svg" alt="Alamilla">
+      </div>
+    </div>
+    <div id="card-expand-scroll-hint">
+      <span>scroll</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </div>
+  </div>
+  <button id="card-expand-close" aria-label="Close">&#215;</button>
+</div>
+
+<script>
+  // ── SELECTED PROJECTS letter-reveal ──────────────────────────────────────
+  function buildLetterRow(text, rowEl) {
+    rowEl.innerHTML = '';
+    text.toUpperCase().split('').forEach(char => {
+      const wrap   = document.createElement('span'); wrap.className = 'ex-letter-wrap';
+      const letter = document.createElement('span'); letter.className = 'ex-letter';
+      letter.textContent = char === ' ' ? ' ' : char;
+      wrap.appendChild(letter); rowEl.appendChild(wrap);
+    });
+  }
+  function animateLettersIn(rowEl, delayOffset) {
+    const letters = Array.from(rowEl.querySelectorAll('.ex-letter'));
+    const indices = letters.map((_, i) => i).sort(() => Math.random() - 0.5);
+    indices.forEach((idx, order) => {
+      const el = letters[idx];
+      setTimeout(() => {
+        el.style.transition = 'transform 800ms cubic-bezier(0.16, 1, 0.3, 1)';
+        el.style.transform  = 'translateY(0)';
+      }, delayOffset + order * 45);
+    });
+  }
+  function resetLetters(rowEl) {
+    Array.from(rowEl.querySelectorAll('.ex-letter')).forEach(el => {
+      el.style.transition = 'none'; el.style.transform = 'translateY(110%)';
+    });
+  }
+
+  function buildHeading(id, lines) {
+    const container = document.getElementById(id);
+    if (!container) return;
+    if (container._headingObserver) { container._headingObserver.disconnect(); container._headingObserver = null; }
+    container.innerHTML = '';
+    const rows = lines.map(text => {
+      const row = document.createElement('div'); row.className = 'ex-marquee-row';
+      buildLetterRow(text, row); container.appendChild(row); return row;
+    });
+    rows.forEach(r => resetLetters(r));
+    let played = false;
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) { rows.forEach(r => resetLetters(r)); played = false; }
+        else if (!played)      { played = true; rows.forEach((r, i) => animateLettersIn(r, i * 120)); }
+      });
+    }, { threshold: 0.2 });
+    obs.observe(container);
+    container._headingObserver = obs;
+  }
+
+  buildHeading('wk-reel-heading', ['SHOWREEL']);
+
+  // ── Card expand system ────────────────────────────────────────────────────
+  const cardExpand              = document.getElementById('card-expand');
+  const cardExpandBackdrop      = document.getElementById('card-expand-backdrop');
+  const cardExpandPanel         = document.getElementById('card-expand-panel');
+  const cardExpandVideo         = document.getElementById('card-expand-video');
+  const cardExpandHeadline      = document.getElementById('card-expand-headline');
+  const cardExpandTitle         = document.getElementById('card-expand-title');
+  const cardExpandDesc          = document.getElementById('card-expand-desc');
+  const cardExpandVimeo         = document.getElementById('card-expand-vimeo');
+  const cardExpandClose         = document.getElementById('card-expand-close');
+  const cardExpandBody          = document.getElementById('card-expand-body');
+  const cardExpandChallengeVideos = document.getElementById('card-expand-challenge-videos');
+  const cardExpandStyleframes   = document.getElementById('card-expand-styleframes');
+  const cardExpandProcessVideos = document.getElementById('card-expand-process-videos');
+  const cardExpandProcessImages = document.getElementById('card-expand-process-images');
+  const cardExpandFinalVideos   = document.getElementById('card-expand-final-videos');
+  const cardExpandHint          = document.getElementById('card-expand-scroll-hint');
+
+  let expandedCard   = null;
+  let expandOrigin   = null;
+  let currentProject = null;
+
+  const projects = [
+    // 00 Spotify Daylist
+    {
+      headline: 'Spotify Daylist',
+      title:    'Spotify Daylist',
+      slug:     'spotify-daylist',
+      desc:     "A paid advertising campaign for Spotify's Daylist feature, translating its ever-changing, personalized playlists into a bold, mobile-first ad designed for social media promotion.",
+      challenge: "Daylist is a playlist that rewrites itself throughout the day, so the ad needed to move the same way — quick, mood-driven, never quite the same twice. It had to run as sponsored content and blend into the feed rather than announce itself as an ad.",
+      challengeVideos: [],
+      process: "Started from styleframes testing color, type and little UI moments lifted from the app itself. From there it was all After Effects: fast cuts, type that shifts with the palette, pacing tight enough to stop a thumb mid-scroll.",
+      processVideos: [
+        'proyectos/Spotify/Styleframes/Spotify Daylist_Styleframes 1.mp4',
+        'proyectos/Spotify/Styleframes/Spotify Daylist_Styleframes 2_1.mp4',
+        'proyectos/Spotify/Styleframes/Spotify Daylist_Styleframes 3.mp4'
+      ],
+      processImages: [],
+      finalResult: '',
+      finalResultVideos: [],
+      finalResultYoutube: 'https://www.youtube.com/embed/IXRR8XM6_7k',
+      role: 'Motion Design, Editing', tools: 'After Effects', vimeoUrl: '',
+      video: 'proyectos/Spotify/Portada_Spotify Daylist.mp4'
+    },
+    // 01 Waapiti
+    {
+      headline: "A Kinetic Spot for Waapiti's CMS",
+      title:    'Waapiti',
+      slug:     'waapiti',
+      desc:     "A kinetic typography spot explaining Waapiti's CMS platform for digital signage, built to communicate what it does in seconds.",
+      challenge: "Waapiti's CMS does a lot — automated content, full player control, different access levels for clients and integrators — and none of it is easy to show without a screen recording and a voiceover. The brief was to explain it fast, visually, with neither.",
+      challengeVideos: [],
+      process: "So it became a kinetic type piece — short statements revealed with a coral highlighter effect, running over a recurring eye-and-orb motif and purple-to-magenta gradients. The cuts follow reading speed rather than music, so each point has a second to land before the next one shows up. It closes on the brand line, 'Digital Signage with not limits.'",
+      processVideos: [
+        'proyectos/ISE/Styleframes/Styleframes_1.mp4',
+        'proyectos/ISE/Styleframes/Styleframes_2.mp4',
+        'proyectos/ISE/Styleframes/Styleframes_3.mp4'
+      ],
+      finalResult: '',
+      finalResultYoutube: 'https://www.youtube.com/embed/ARgKpomcNoU',
+      role: 'Motion Designer, Art Director', tools: 'After Effects', vimeoUrl: '',
+      video: 'proyectos/ISE/Portada.mp4'
+    },
+    // 02 Hummel x Valencia Basket
+    {
+      headline: 'A Sponsorship Film Born to Move',
+      title:    'Hummel x Valencia Basket',
+      slug:     'hummel-valencia-basket',
+      desc:     "A paid advertising campaign for Hummel's kit sponsorship of Valencia Basket, created to launch the new season kit to the club's basketball fanbase, generated with Veo and composited in After Effects.",
+      challenge: "A new kit launch, no shoot scheduled, and a basketball audience that would spot anything generic instantly. The ad had to land on release day and feel as physical as the game itself.",
+      process: "Most of the footage came out of Veo, shot by shot, with constant checks to keep the crest, colours and sponsor logos consistent across generations — that consistency was the hard part. Everything was then composited and graded in After Effects.",
+      processVideos: [
+        'proyectos/Hummel Valencia Baket/Styleframes/Styleframes 1.mp4',
+        'proyectos/Hummel Valencia Baket/Styleframes/Styleframes 2.mp4',
+        'proyectos/Hummel Valencia Baket/Hummel Valencia Basket_Tarjeta.mp4'
+      ],
+      finalResult: '',
+      finalResultYoutube: 'https://www.youtube.com/embed/1ZPffRVrTAU',
+      role: 'Motion Designer', tools: 'Veo, After Effects', vimeoUrl: '',
+      video: 'proyectos/Hummel Valencia Baket/Hummel Valencia Basket_Tarjeta.mp4'
+    },
+    // 03 Caprabo
+    {
+      headline: 'Holograms to Enhance the Shopping Experience',
+      title:    'Caprabo',
+      slug:     'caprabo',
+      desc:     'Holographic 3D animations with a realistic floating effect.',
+      challenge: "Supermarkets aren't built for excitement, and animating offers for in-store screens could easily have stayed that way. The one piece worth pushing further was the holographic display — a chance to make products stand out in a way a flat screen just can't.",
+      challengeVideos: [
+        'proyectos/Caprabo/Tienda/Tienda 1.mp4',
+        'proyectos/Caprabo/Tienda/Tienda 2.mp4',
+        'proyectos/Caprabo/Tienda/Tienda 3.mp4'
+      ],
+      process: "Built in Cinema 4D against pure black, with high-contrast lighting and MoGraph pushing the motion. Getting the floating effect to read as real took a lot of trial and error on materials and camera angles — too flat and it looks fake, too much depth and it looks off.",
+      processVideos: [
+        'proyectos/Caprabo/Montaje/Cafe_Montaje.mp4',
+        'proyectos/Caprabo/Montaje/Halloween_Montaje.mp4',
+        'proyectos/Caprabo/Montaje/Navidad_Montaje.mp4'
+      ],
+      finalResult: '',
+      finalResultVideos: [
+        'proyectos/Caprabo/Ventilador/Ventilador_Globos.mp4',
+        'proyectos/Caprabo/Ventilador/Ventilador_Halloween.mp4',
+        'proyectos/Caprabo/Ventilador/Ventilador_Madalena.mp4',
+        'proyectos/Caprabo/Ventilador/Ventilador_Monedas.mp4',
+        'proyectos/Caprabo/Ventilador/Ventilador_Navidad.mp4',
+        'proyectos/Caprabo/Ventilador/Ventilador_Sant Joan.mp4'
+      ],
+      role: 'Motion Designer', tools: 'Cinema 4D, After Effects', vimeoUrl: '',
+      video: '/projects/caprabo-tienda-1.mp4'
+    },
+    // 04 Sitges Film Festival
+    {
+      headline: 'We Are the Freaks: A Portrait of the Sitges Audience',
+      title:    'Sitges Film Festival',
+      slug:     'sitges-film-festival',
+      desc:     '2D animations celebrating the cult community that defines the spirit of Sitges.',
+      challenge: "Sitges wanted Freaks reinterpreted as a mirror for its own audience — people who wear being different as a badge of honour. The piece needed a character that felt like it belonged to that crowd, screened in 2024 ahead of the film's restoration.",
+      challengeVideos: [
+        'proyectos/Sitges/Styleframes/Styleframes_SItges_1.2.mp4',
+        'proyectos/Sitges/Styleframes/Styleframes_SItges_2.2.mp4',
+        'proyectos/Sitges/Styleframes/Styleframes_SItges_3.2.mp4'
+      ],
+      process: "It started with actual photos from past editions of the festival — the looks, the costumes, the people who make Sitges what it is. Each character was collaged together from different references into one illustrated figure, then rigged in Duik Angela for fluid, expressive movement.",
+      processVideos: [
+        'proyectos/Sitges/Rigging/Rigging Sitges_1.1.mp4',
+        'proyectos/Sitges/Rigging/Rigging Sitges_2.1.mp4',
+        'proyectos/Sitges/Rigging/Rigging Sitges_3.1.mp4'
+      ],
+      finalResult: '',
+      finalResultVimeo: 'https://player.vimeo.com/video/978951441',
+      role: '2D Animator & Rigger', tools: 'After Effects, Duik Angela',
+      vimeoUrl: '',
+      video: '/projects/Styleframes_SItges_1.2.mp4'
+    },
+    // 05 Ron Barceló
+    {
+      headline: 'Barceló',
+      title:    'Barceló',
+      slug:     'ron-barcelo',
+      desc:     'A short promotional spot for Ron Barceló, capturing a vibrant, sun-soaked summer atmosphere through bold color and energetic motion.',
+      challenge: "Ron Barceló wanted something that feels like summer the second it starts playing — colour, movement, heat, no slow build-up.",
+      challengeVideos: [],
+      process: "Started with styleframes to lock the palette and texture, then built it out in After Effects — layered motion graphics, quick transitions, type that keeps moving. Most of the work went into rhythm: finding the timing that felt summery rather than just fast.",
+      processVideos: [
+        'proyectos/Estiu TMM/Styleframes/Styleframes 1.mp4',
+        'proyectos/Estiu TMM/Styleframes/Styleframes 2.mp4',
+        'proyectos/Estiu TMM/Styleframes/Styleframes 3_thumb.mp4'
+      ],
+      processImages: [],
+      finalResult: '',
+      finalResultVideos: [],
+      finalResultYoutube: 'https://www.youtube.com/embed/tjCd8-RYuJ4',
+      role: 'Motion Design, Editing', tools: 'After Effects', vimeoUrl: '',
+      video: 'proyectos/Estiu TMM/Styleframes/Styleframes 1.mp4'
+    },
+    // 06 Sensory Sync
+    {
+      headline: 'Content Creation for a Multisensory Space',
+      title:    'Sensory Sync',
+      slug:     'sensory-sync',
+      desc:     'Immersive screen content blending narrative, environment, and AI.',
+      challenge: "Sensory Sync hosts international clients, and every screen in the room is a different shape — curved panels, projectors, odd aspect ratios. The content had to look premium and consistent across all of them, and still flex for seasonal campaigns like Christmas or Sant Jordi.",
+      challengeVideos: [
+        'proyectos/Sensory/Animaciones/Navidad.mp4',
+        'proyectos/Sensory/Animaciones/Primavera.mp4',
+        'proyectos/Sensory/Animaciones/Sant Jordi.mp4'
+      ],
+      process: "Mostly built with AI video tools — Veo, Kling, Sora — which let iterations happen much faster than a traditional 3D pipeline would've allowed, without losing the visual consistency the brand needed.",
+      processVideos: [],
+      finalResult: '',
+      finalResultVideos: [
+        'proyectos/Sensory/Pantallas/Auditorio_Pantalla.mp4',
+        'proyectos/Sensory/Pantallas/Proyector.mp4',
+        'proyectos/Sensory/Pantallas/Sant Jordi_Pantalla.mp4'
+      ],
+      role: 'Motion Designer, Art Director', tools: 'Veo, Kling, Sora, After Effects', vimeoUrl: '',
+      video: '/projects/Proyector.mp4'
+    },
+    // 07 Hummel x Betis
+    {
+      headline: 'A Sponsorship Film Built for the Pitch',
+      title:    'Hummel x Betis',
+      slug:     'hummel-betis',
+      desc:     "A paid advertising campaign celebrating Hummel's kit sponsorship of Real Betis, created as a matchday launch ad for the club's football fanbase, generated with Veo and composited in After Effects.",
+      challenge: "Same brief as the Valencia Basket kit, different club: a matchday launch ad for Real Betis's new Hummel kit, built without a shoot, and needing to feel unmistakably verdiblanco.",
+      process: "Again mostly Veo-generated, shot by shot, watching closely to keep the crest and colours consistent through every generation, then pulled together and graded in After Effects.",
+      processVideos: [
+        'proyectos/Hummel Betis/Styleframes/Styleframes 1.mp4',
+        'proyectos/Hummel Betis/Styleframes/Styleframes 2.mp4',
+        'proyectos/Hummel Betis/Styleframes/Styleframes 3.mp4'
+      ],
+      finalResult: '',
+      finalResultYoutube: 'https://www.youtube.com/embed/ZtjXZlHdD70',
+      role: 'Motion Designer', tools: 'Veo, After Effects', vimeoUrl: '',
+      video: 'proyectos/Hummel Betis/Hummel Betis_Tarjeta.mp4'
+    },
+    // 08 Fallas Valencia
+    {
+      headline: 'A Motion Tribute to Tradition',
+      title:    'Fallas Valencia',
+      slug:     'fallas-valencia',
+      desc:     '2D animation recreating the Ofrenda, the Mascletà, and the Cremà in motion.',
+      challenge: "Fallas is fire, music, colour and the whole city out in the street every March — it's not a subtle thing to animate. The challenge was turning key moments like the Ofrenda, the Mascletà and the Cremà into 2D animation without flattening them into decoration.",
+      challengeVideos: [
+        'proyectos/Fallas/Styleframes/Styleframes_2_1.mp4',
+        'proyectos/Fallas/Styleframes/Styleframes_3.mp4',
+        'proyectos/Fallas/Styleframes/Styleframes_5_1.mp4'
+      ],
+      process: "The look came straight from the official 2024 Fallas poster — cobalt blue, burnt orange, flat editorial illustration with a bit of grain for warmth. Each scene got rebuilt in After Effects layer by layer, so the original artwork could move without losing what made it work in the first place.",
+      processImages: [
+        'proyectos/Fallas/Poster/Poster 1.jpg',
+        'proyectos/Fallas/Poster/Poster 2.jpg',
+        'proyectos/Fallas/Poster/Poster 3.jpg'
+      ],
+      finalResult: '',
+      finalResultVimeo: 'https://player.vimeo.com/video/926805770',
+      role: 'Motion Designer', tools: 'After Effects',
+      vimeoUrl: '',
+      video: '/projects/Styleframes_5_1.mp4'
+    },
+    // 09 Gemini 3
+    {
+      headline: 'A Concept Launch Film for Gemini 3',
+      title:    'Gemini 3',
+      slug:     'gemini-3',
+      desc:     'A concept spot imagining how Gemini 3 could be introduced — blending real product UI with AI-generated payoff.',
+      challenge: "An open-ended one: what would a Gemini 3 launch film even look like, starting from the product's own interface instead of a script?",
+      challengeVideos: [],
+      process: "Made almost entirely inside Gemini itself — imagery, video, all generated there — then stitched together in After Effects: a UI walkthrough, an 'Analysing…' beat, an AI-generated payoff, ending on the Gemini 3 lockup.",
+      processVideos: [
+        'proyectos/Gemini/Styleframes/Gemini_Styleframes 1.mp4',
+        'proyectos/Gemini/Styleframes/Gemini_Styleframes 2.mp4',
+        'proyectos/Gemini/Styleframes/Gemini_Styleframes 3.mp4'
+      ],
+      processImages: [],
+      finalResult: '',
+      finalResultVideos: [],
+      finalResultYoutube: 'https://www.youtube.com/embed/WInNSqUsuc8',
+      role: 'Concept, Motion Design, Editing', tools: 'Gemini, After Effects', vimeoUrl: '',
+      video: '/projects/Gemini_Portada.mp4'
+    },
+    // 10 BizLunch
+    {
+      headline: "Selling a Lunch You've Never Had",
+      title:    'BizLunch',
+      slug:     'bizlunch',
+      desc:     "A promo spot for BizLunch, an app that matches professionals for business lunches, cutting between a real meetup and the screens that make it happen.",
+      challenge: "Nobody's used an app like this before, so the video had to sell the idea itself — going from lunch alone at your desk to a matched meeting — and still show enough of the app (matching, booking, ratings) to make it feel real, not just a concept trailer.",
+      challengeVideos: [],
+      process: "Live-action of two people meeting for lunch runs alongside screen recordings of the actual flow — searching restaurants, checking availability, getting matched, rating it after. Same teal and gold throughout so the jump between real world and app doesn't feel like a jump.",
+      processVideos: [
+        'proyectos/Bizlunch/Styleframes/Styleframes_1.mp4',
+        'proyectos/Bizlunch/Styleframes/Styleframes_2.mp4',
+        'proyectos/Bizlunch/Styleframes/Styleframes_3.mp4'
+      ],
+      processImages: [],
+      finalResult: '',
+      finalResultVideos: [],
+      finalResultYoutube: 'https://www.youtube.com/embed/DGfPLogHelQ',
+      role: 'Motion Design, Editing', tools: 'After Effects', vimeoUrl: '',
+      video: 'proyectos/Bizlunch/Portada.mp4'
+    }
+  ];
+
+  function updateFinalVideoLayout() {
+    const el     = document.getElementById('ex-final-video');
+    const sticky = document.getElementById('ex-final-video-sticky');
+    if (!el || !sticky || sticky.style.display === 'none') return;
+    const stickyRect = sticky.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const videoW = window.matchMedia('(max-width: 768px)').matches ? vw * 0.9 : vw * 0.8;
+    el.style.width      = videoW + 'px';
+    el.style.height     = (videoW * 9 / 16) + 'px';
+    el.style.marginLeft = (vw / 2 - videoW / 2 - stickyRect.left) + 'px';
+  }
+
+  function onExpandScroll() {
+    cardExpandHint.classList.add('hidden');
+    cardExpandPanel.removeEventListener('scroll', onExpandScroll);
+  }
+
+  function onExpandParallax() {
+    const scrollY   = cardExpandPanel.scrollTop;
+    const vh        = window.innerHeight;
+    const progress  = Math.min(1, Math.max(0, scrollY / (vh * 0.85)));
+    const scale     = 1 - (progress * 0.22);
+    cardExpandVideo.style.transform    = `scale(${scale})`;
+    cardExpandVideo.style.borderRadius = '0px';
+    const metaEl = document.getElementById('card-expand-meta');
+    if (metaEl) {
+      metaEl.style.transform       = `scale(${scale})`;
+      metaEl.style.transformOrigin = 'center center';
+      metaEl.style.borderRadius    = '0px';
+    }
+  }
+
+  function populateExpandContent(p, card) {
+    const cardVideo = card.querySelector('video.wk-media');
+    cardExpandVideo.style.transition = 'none';
+    cardExpandVideo.style.opacity    = '0';
+    cardExpandVideo.src = p.video;
+    cardExpandVideo.load();
+    cardExpandVideo.addEventListener('canplay', function syncTime() {
+      cardExpandVideo.currentTime = cardVideo ? cardVideo.currentTime : 0;
+      cardExpandVideo.play();
+      cardExpandVideo.removeEventListener('canplay', syncTime);
+    }, { once: true });
+
+    cardExpandHeadline.textContent = p.headline || '';
+    cardExpandTitle.textContent    = p.title    || '';
+    cardExpandDesc.textContent     = p.desc     || '';
+    cardExpandVimeo.style.display  = p.vimeoUrl ? 'inline-flex' : 'none';
+    cardExpandBody.style.display   = '';
+
+    if (p.isStub) {
+      const metaRole  = document.getElementById('ex-meta-role');
+      const metaTools = document.getElementById('ex-meta-tools');
+      if (metaRole)  metaRole.innerHTML  = '';
+      if (metaTools) metaTools.innerHTML = '';
+      buildHeading('ex-heading-1', ['COMING', 'SOON']);
+      document.getElementById('ex-challenge-text').textContent =
+        'Full case study for this project is coming soon — check back shortly for the creative challenge, process, and final result.';
+      document.getElementById('ex-process-text').textContent = '';
+      document.getElementById('ex-final-text').textContent   = '';
+      document.getElementById('ex-final-video-sticky').style.display = 'none';
+      ['ex-heading-2', 'ex-heading-3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el._headingObserver) { el._headingObserver.disconnect(); el._headingObserver = null; }
+        if (el) el.innerHTML = '';
+      });
+      cardExpandChallengeVideos.innerHTML = '';
+      cardExpandStyleframes.innerHTML     = '';
+      cardExpandProcessVideos.innerHTML   = '';
+      cardExpandProcessImages.innerHTML   = '';
+      cardExpandFinalVideos.innerHTML     = '';
+    } else {
+      const metaRole  = document.getElementById('ex-meta-role');
+      const metaTools = document.getElementById('ex-meta-tools');
+      if (metaRole)  metaRole.innerHTML  = `<strong>Role:</strong> ${p.role  || ''}`;
+      if (metaTools) metaTools.innerHTML = `<strong>Tools:</strong> ${p.tools || ''}`;
+
+      document.getElementById('ex-challenge-text').textContent = p.challenge || '';
+      document.getElementById('ex-process-text').textContent   = p.process   || '';
+
+      const finalText        = document.getElementById('ex-final-text');
+      const finalVideoSticky = document.getElementById('ex-final-video-sticky');
+      const finalVimeoUrl    = p.finalResultVimeo;
+      const finalYoutubeUrl  = p.finalResultYoutube;
+      const finalEmbedUrl    = finalVimeoUrl
+        ? finalVimeoUrl  + '?title=0&byline=0&portrait=0&controls=1'
+        : finalYoutubeUrl
+          ? finalYoutubeUrl + '?controls=1&rel=0&modestbranding=1'
+          : '';
+
+      finalText.textContent   = p.finalResult || '';
+      finalText.style.display = !p.finalResult ? 'none' : '';
+
+      const defaultIframe = '<iframe id="ex-final-video-iframe" src="" title="Final result video" frameborder="0" allow="autoplay; picture-in-picture"></iframe>';
+      if (finalEmbedUrl) {
+        finalVideoSticky.style.display = '';
+        if (finalYoutubeUrl) {
+          document.getElementById('ex-final-video').innerHTML =
+            `<iframe id="ex-final-video-iframe" width="100%" height="100%" src="${finalYoutubeUrl}?fs=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+        } else {
+          document.getElementById('ex-final-video').innerHTML = defaultIframe;
+          document.getElementById('ex-final-video-iframe').src = finalEmbedUrl;
+        }
+        requestAnimationFrame(updateFinalVideoLayout);
+      } else {
+        finalVideoSticky.style.display = 'none';
+        document.getElementById('ex-final-video').innerHTML = defaultIframe;
+      }
+
+      buildHeading('ex-heading-1', ['CREATIVE', 'CHALLENGE']);
+      buildHeading('ex-heading-2', ['DESIGN',   'PROCESS']);
+      buildHeading('ex-heading-3', ['FINAL',    'RESULT']);
+
+      cardExpandChallengeVideos.innerHTML = '';
+      (p.challengeVideos || []).forEach(src => {
+        const v = document.createElement('video');
+        v.src = src; v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
+        cardExpandChallengeVideos.appendChild(v);
+      });
+      cardExpandProcessVideos.innerHTML = '';
+      cardExpandProcessVideos.dataset.project = projects.indexOf(p);
+      (p.processVideos || []).forEach(src => {
+        const v = document.createElement('video');
+        v.src = src; v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
+        cardExpandProcessVideos.appendChild(v);
+      });
+      cardExpandProcessImages.innerHTML = '';
+      (p.processImages || []).forEach(src => {
+        const img = document.createElement('img'); img.src = src; img.alt = '';
+        cardExpandProcessImages.appendChild(img);
+      });
+      cardExpandFinalVideos.innerHTML = '';
+      (p.finalResultVideos || []).forEach(src => {
+        const v = document.createElement('video');
+        v.src = src; v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
+        cardExpandFinalVideos.appendChild(v);
+      });
+      cardExpandStyleframes.innerHTML = '';
+      (p.styleframes || []).forEach(src => {
+        let el;
+        if (/\.mp4$/i.test(src)) {
+          el = document.createElement('video');
+          el.src = src; el.autoplay = true; el.loop = true; el.muted = true; el.playsInline = true;
+        } else { el = document.createElement('img'); el.src = src; el.alt = ''; }
+        cardExpandStyleframes.appendChild(el);
+      });
+    }
+
+    cardExpandPanel.scrollTop = 0;
+    cardExpandVideo.style.transform    = '';
+    cardExpandVideo.style.borderRadius = '0px';
+    const metaEl = document.getElementById('card-expand-meta');
+    if (metaEl) { metaEl.style.transform = ''; metaEl.style.borderRadius = '0px'; }
+    cardExpandPanel.addEventListener('scroll', onExpandParallax, { passive: true });
+    cardExpandHint.classList.add('hidden');
+    cardExpandPanel.removeEventListener('scroll', onExpandScroll);
+    requestAnimationFrame(() => {
+      cardExpandVideo.style.transition = 'opacity 400ms ease-out 200ms';
+      cardExpandVideo.style.opacity    = '1';
+      if (cardExpandPanel.scrollHeight > cardExpandPanel.clientHeight) {
+        cardExpandHint.classList.remove('hidden');
+        cardExpandPanel.addEventListener('scroll', onExpandScroll);
+      }
+    });
+  }
+
+  function openCardExpand(card, projectIndex, skipHistory = false) {
+    if (expandedCard) return;
+    expandedCard   = card;
+    currentProject = projects[projectIndex];
+    populateExpandContent(currentProject, card);
+
+    if (!skipHistory && currentProject.slug) {
+      history.pushState({ projectSlug: currentProject.slug }, '', '#' + currentProject.slug);
+    }
+
+    const from   = card.getBoundingClientRect();
+    cardExpandPanel.style.visibility = 'visible';
+    cardExpandPanel.style.transition = 'none';
+
+    const scaleX = from.width  / window.innerWidth;
+    const scaleY = from.height / window.innerHeight;
+    const dx     = from.left + from.width  / 2 - window.innerWidth  / 2;
+    const dy     = from.top  + from.height / 2 - window.innerHeight / 2;
+    expandOrigin = { scaleX, scaleY, dx, dy };
+
+    cardExpandPanel.style.transformOrigin = '50% 50%';
+    cardExpandPanel.style.transform       = `translate(${dx}px,${dy}px) scale(${scaleX},${scaleY})`;
+    cardExpandPanel.style.borderRadius    = '18px';
+    cardExpandPanel.getBoundingClientRect();
+
+    cardExpandPanel.style.transition =
+      'transform 800ms cubic-bezier(0.22, 1, 0.36, 1), border-radius 800ms cubic-bezier(0.22, 1, 0.36, 1)';
+    cardExpandPanel.style.transform    = 'translate(0,0) scale(1,1)';
+    cardExpandPanel.style.borderRadius = '0px';
+
+    cardExpand.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+    cardExpandPanel.addEventListener('transitionend', updateFinalVideoLayout, { once: true });
+  }
+
+  function closeCardExpand(skipHistory = false) {
+    if (!expandedCard) return;
+
+    if (cameFromIndexDeepLink) {
+      window.location.href = 'index.html';
+      return;
+    }
+
+    const card = expandedCard;
+    expandedCard = null;
+
+    if (!skipHistory && location.hash) {
+      history.pushState(null, '', location.pathname + location.search);
+    }
+
+    cardExpand.classList.remove('is-open');
+    cardExpandPanel.removeEventListener('scroll', onExpandParallax);
+    cardExpandVideo.style.transform    = '';
+    cardExpandVideo.style.borderRadius = '0px';
+    const metaEl = document.getElementById('card-expand-meta');
+    if (metaEl) { metaEl.style.transform = ''; metaEl.style.borderRadius = '0px'; }
+    document.body.style.overflow = '';
+    cardExpandHint.classList.remove('hidden');
+
+    const cardVideo = card.querySelector('video.wk-media');
+    if (cardVideo) cardVideo.currentTime = cardExpandVideo.currentTime;
+
+    cardExpandVideo.style.transition = 'opacity 150ms ease-out';
+    cardExpandVideo.style.opacity    = '0';
+
+    if (expandOrigin) {
+      const { scaleX, scaleY, dx, dy } = expandOrigin;
+      cardExpandPanel.style.transition =
+        'transform 600ms cubic-bezier(0.76, 0, 0.24, 1), border-radius 600ms cubic-bezier(0.76, 0, 0.24, 1)';
+      cardExpandPanel.style.transform    = `translate(${dx}px,${dy}px) scale(${scaleX},${scaleY})`;
+      cardExpandPanel.style.borderRadius = '18px';
+    }
+
+    ['ex-heading-1', 'ex-heading-2', 'ex-heading-3'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el._headingObserver) { el._headingObserver.disconnect(); el._headingObserver = null; }
+    });
+
+    setTimeout(() => {
+      cardExpandPanel.style.visibility = 'hidden';
+      cardExpandPanel.style.transition = 'none';
+      cardExpandPanel.style.transform  = '';
+      cardExpandVideo.src              = '';
+      cardExpandVideo.style.opacity    = '1';
+      cardExpandVideo.style.transition = '';
+    }, 620);
+  }
+
+  // Vimeo button
+  cardExpandVimeo.addEventListener('click', () => {
+    if (currentProject && currentProject.vimeoUrl) {
+      window.open(currentProject.vimeoUrl, '_blank', 'noopener');
+    }
+  });
+
+  // ── Grid layout: fixed shape per block, every card opens expand panel ──────
+  const gridBlocks = Array.from(document.querySelectorAll('.wk-grid-block'));
+
+  function applyGridLayout(blockIndex) {
+    const block = gridBlocks[blockIndex];
+    const cards = Array.from(block.querySelectorAll('.wk-grid-card'));
+    if (window.innerWidth <= 768) {
+      cards.forEach(card => card.classList.remove('wk-grid-card--paired', 'wk-grid-card--solo'));
+      return;
+    }
+    cards.forEach((card, li) => {
+      if (li === 2 || cards.length === 1) {
+        card.classList.remove('wk-grid-card--paired');
+        card.classList.add('wk-grid-card--solo');
+      } else {
+        card.classList.remove('wk-grid-card--solo');
+        card.classList.add('wk-grid-card--paired');
+      }
+    });
+  }
+
+  gridBlocks.forEach((block, blockIndex) => {
+    applyGridLayout(blockIndex);
+    Array.from(block.querySelectorAll('.wk-grid-card')).forEach(card => {
+      card.addEventListener('click',   () => openCardExpand(card, parseInt(card.dataset.projectIndex, 10)));
+      card.addEventListener('keydown', e => { if (e.key === 'Enter') openCardExpand(card, parseInt(card.dataset.projectIndex, 10)); });
+    });
+  });
+
+  window.addEventListener('resize', () => {
+    gridBlocks.forEach((_, blockIndex) => applyGridLayout(blockIndex));
+  });
+
+  // Close handlers — card expand
+  cardExpandClose.addEventListener('click', closeCardExpand);
+  cardExpandBackdrop.addEventListener('click', closeCardExpand);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCardExpand(); });
+
+  // ── Deep linking: open a project panel directly via #slug in the URL ──────
+  function openProjectBySlug(slug, skipHistory) {
+    const index = projects.findIndex(p => p.slug === slug);
+    if (index === -1) return;
+    const card = document.querySelector(`.wk-grid-card[data-project-index="${index}"]`);
+    if (!card) return;
+    card.scrollIntoView({ block: 'center', behavior: 'auto' });
+    requestAnimationFrame(() => openCardExpand(card, index, skipHistory));
+  }
+
+  const initialSlug = location.hash.replace('#', '');
+  // True only when this page load already had a #slug in the URL — i.e. the
+  // user arrived via a direct link (like the project cards on index.html),
+  // not by clicking a card inside work.html's own grid (that path pushes
+  // the hash itself, after the page was already loaded with none). Closing
+  // a card opened this way should return to index.html instead of just
+  // clearing the hash and landing on work.html's grid, since the user never
+  // actually chose to browse the grid.
+  const cameFromIndexDeepLink = !!initialSlug;
+  if (initialSlug) {
+    requestAnimationFrame(() => openProjectBySlug(initialSlug, true));
+  }
+
+  window.addEventListener('popstate', () => {
+    const slug = location.hash.replace('#', '');
+    if (slug && !expandedCard) {
+      openProjectBySlug(slug, true);
+    } else if (!slug && expandedCard) {
+      closeCardExpand(true);
+    }
+  });
+
+  // ── Reel lightbox ─────────────────────────────────────────────────────
+  const reelThumb    = document.getElementById('wk-reel-thumb');
+  const reelLightbox = document.getElementById('reel-lightbox');
+  const reelFrame    = document.getElementById('reel-lightbox-frame');
+  const reelLbClose  = document.getElementById('reel-lightbox-close');
+  const REEL_SRC     = 'https://player.vimeo.com/video/1006517705?h=8c47176ec3&autoplay=1&loop=1';
+  const FLIP_EASE    = 'cubic-bezier(0.22, 1, 0.36, 1)';
+  let reelOpen = false;
+
+  function openReelLightbox() {
+    if (reelOpen) return;
+    reelOpen = true;
+
+    const thumbRect = reelThumb.querySelector('.wk-reel-thumb-inner').getBoundingClientRect();
+
+    reelLightbox.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const dx = thumbRect.left, dy = thumbRect.top;
+    const sx = thumbRect.width  / vw;
+    const sy = thumbRect.height / vh;
+
+    reelFrame.style.transition   = 'none';
+    reelFrame.style.transform    = `translate(${dx}px,${dy}px) scale(${sx},${sy})`;
+    reelFrame.style.borderRadius = '14px';
+
+    reelFrame.getBoundingClientRect();
+
+    reelFrame.innerHTML = `<iframe src="${REEL_SRC}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+
+    reelFrame.style.transition   = `transform 900ms ${FLIP_EASE}, border-radius 900ms ${FLIP_EASE}`;
+    reelFrame.style.transform    = '';
+    reelFrame.style.borderRadius = '0px';
+
+    setTimeout(() => { reelFrame.style.transition = ''; }, 900);
+
+    if (reelLightbox.requestFullscreen) reelLightbox.requestFullscreen();
+    else if (reelLightbox.webkitRequestFullscreen) reelLightbox.webkitRequestFullscreen();
+  }
+
+  function closeReelLightbox() {
+    if (!reelOpen) return;
+    reelOpen = false;
+
+    reelFrame.innerHTML = '';
+
+    const thumbRect = reelThumb.querySelector('.wk-reel-thumb-inner').getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const dx = thumbRect.left, dy = thumbRect.top;
+    const sx = thumbRect.width  / vw;
+    const sy = thumbRect.height / vh;
+
+    reelFrame.style.transition   = 'none';
+    reelFrame.style.transform    = '';
+    reelFrame.style.borderRadius = '0px';
+
+    reelFrame.getBoundingClientRect();
+
+    reelFrame.style.transition   = `transform 650ms ${FLIP_EASE}, border-radius 650ms ${FLIP_EASE}`;
+    reelFrame.style.transform    = `translate(${dx}px,${dy}px) scale(${sx},${sy})`;
+    reelFrame.style.borderRadius = '14px';
+
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }
+
+    setTimeout(() => {
+      reelLightbox.classList.remove('is-open');
+      reelFrame.style.transition = '';
+      reelFrame.style.transform  = '';
+      reelFrame.style.borderRadius = '';
+      document.body.style.overflow = '';
+    }, 650);
+  }
+
+  reelThumb.addEventListener('click', openReelLightbox);
+  reelThumb.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openReelLightbox(); }
+  });
+  reelLbClose.addEventListener('click', closeReelLightbox);
+  reelLightbox.addEventListener('click', e => { if (e.target === reelLightbox) closeReelLightbox(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && reelOpen) closeReelLightbox(); });
+
+  // ─── Card entrance animation ─────────────────────────────────────────────────
+  const cardObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        const card = entry.target;
+        const index = [...document.querySelectorAll('.wk-grid-card')].indexOf(card);
+        setTimeout(() => card.classList.add('card-visible'), index * 80);
+
+        const video = card.querySelector('video.wk-media');
+        if (video && video.dataset.src && !video.src) {
+          video.src = video.dataset.src;
+          video.load();
+          video.play().catch(() => {});
+        }
+
+        cardObserver.unobserve(card);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '200px 0px' });
+
+  document.querySelectorAll('.wk-grid-card').forEach(card => cardObserver.observe(card));
+
+</script>
+</body>
+</html>
