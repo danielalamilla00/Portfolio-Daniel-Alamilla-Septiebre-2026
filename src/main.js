@@ -188,26 +188,12 @@ function updateLeafAnchor() {
   const screenX = (leafAnchorWorld.x * 0.5 + 0.5) * window.innerWidth - LEAF_GROUP_OFFSET_X_PX;
   const screenY = (1 - (leafAnchorWorld.y * 0.5 + 0.5)) * window.innerHeight;
 
-  const leafScaleRatio = orangeGroup.scale.x / BASE_SPHERE_SCALE;
+  const leafFinalScale = orangeGroup.scale.x / BASE_SPHERE_SCALE;
 
-  // The small, centered resting state (end of the outro — see
-  // computeSpherePhase()) is the only phase where orangeGroup ever shrinks
-  // below its resting scale, so it doubles as a clean "how small is the
-  // sphere right now" signal without needing scrollProgress here. Blending
-  // in an extra shrink + rightward nudge only as that happens keeps every
-  // earlier phase (hero/headline/featured-work) completely untouched.
-  const smallness = THREE.MathUtils.clamp(
-    (BASE_SPHERE_SCALE - orangeGroup.scale.x) / (BASE_SPHERE_SCALE - SMALL_SPHERE_SCALE),
-    0,
-    1
-  );
-  const leafFinalScale = leafScaleRatio * THREE.MathUtils.lerp(1, SMALL_LEAF_EXTRA_SCALE, smallness);
-  const leafExtraOffsetX = THREE.MathUtils.lerp(0, SMALL_LEAF_EXTRA_OFFSET_X_PX, smallness);
-
-  leafLeftWrap.style.left = `${screenX + leafExtraOffsetX}px`;
+  leafLeftWrap.style.left = `${screenX}px`;
   leafLeftWrap.style.top = `${screenY}px`;
   leafLeftWrap.style.transform = `scale(${leafFinalScale})`;
-  leafRightWrap.style.left = `${screenX + leafExtraOffsetX}px`;
+  leafRightWrap.style.left = `${screenX}px`;
   leafRightWrap.style.top = `${screenY}px`;
   leafRightWrap.style.transform = `scale(${leafFinalScale})`;
 }
@@ -249,17 +235,11 @@ const PEAK_X_SHIFT = 1.4;
 const PEAK_Y = 0;
 const FEATURED_X_SHIFT = -1.4;
 const FEATURED_Y = 0.15;
-// Outro resting state: small and centered. First estimate against the
-// client's reference image — tune SMALL_SPHERE_SCALE by eye.
-const SMALL_SPHERE_SCALE = 0.24;
-const SMALL_SPHERE_X = 0;
-const SMALL_SPHERE_Y = 0.27; // tune by eye
-// Extra leaf adjustment used only in that same small resting state (see
-// updateLeafAnchor()) — the leaves' proportional scale still read as too
-// big next to the tiny sphere, so this shrinks them further and nudges
-// them right. Tune by eye.
-const SMALL_LEAF_EXTRA_SCALE = 0.8;
-const SMALL_LEAF_EXTRA_OFFSET_X_PX = 15;
+// Outro resting state: centered, 20% bigger than the sphere's resting
+// (BASE_SPHERE_SCALE) size — not a shrink-and-park like before.
+const FINAL_SPHERE_SCALE = BASE_SPHERE_SCALE * 1.2;
+const FINAL_SPHERE_X = 0;
+const FINAL_SPHERE_Y = 0; // camera looks at world origin, so 0 = vertical screen center
 
 const P1 = 2 / 8; // sphere reaches its peak (matches the tagline already fully visible)
 const P2 = 3 / 8; // end of the hold
@@ -297,12 +277,12 @@ function computeSpherePhase(progress) {
   if (progress <= P5) {
     const t = (progress - P4) / (P5 - P4);
     return {
-      scale: THREE.MathUtils.lerp(PEAK_SPHERE_SCALE, SMALL_SPHERE_SCALE, t),
-      x: THREE.MathUtils.lerp(FEATURED_X_SHIFT, SMALL_SPHERE_X, t),
-      y: THREE.MathUtils.lerp(FEATURED_Y, SMALL_SPHERE_Y, t),
+      scale: THREE.MathUtils.lerp(PEAK_SPHERE_SCALE, FINAL_SPHERE_SCALE, t),
+      x: THREE.MathUtils.lerp(FEATURED_X_SHIFT, FINAL_SPHERE_X, t),
+      y: THREE.MathUtils.lerp(FEATURED_Y, FINAL_SPHERE_Y, t),
     };
   }
-  return { scale: SMALL_SPHERE_SCALE, x: SMALL_SPHERE_X, y: SMALL_SPHERE_Y };
+  return { scale: FINAL_SPHERE_SCALE, x: FINAL_SPHERE_X, y: FINAL_SPHERE_Y };
 }
 
 const floatingCards = Array.from(document.querySelectorAll(".floating-card"));
@@ -326,13 +306,19 @@ const PARALLAX_SENSITIVITY = -1;
 const PARALLAX_STRENGTH = 0.06; // multiplicador sobre el desplazamiento en píxeles del ratón
 const PARALLAX_LERP_SPEED = 4; // suavizado, independiente del framerate
 
-// Aparición de las tarjetas flotantes: una a una, no todas juntas. Empieza
-// cuando la esfera está casi en su posición final (P4-P5 es la fase en la
-// que se encoge y centra; arrancamos al 75% de esa transición) y las 8
-// tarjetas se van repartiendo su aparición hasta el final del scroll pineado.
-const CARD_STAGGER_START = P4 + (P5 - P4) * 0.25;
+// Aparición de las tarjetas flotantes: una a una, no todas juntas. Arranca
+// en el mismo punto exacto que el fundido de "WANT TO SEE MORE?"
+// (FLOAT_FADE_START) para que ambas cosas empiecen a salir juntas.
+const CARD_STAGGER_START = FLOAT_FADE_START;
 const CARD_STAGGER_END = 1;
-const CARD_STAGGER_DURATION = 0.12; // cuánto tarda cada tarjeta en aparecer, en fracción de scroll
+const CARD_STAGGER_DURATION = 0.16; // cuánto tarda cada tarjeta en aparecer, en fracción de scroll
+
+// Desaceleración final (ease-out cúbico) en vez de un avance lineal: cada
+// tarjeta entra rápido y va frenando hasta asentarse en su opacidad/escala
+// final.
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
 
 function updateFloatingCards(progress, delta) {
   floatingCards.forEach((card, index) => {
@@ -343,7 +329,8 @@ function updateFloatingCards(progress, delta) {
 
     const stagger = floatingCards.length > 1 ? index / (floatingCards.length - 1) : 0;
     const cardStart = CARD_STAGGER_START + stagger * (CARD_STAGGER_END - CARD_STAGGER_START - CARD_STAGGER_DURATION);
-    const opacity = clamp((progress - cardStart) / CARD_STAGGER_DURATION, 0, 1);
+    const t = clamp((progress - cardStart) / CARD_STAGGER_DURATION, 0, 1);
+    const opacity = easeOutCubic(t);
 
     const targetX = mousePxX * PARALLAX_SENSITIVITY * depth * PARALLAX_STRENGTH;
     const targetY = mousePxY * PARALLAX_SENSITIVITY * depth * PARALLAX_STRENGTH;
