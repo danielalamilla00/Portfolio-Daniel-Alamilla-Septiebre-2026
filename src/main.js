@@ -372,7 +372,19 @@ const heroScrollTimeline = gsap.timeline({
 });
 
 heroScrollTimeline
-  .to(".headline-word", { opacity: 0, y: -40, duration: 1, ease: "none" }, 0)
+  // Salida "glow horizon": además del fundido + subida ya existentes, las
+  // palabras se desenfocan y escalan ligeramente hacia afuera, como si se
+  // disolvieran en un resplandor — con un pequeño stagger entre palabras.
+  // Sin tinte de color (text-shadow) a propósito: .headline-word usa
+  // mix-blend-mode:difference (ver comentario en style.css), así que
+  // cualquier color añadido en el mismo elemento se invertiría contra el
+  // fondo de forma impredecible en vez de leerse como un resplandor limpio.
+  .fromTo(
+    ".headline-word",
+    { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
+    { opacity: 0, y: -60, scale: 1.15, filter: "blur(14px)", duration: 1, stagger: 0.08, ease: "none" },
+    0
+  )
   .fromTo(
     ".tagline-line",
     { opacity: 0, y: 40 },

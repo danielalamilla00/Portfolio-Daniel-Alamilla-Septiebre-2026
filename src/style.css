@@ -468,7 +468,7 @@ a.featured-work-item:active {
   margin-inline: auto;
   width: fit-content;
   max-width: 90vw; /* lets the title wrap instead of overflowing the viewport at this font-size */
-  top: calc(43% + 5px); /* tune by eye — centers the (now smaller) block on the screen's vertical midline */
+  top: calc(38% + 5px); /* tune by eye — subido respecto al centro exacto */
   display: flex;
   flex-direction: column;
   align-items: center;
