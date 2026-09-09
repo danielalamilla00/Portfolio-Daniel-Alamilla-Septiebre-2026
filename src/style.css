@@ -282,6 +282,35 @@ body {
   line-height: 1.6;
 }
 
+/* No nesting this inside #featured-work on purpose: that element already
+   has its own position+z-index (a stacking context) with no background of
+   its own, which would isolate a mix-blend-mode child from the real page
+   background behind it — the same bug documented on #hero-headline-2/
+   #site-nav above. Sibling to #featured-work instead, with z-index (and
+   the blend-mode) living directly on itself, same pattern as
+   .headline-word. */
+#featured-work-heading {
+  position: absolute;
+  z-index: 2;
+  top: 42%;
+  left: 6%;
+  /* Self-transform is fine here (unlike a transform on an ANCESTOR of a
+     blend element): it only isolates further-nested descendants from the
+     real backdrop, not the element's own blending against it, and this
+     element has no descendants. Used to vertically center against the
+     sphere, which sits near mid-screen through this phase. */
+  transform: translateY(-50%);
+  font-family: 'Microgramma', sans-serif;
+  font-size: clamp(2rem, 4.5vw, 3.2rem);
+  font-weight: 400;
+  line-height: 1.05;
+  text-transform: uppercase;
+  color: #ffffff;
+  mix-blend-mode: difference;
+  opacity: 0;
+  pointer-events: none;
+}
+
 #featured-work {
   position: absolute;
   inset: 0;

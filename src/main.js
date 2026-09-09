@@ -402,15 +402,21 @@ heroScrollTimeline
   // screen while the user keeps scrolling
   .to(".tagline-line", { opacity: 0, y: -40, duration: 1, ease: "none" }, 3)
   .fromTo(
-    ".featured-work-item",
+    "#featured-work-heading, .featured-work-item",
     { opacity: 0, y: 40 },
     { opacity: 1, y: 0, duration: 1, stagger: 0.15, ease: "none" },
     4
   )
   .to({}, { duration: 1 }, 5) // empty buffer: reserves scroll for the grid-scroll phase below
-  // position 6 deliberately empty too: the grid no longer fades out by
-  // opacity here — it scrolls itself off the top of the screen instead,
-  // see updateFeaturedWorkScroll()'s exit phase below.
+  // Position 6 is exactly where the grid-scroll buffer above ends and the
+  // sphere starts shrinking/centering again (P4 in computeSpherePhase, see
+  // its comment block) — .featured-work-item itself no longer fades out by
+  // opacity here, it scrolls off the top of the screen instead (see
+  // updateFeaturedWorkScroll()'s exit phase below), but #featured-work-
+  // heading isn't part of that scroll-away and needs its own exit: fade it
+  // out fast (well under the full unit) right as the sphere starts moving
+  // again, instead of dragging the fade out over its whole shrink.
+  .to("#featured-work-heading", { opacity: 0, y: -40, duration: 0.35, ease: "none" }, 6)
   .to({}, { duration: 1 }, 7); // final buffer: sphere finishes shrinking/centering here
 
 // Grid-scroll phase: once the sphere has settled into its featured-work
