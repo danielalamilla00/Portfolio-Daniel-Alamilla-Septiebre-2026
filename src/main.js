@@ -3,8 +3,6 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import vertexShader from "./shaders/sphere.vert.glsl?raw";
 import fragmentShader from "./shaders/sphere.frag.glsl?raw";
-import gradientRevealVertexShader from "./shaders/gradientReveal.vert.glsl?raw";
-import gradientRevealFragmentShader from "./shaders/gradientReveal.frag.glsl?raw";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -74,33 +72,6 @@ const material = new THREE.ShaderMaterial({
 const sphere = new THREE.Mesh(geometry, material);
 orangeGroup.add(sphere);
 
-// Post-experience vanish reveal: a large plane sitting well BEHIND the
-// sphere (z=-6, vs. the sphere's own z=0 and the camera at z=3.1), masked
-// to a growing circle at its center as the sphere shrinks to nothing (see
-// updateVanishReveal() below) — so it visibly emerges from UNDER the
-// sphere rather than on top of it. Deliberately NOT added to orangeGroup:
-// it must stay fixed at screen center regardless of the sphere's own
-// x/y/scale animation. Oversized (60x60 world units) so it covers the
-// full viewport at any aspect ratio without needing to size it exactly to
-// the camera's frustum at that depth — the actual reveal-circle masking
-// happens in screen space in the shader (uResolution/gl_FragCoord), not
-// via this plane's own geometry, so being larger than necessary costs
-// nothing but a few extra off-screen triangles.
-const gradientRevealUniforms = {
-  uTime: uniforms.uTime, // same object reference as the sphere's own — one clock, so the two stay frame-perfectly in sync automatically
-  uRevealRadius: { value: 0 },
-  uResolution: { value: new THREE.Vector2() }, // set for real just below, and again on every resize
-};
-renderer.getDrawingBufferSize(gradientRevealUniforms.uResolution.value);
-const gradientRevealMaterial = new THREE.ShaderMaterial({
-  vertexShader: gradientRevealVertexShader,
-  fragmentShader: gradientRevealFragmentShader,
-  uniforms: gradientRevealUniforms,
-});
-const gradientRevealMesh = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), gradientRevealMaterial);
-gradientRevealMesh.position.z = -6;
-scene.add(gradientRevealMesh);
-
 // Cursor influence: target snaps 0/1 on enter/leave of the sphere surface,
 // current eases toward it every frame so the dent fades in/out instead of
 // cutting.
@@ -145,11 +116,6 @@ function onResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  // gl_FragCoord is in actual drawing-buffer pixels (CSS size * pixel
-  // ratio), not CSS pixels — getDrawingBufferSize() accounts for the
-  // renderer's own setPixelRatio() so the shader's screen-space math
-  // lines up with real fragment coordinates.
-  renderer.getDrawingBufferSize(gradientRevealUniforms.uResolution.value);
 }
 window.addEventListener("resize", onResize);
 
@@ -286,16 +252,27 @@ const FINAL_SPHERE_Y = 0; // camera looks at world origin, so 0 = vertical scree
 // Post-experience phase: sphere leaves its lower-left corner and returns
 // to dead center — same (0,0) screen-center point FINAL_SPHERE_X/Y already
 // use. Scale stays at EXPERIENCE_SPHERE_SCALE through this move (only x/y
-// change); the client's "once centered, scale to 0" is a separate,
-// later sub-phase — see VANISH_SPHERE_SCALE below.
+// change); the client's "grow until it fills the screen" is a separate,
+// later sub-phase — see FILL_SPHERE_SCALE below.
 const CENTER_SPHERE_X = 0;
 const CENTER_SPHERE_Y = 0;
 
-// Final vanish: once centered, scale shrinks all the way to 0. No leaf-
-// specific constant needed — updateLeafAnchor() already derives
-// leafFinalScale from orangeGroup.scale.x every frame, so the leaves
-// shrink to 0 in lockstep with the sphere automatically.
-const VANISH_SPHERE_SCALE = 0;
+// Final reveal: once centered, the sphere itself grows until its own
+// surface gradient fills the entire viewport — no separate full-screen
+// mesh, the sphere IS the background at the end. 0.9x the camera's
+// distance from the origin (camera.position.z) is the scale at which the
+// sphere's silhouette, from the camera's perspective, covers even the
+// screen's far corners at any realistic aspect ratio (verified up to
+// ~5:1, far past any real display) while leaving a comfortable gap so the
+// camera never ends up "inside" the sphere (front surface sits at
+// world-z = scale, vs. the camera at camera.position.z — at 0.9x that's
+// always a 10% gap). No leaf-specific constant needed —
+// updateLeafAnchor() already derives leafFinalScale from
+// orangeGroup.scale.x every frame, and the leaves' anchor point (the
+// sphere's north pole) naturally scrolls off the top of the screen once
+// the sphere grows past the visible frustum, so they simply disappear
+// off-screen in lockstep with the sphere's growth.
+const FILL_SPHERE_SCALE = camera.position.z * 0.9;
 
 // 12 breakpoints across an 18-unit pinned timeline — extended from the
 // original 5 (P1-P5, 8 units, scrollTrigger end:"+=400%") to fit the
@@ -337,7 +314,7 @@ const P9 = 11 / 18; // sphere reaches the experience corner (work-experience lis
 // "too fast" — bumped to 3 units here.
 const P9b = 14 / 18; // NEW: end of the hold at the experience corner — text starts fading out / sphere starts moving to center only after this
 const P10 = 15 / 18; // sphere reaches dead center; experience text finishes fading out here too
-const P11 = 17 / 18; // sphere (and leaves, automatically) finish shrinking to scale 0 — 2 full units (P10-P11) instead of 1, slower
+const P11 = 17 / 18; // sphere (and leaves, automatically) finish growing to FILL_SPHERE_SCALE — 2 full units (P10-P11) instead of 1, slower
 
 function computeSpherePhase(progress) {
   if (progress <= P1) {
@@ -411,24 +388,27 @@ function computeSpherePhase(progress) {
     };
   }
   if (progress <= P11) {
-    // Centered: scale collapses to 0 with an accelerating ease-in
-    // (easeInQuint above), not a linear ramp — the leaves shrink with it
-    // automatically via updateLeafAnchor()'s leafFinalScale.
+    // Centered: scale grows out to FILL_SPHERE_SCALE with an accelerating
+    // ease-in (easeInQuint above), not a linear ramp, so the growth starts
+    // slow and rushes outward right at the end — the leaves scale (and
+    // scroll off-screen) with it automatically via updateLeafAnchor()'s
+    // leafFinalScale.
     const t = easeInQuint((progress - P10) / (P11 - P10));
     return {
-      scale: THREE.MathUtils.lerp(EXPERIENCE_SPHERE_SCALE, VANISH_SPHERE_SCALE, t),
+      scale: THREE.MathUtils.lerp(EXPERIENCE_SPHERE_SCALE, FILL_SPHERE_SCALE, t),
       x: CENTER_SPHERE_X,
       y: CENTER_SPHERE_Y,
     };
   }
-  // Final state: fully vanished at screen center.
-  return { scale: VANISH_SPHERE_SCALE, x: CENTER_SPHERE_X, y: CENTER_SPHERE_Y };
+  // Final state: sphere fully grown, its own gradient filling the screen.
+  return { scale: FILL_SPHERE_SCALE, x: CENTER_SPHERE_X, y: CENTER_SPHERE_Y };
 }
 
 const floatingCards = Array.from(document.querySelectorAll(".floating-card"));
 const outroCtaQuestion = document.querySelector(".outro-cta-question");
 const outroCtaLink = document.querySelector(".outro-cta-link");
-const vanishReveal = document.getElementById("vanish-reveal");
+const contactCtaHeading = document.querySelector(".contact-cta-heading");
+const contactCtaLinks = Array.from(document.querySelectorAll(".contact-cta-link"));
 const floatingCardsCurrentX = floatingCards.map(() => 0);
 const floatingCardsCurrentY = floatingCards.map(() => 0);
 
@@ -528,16 +508,26 @@ function updateOutroCta(progress) {
   outroCtaLink.style.pointerEvents = opacity > 0 ? "auto" : "none";
 }
 
-// Post-experience vanish reveal: an expanding circle (see #vanish-reveal
-// in style.css) grows from 0 at dead screen center out to a size that
-// guarantees full-viewport coverage (100vmax — half the viewport's own
-// diagonal is always < 100% of its larger dimension), over the exact same
-// P10-P11 window and easeInQuint curve the sphere itself uses to shrink to
-// 0 — so the reveal finishes exactly as the sphere disappears, instead of
-// drifting out of sync with it.
-function updateVanishReveal(progress) {
-  const t = easeInQuint(clamp((progress - P10) / (P11 - P10), 0, 1));
-  vanishReveal.style.clipPath = `circle(${t * 100}vmax at 50% 50%)`;
+// Final "Let's contact" phase: fades in over the tail of the P11-1.0
+// window, i.e. after the sphere has already finished growing to
+// FILL_SPHERE_SCALE (see computeSpherePhase) — starting a little into that
+// window rather than right at P11 so the text doesn't appear while the
+// screen is still visibly mid-growth, and reaching full opacity well
+// before scroll end so it isn't cut short. No fade-out: this is the last
+// phase of the scroll, so once visible it just stays.
+const CONTACT_FADE_START = P11 + (1 - P11) * 0.15;
+const CONTACT_FADE_END = P11 + (1 - P11) * 0.65;
+
+function updateContactCta(progress) {
+  const opacity = clamp((progress - CONTACT_FADE_START) / (CONTACT_FADE_END - CONTACT_FADE_START), 0, 1);
+  contactCtaHeading.style.opacity = opacity;
+  contactCtaLinks.forEach((link) => {
+    link.style.opacity = opacity;
+    // Same reasoning as outroCtaLink above: these sit in the pinned
+    // section's shared coordinate space the whole time, so keep them
+    // click-through until they're actually visible.
+    link.style.pointerEvents = opacity > 0 ? "auto" : "none";
+  });
 }
 
 let scrollProgress = 0;
@@ -658,14 +648,14 @@ heroScrollTimeline
     { opacity: 0, y: -40, duration: 1, stagger: 0.1, ease: "none" },
     14
   )
-  // Position 15 = P10->P11: sphere (and leaves) shrink to scale 0 —
-  // purely per-frame (computeSpherePhase's easeInQuint branch), so this
-  // is just a reserved-scroll placeholder, same pattern as the grid-scroll
-  // sub-phases above. duration:2 (not 1) — client feedback the shrink felt
-  // too rushed, so it gets two full units for the same easeInQuint curve
-  // to play out over, instead of one.
+  // Position 15 = P10->P11: sphere (and leaves) grow out to
+  // FILL_SPHERE_SCALE — purely per-frame (computeSpherePhase's
+  // easeInQuint branch), so this is just a reserved-scroll placeholder,
+  // same pattern as the grid-scroll sub-phases above. duration:2 (not 1) —
+  // client feedback the growth felt too rushed, so it gets two full units
+  // for the same easeInQuint curve to play out over, instead of one.
   .to({}, { duration: 2 }, 15)
-  .to({}, { duration: 1 }, 17); // final buffer: sphere stays fully vanished at scale 0
+  .to({}, { duration: 1 }, 17); // final buffer: sphere stays fully grown, its gradient filling the screen
 
 // Grid-scroll phase: once the sphere has settled into its featured-work
 // position (progress > GRID_SCROLL_START), further scroll no longer moves
@@ -724,7 +714,7 @@ function animate() {
   updateFeaturedWorkScroll(scrollProgress);
   updateFloatingCards(scrollProgress, delta);
   updateOutroCta(scrollProgress);
-  updateVanishReveal(scrollProgress);
+  updateContactCta(scrollProgress);
 
   renderer.render(scene, camera);
   updateLeafAnchor();

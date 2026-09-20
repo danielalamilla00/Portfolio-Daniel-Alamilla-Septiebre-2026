@@ -69,25 +69,6 @@ body {
   z-index: 1;
 }
 
-/* Post-experience vanish phase: as the sphere shrinks to 0 at screen
-   center (see computeSpherePhase()'s P10-P11 branch and
-   updateVanishReveal() in main.js), this expands from a 0px circle at the
-   same center point out to full-screen coverage, so the sphere's own
-   internal gradient (same burnt/vivid/gold orange tones as
-   sphere.frag.glsl's baseColor mix — see the comment there) ends up taking
-   over the whole viewport instead of just vanishing into nothing.
-   clip-path (not width/height/border-radius) so it stays a perfect circle
-   at any aspect ratio without any layout recalculation; sits above the
-   canvas (z-index 1) so it visibly grows over the shrinking sphere. */
-#vanish-reveal {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background: radial-gradient(circle at 50% 30%, #fd8f49 0%, #fc7c4a 45%, #dd5728 85%);
-  clip-path: circle(0px at 50% 50%);
-  pointer-events: none;
-}
-
 .leaf-left,
 .leaf-right {
   height: 175px;
@@ -670,4 +651,57 @@ a.featured-work-item:active .featured-work-item-media {
     0 0 10px 2px rgba(255, 255, 255, 0.75),
     0 0 20px 6px rgba(255, 255, 255, 0.5),
     0 0 32px 10px rgba(255, 255, 255, 0.3);
+}
+
+/* Final phase: shown once the sphere has grown to fill the whole screen
+   (see FILL_SPHERE_SCALE/updateContactCta in main.js). Plain flat white,
+   no mix-blend-mode — unlike the other section titles, this text is
+   meant to stay pure white regardless of what's behind it, so none of
+   the blend-mode stacking-context precautions used elsewhere in this
+   file apply here. */
+#contact-cta {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: fit-content;
+  max-width: 90vw;
+  top: 40%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.3rem;
+  text-align: center;
+  pointer-events: none;
+}
+.contact-cta-heading {
+  font-family: 'Microgramma', sans-serif;
+  font-size: clamp(2rem, 4.5vw, 3.2rem);
+  font-weight: 400;
+  text-transform: uppercase;
+  color: #ffffff;
+  opacity: 0;
+}
+.contact-cta-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+/* Plain text, not a button — same treatment as .contact-cta-heading: flat
+   white Microgramma, uppercase, no border/background/padding/box-shadow. */
+.contact-cta-link {
+  font-family: 'Microgramma', sans-serif;
+  font-size: clamp(1rem, 1.8vw, 1.4rem);
+  font-weight: 400;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-decoration: none;
+  pointer-events: auto;
+  opacity: 0;
+}
+
+.contact-cta-link:hover {
+  text-decoration: underline;
 }
