@@ -83,13 +83,8 @@ const CURSOR_LERP_SPEED_OUT = 1.2; // fade-out: slower, gives the dent more iner
 const raycaster = new THREE.Raycaster();
 const pointerNDC = new THREE.Vector2();
 const localCursorPoint = new THREE.Vector3();
-let mousePxX = 0;
-let mousePxY = 0;
 
 function updatePointer(event) {
-  mousePxX = event.clientX - window.innerWidth / 2;
-  mousePxY = event.clientY - window.innerHeight / 2;
-
   const x = (event.clientX / window.innerWidth) * 2 - 1;
   const y = -(event.clientY / window.innerHeight) * 2 + 1;
   pointerNDC.set(x, y);
@@ -284,25 +279,23 @@ const FILL_SPHERE_SCALE = camera.position.z * 0.9;
 // feels identical to before.
 //
 // Client feedback moved the work-experience phase to AFTER the outro CTA
-// ("WANT TO SEE MORE?") instead of before it, and flagged the CTA/floating-
-// cards phase as feeling rushed once that move landed: the floating cards'
-// own staggered entrance used to be allowed to run all the way to the very
-// end of the scroll (CARD_STAGGER_END was a literal 1), which only worked
-// because that used to BE the end — now something comes after it, so that
-// same stagger window collided with the next phase's fade-out. Fixed by
-// giving this phase two explicit holds instead of one: P6-P7 is sized so
-// the cards' stagger comfortably finishes with room to spare, and P7-P8 is
-// a second, entirely static hold with nothing scheduled in it at all — the
-// "let it breathe before moving on" buffer. Only after both does the
-// sphere make its final move out to the lower-left experience corner
-// (P8-P9) for the work-experience list.
+// ("WANT TO SEE MORE?") instead of before it, and flagged that phase as
+// feeling rushed once that move landed, since it used to run all the way
+// to the very end of the scroll — which only worked because that used to
+// BE the end; now something comes after it. Fixed by giving this phase
+// two explicit holds instead of one: P6-P7 is where the CTA's fade-in
+// comfortably finishes with room to spare, and P7-P8 is a second, entirely
+// static hold with nothing scheduled in it at all — the "let it breathe
+// before moving on" buffer. Only after both does the sphere make its final
+// move out to the lower-left experience corner (P8-P9) for the
+// work-experience list.
 const P1 = 2 / 18; // sphere reaches its peak (matches the tagline already fully visible)
 const P2 = 3 / 18; // end of the hold
 const P3 = 5 / 18; // sphere reaches its featured position (starts the grid scroll reveal)
 const P4 = 6 / 18; // grid reveal ends, grid exit sub-phase starts (sphere still frozen)
 const P5 = 7 / 18; // grid fully off-screen; sphere about to start shrinking to its final-rest position
-const P6 = 8 / 18; // sphere reaches its final-rest position; outro CTA + floating cards start their entrance
-const P7 = 9 / 18; // cards/CTA entrance is long finished by here (see CARD_STAGGER_END) — rest of this unit is already just held
+const P6 = 8 / 18; // sphere reaches its final-rest position; outro CTA starts its entrance
+const P7 = 9 / 18; // CTA entrance is long finished by here — rest of this unit is already just held
 const P8 = 10 / 18; // end of the pure-hold buffer; sphere starts moving to the experience corner
 const P9 = 11 / 18; // sphere reaches the experience corner (work-experience list visible)
 // Client feedback: the experience section needs to hold a beat longer
@@ -404,93 +397,25 @@ function computeSpherePhase(progress) {
   return { scale: FILL_SPHERE_SCALE, x: CENTER_SPHERE_X, y: CENTER_SPHERE_Y };
 }
 
-const floatingCards = Array.from(document.querySelectorAll(".floating-card"));
 const outroCtaQuestion = document.querySelector(".outro-cta-question");
 const outroCtaLink = document.querySelector(".outro-cta-link");
 const contactCtaHeading = document.querySelector(".contact-cta-heading");
 const contactCtaLinks = Array.from(document.querySelectorAll(".contact-cta-link"));
-const floatingCardsCurrentX = floatingCards.map(() => 0);
-const floatingCardsCurrentY = floatingCards.map(() => 0);
 
-// Aparición: fundido simple ligado al scroll, sin escalado ni rebote — las
-// tarjetas ya están en su posición fija final (--fc-x/--fc-y), solo su
-// opacidad cambia con el scroll durante la fase en la que la esfera se
-// encoge y centra (P5 a P6).
+// Aparición: fundido simple ligado al scroll, sin escalado ni rebote —
+// durante la fase en la que la esfera se encoge y centra (P5 a P6).
 const FLOAT_FADE_START = P5 + (P6 - P5) * 0.4;
 const FLOAT_FADE_END = P6;
-// El CTA (y las tarjetas flotantes) se desvanecen otra vez cuando la esfera
-// empieza a moverse hacia la esquina de work-experience — es decir, al
-// final del segundo hold (P8), no del primero (P7): P6-P7 es donde las
-// tarjetas terminan de aparecer, P7-P8 es puro margen extra sin que nada
-// cambie, y solo entonces empieza la salida. Mismo tratamiento rápido que
-// #featured-work-heading al salir de su fase.
+// El CTA se desvanece otra vez cuando la esfera empieza a moverse hacia la
+// esquina de work-experience — es decir, al final del segundo hold (P8),
+// no del primero (P7). Mismo tratamiento rápido que #featured-work-heading
+// al salir de su fase.
 const CTA_FADE_OUT_END = P8 + (P9 - P8) * 0.35;
 
-// Parallax por ratón: cada tarjeta se desplaza una cantidad distinta según
-// su --fc-depth (más profundidad = más movimiento), en dirección OPUESTA
-// al puntero (sensibilidad negativa, igual que en la demo de referencia de
-// 21st.dev). El movimiento se suaviza con inercia (lerp) para que no salte.
-const PARALLAX_SENSITIVITY = -1;
-const PARALLAX_STRENGTH = 0.06; // multiplicador sobre el desplazamiento en píxeles del ratón
-const PARALLAX_LERP_SPEED = 4; // suavizado, independiente del framerate
-
-// Aparición de las tarjetas flotantes: una a una, no todas juntas. Arranca
-// en el mismo punto exacto que el fundido de "WANT TO SEE MORE?"
-// (FLOAT_FADE_START). Termina al 70% del primer hold (P6-P7) — antes esto
-// era un 1 literal (terminaba justo al final de todo el scroll), lo cual
-// solo funcionaba porque esta fase solía ser la última; ahora que
-// work-experience viene después, dejar el stagger corriendo hasta el
-// final chocaba con la salida de esta misma fase. Con margen hasta P7 (y
-// encima todo el hold P7-P8 de propina) da tiempo de sobra a que las 8
-// tarjetas terminen de aparecer antes de que empiece cualquier otra cosa.
-const CARD_STAGGER_START = FLOAT_FADE_START;
-const CARD_STAGGER_END = P6 + (P7 - P6) * 0.7;
-const CARD_STAGGER_DURATION = 0.16; // cuánto tarda cada tarjeta en aparecer, en fracción de scroll
-
-// Desaceleración final (ease-out cúbico) en vez de un avance lineal: cada
-// tarjeta entra rápido y va frenando hasta asentarse en su opacidad/escala
-// final.
-function easeOutCubic(t) {
-  return 1 - Math.pow(1 - t, 3);
-}
-
 // Aceleración final (ease-in a la quinta potencia) para el desvanecimiento
-// final de la esfera: arranca lento y termina con un cierre rápido hacia 0
-// — justo lo opuesto de easeOutCubic anterior.
+// final de la esfera: arranca lento y termina con un cierre rápido hacia 0.
 function easeInQuint(t) {
   return t * t * t * t * t;
-}
-
-function updateFloatingCards(progress, delta) {
-  // Ya no se quedan visibles para siempre una vez aparecidas: ahora que
-  // work-experience viene después, se desvanecen igual que el CTA (mismo
-  // punto de disparo P8, ver CTA_FADE_OUT_END arriba) para no quedarse
-  // estorbando detrás de la lista de experiencia.
-  const fadeOut = 1 - clamp((progress - P8) / (CTA_FADE_OUT_END - P8), 0, 1);
-  floatingCards.forEach((card, index) => {
-    const depth = parseFloat(card.style.getPropertyValue("--fc-depth")) || 1;
-    const tx = parseFloat(card.style.getPropertyValue("--fc-x"));
-    const ty = parseFloat(card.style.getPropertyValue("--fc-y"));
-    const rot = parseFloat(card.style.getPropertyValue("--fc-rot")) || 0;
-
-    const stagger = floatingCards.length > 1 ? index / (floatingCards.length - 1) : 0;
-    const cardStart = CARD_STAGGER_START + stagger * (CARD_STAGGER_END - CARD_STAGGER_START - CARD_STAGGER_DURATION);
-    const t = clamp((progress - cardStart) / CARD_STAGGER_DURATION, 0, 1);
-    const opacity = easeOutCubic(t) * fadeOut;
-    // Al salir, las tarjetas "se funden" en un círculo en vez de
-    // simplemente desvanecerse siendo rectangulares — el border-radius
-    // crece de 0 hasta 50% a la vez que se desvanecen (fadeOut 1 -> 0).
-    card.style.borderRadius = `${(1 - fadeOut) * 50}%`;
-
-    const targetX = mousePxX * PARALLAX_SENSITIVITY * depth * PARALLAX_STRENGTH;
-    const targetY = mousePxY * PARALLAX_SENSITIVITY * depth * PARALLAX_STRENGTH;
-
-    floatingCardsCurrentX[index] += (targetX - floatingCardsCurrentX[index]) * (1 - Math.exp(-PARALLAX_LERP_SPEED * delta));
-    floatingCardsCurrentY[index] += (targetY - floatingCardsCurrentY[index]) * (1 - Math.exp(-PARALLAX_LERP_SPEED * delta));
-
-    card.style.opacity = opacity;
-    card.style.transform = `translate(-50%, -50%) translate(${tx}vw, ${ty}vh) translate(${floatingCardsCurrentX[index]}px, ${floatingCardsCurrentY[index]}px) scale(${opacity}) rotate(${rot}deg)`;
-  });
 }
 
 function updateOutroCta(progress) {
@@ -599,34 +524,29 @@ heroScrollTimeline
   // own exit: fade it out fast right as the sphere starts leaving.
   .to("#featured-work-heading", { opacity: 0, y: -40, duration: 0.35, ease: "none" }, 7)
   // empty buffer: reserves scroll for the shrink-to-final sub-phase
-  // (P5-P6) — the outro CTA/.floating-card fade-in is per-frame
-  // (updateOutroCta/updateFloatingCards), not a GSAP tween, so there's
-  // nothing else to add here.
+  // (P5-P6) — the outro CTA fade-in is per-frame (updateOutroCta), not a
+  // GSAP tween, so there's nothing else to add here.
   .to({}, { duration: 1 }, 7)
-  // empty buffer: hold #1 at final rest (P6-P7) — outro CTA + floating
-  // cards run their fade-in/stagger here (per-frame, see CARD_STAGGER_END),
-  // comfortably finishing before this unit is even over.
+  // empty buffer: hold #1 at final rest (P6-P7) — outro CTA finishes its
+  // fade-in here (per-frame), comfortably before this unit is even over.
   .to({}, { duration: 1 }, 8)
   // empty buffer: hold #2 at final rest (P7-P8) — a second, entirely
   // static buffer with nothing scheduled at all. Client feedback: the CTA
-  // was disappearing too fast, before the cards even finished their own
-  // entrance — this extra unit is purely "let it sit" breathing room, on
-  // top of #1 already finishing early.
+  // was disappearing too fast — this extra unit is purely "let it sit"
+  // breathing room, on top of #1 already finishing early.
   .to({}, { duration: 1 }, 9)
   // Position 10 = P8, where the sphere starts moving out to the
   // work-experience corner (client feedback: work-experience must come
   // AFTER the outro CTA, not before it, so this whole phase moved to the
-  // very end). The CTA/floating-cards fade back out over this same move —
-  // handled per-frame in updateOutroCta()/updateFloatingCards() via
-  // CTA_FADE_OUT_END, no GSAP tween needed for that half — while the
-  // experience heading/list fades IN, finishing right as the sphere
-  // arrives (P9): same choreography #featured-work-heading/
-  // .featured-work-item used while the sphere approached its featured
-  // position earlier. Picked the GSAP-timeline .fromTo()+stagger approach
-  // (not updateFloatingCards' per-frame one) because these items are a
-  // fixed, non-mouse-reactive list that only ever needs a single one-shot
-  // reveal — exactly the same shape as .featured-work-item, not the
-  // continuous per-frame parallax .floating-card needs.
+  // very end). The CTA fades back out over this same move — handled
+  // per-frame in updateOutroCta() via CTA_FADE_OUT_END, no GSAP tween
+  // needed for that half — while the experience heading/list fades IN,
+  // finishing right as the sphere arrives (P9): same choreography
+  // #featured-work-heading/.featured-work-item used while the sphere
+  // approached its featured position earlier. Picked the GSAP-timeline
+  // .fromTo()+stagger approach because these items are a fixed list that
+  // only ever needs a single one-shot reveal — exactly the same shape as
+  // .featured-work-item.
   .fromTo(
     "#experience-heading, .experience-item",
     { opacity: 0, y: 40 },
@@ -712,7 +632,6 @@ function animate() {
   orangeGroup.position.x = spherePhase.x;
   orangeGroup.position.y = spherePhase.y;
   updateFeaturedWorkScroll(scrollProgress);
-  updateFloatingCards(scrollProgress, delta);
   updateOutroCta(scrollProgress);
   updateContactCta(scrollProgress);
 
