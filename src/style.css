@@ -13,8 +13,8 @@
 html,
 body {
   width: 100%;
-  background-color: #f9dcc7;
-  background-image: url('/fondo-4.jpg');
+  background-color: #000000;
+  background-image: url('/fondo-5.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -52,8 +52,8 @@ body {
      immediate DOM parent, so `inherit` would pull that (transparent)
      spacer's background instead of body's. Keep this in sync with the
      html/body background above if that ever changes. */
-  background-color: #f9dcc7;
-  background-image: url('/fondo-4.jpg');
+  background-color: #000000;
+  background-image: url('/fondo-5.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -69,11 +69,26 @@ body {
   z-index: 1;
 }
 
+/* Was a plain <img src="/hoja-1.png">; switched to an empty masked <div> so
+   the artwork can be recolored to an exact hex (#84d392) via CSS instead of
+   whatever color is baked into the PNG itself. mask-image uses the same
+   PNG's alpha channel to shape/fade background-color — same soft-edged
+   silhouette as before, just tinted flat green instead of the original
+   dark-green-on-white gradient. aspect-ratio matches the source file's
+   natural 520x1248 px (width:auto doesn't apply to a div with no intrinsic
+   size the way it did for the <img>). */
 .leaf-left,
 .leaf-right {
   height: 175px;
-  width: auto;
+  aspect-ratio: 520 / 1248;
   display: block;
+  background-color: #84d392;
+  -webkit-mask-image: url('/hoja-1.png');
+  mask-image: url('/hoja-1.png');
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 
 /* left/top are set in pixels by main.js every frame, projecting the
@@ -178,27 +193,26 @@ body {
   z-index: 2;
   mix-blend-mode: difference;
   font-family: 'Microgramma', sans-serif;
-  font-size: clamp(2.5rem, 7.5vw, 5.5rem);
+  font-size: clamp(3.2rem, 9.5vw, 7.5rem);
   font-weight: 400;
-  text-transform: uppercase;
   color: #ffffff;
   white-space: nowrap;
   pointer-events: none;
 }
 
-.word-different {
+.word-making {
   top: 18%;
-  left: 6%;
+  left: 10%;
 }
 
-.word-creative {
+.word-things {
   top: 46%;
-  left: 55%;
+  left: 58%;
 }
 
-.word-approach {
+.word-move {
   bottom: 18%;
-  left: 6%;
+  left: 20%;
 }
 
 /* Second, smaller tagline that replaces the headline as the hero section
@@ -235,6 +249,15 @@ body {
   white-space: nowrap;
   opacity: 0; /* initial state; the scroll timeline animates this per-line */
 }
+/* Same sentence-case treatment as the other titles (only the phrase's own
+   first letter capitalized, the rest typed lowercase in the HTML) — scoped
+   to just these 4 lines rather than removing text-transform from the
+   shared .tagline-line rule above, since .subtext-paragraph reuses that
+   same class and still depends on it to force its own naturally-cased
+   source text to uppercase. */
+#hero-headline-2 .tagline-line {
+  text-transform: none;
+}
 
 #hero-subtext {
   position: absolute;
@@ -260,8 +283,7 @@ body {
 .subtext-link,
 .subtext-paragraph {
   font-family: 'Montserrat', sans-serif;
-  color: #062338;
-  mix-blend-mode: difference;
+  color: #ffffff;
   white-space: normal; /* sobreescribe el nowrap que .tagline-line trae por defecto */
   opacity: 0; /* GSAP lo anima igual que a .tagline-line */
 }
@@ -304,9 +326,7 @@ body {
   font-size: clamp(2rem, 4.5vw, 3.2rem);
   font-weight: 400;
   line-height: 1.05;
-  text-transform: uppercase;
   color: #ffffff;
-  mix-blend-mode: difference;
   opacity: 0;
   pointer-events: none;
 }
@@ -422,9 +442,7 @@ a.featured-work-item:active .featured-work-item-media {
   font-size: clamp(2rem, 4.5vw, 3.2rem);
   font-weight: 400;
   line-height: 1.05;
-  text-transform: uppercase;
   color: #ffffff;
-  mix-blend-mode: difference;
   opacity: 0;
   pointer-events: none;
 }
@@ -447,18 +465,13 @@ a.featured-work-item:active .featured-work-item-media {
   gap: 1.5rem;
   opacity: 0;
 }
-/* Left column: company name as a bold navy label. Right column
+/* Left column: company name as a bold white label. Right column
    (.experience-item-body): role+dates heading (bold) + description
-   (regular, lower alpha) below it. Navy + mix-blend-mode:difference reuses
-   the same recipe already used on .subtext-headline/.subtext-paragraph
-   earlier in this same #hero-section — NOTE: verified live via screenshot
-   that those actually render as flat navy, not a dynamic blend (their
-   ancestor #hero-subtext has position+z-index with no background of its
-   own, the same isolation bug documented elsewhere in this file — see the
-   comment on #featured-work-heading). Kept it anyway: this text never
-   overlaps the sphere at this scroll phase (#experience-list sits to the
-   sphere's right, see EXPERIENCE_X_SHIFT in main.js), so flat navy reads
-   identically to a working blend here in practice. Flag if that changes. */
+   (regular, lower alpha) below it. Flat white, no mix-blend-mode — this
+   list sits over the dark page background (see fondo-5.png), so plain
+   white reads reliably instead of depending on a blend that was already
+   effectively inert here anyway (its ancestor #hero-subtext/#experience-list
+   isolation, documented elsewhere in this file). */
 .experience-item-company {
   flex: 0 0 30%;
   /* Misma tipografía que #experience-heading (el título de la sección),
@@ -468,8 +481,7 @@ a.featured-work-item:active .featured-work-item-media {
   font-size: clamp(1.1rem, 1.9vw, 1.5rem);
   line-height: 1.15;
   text-transform: uppercase;
-  color: #062338;
-  mix-blend-mode: difference;
+  color: #ffffff;
 }
 .experience-item-body {
   flex: 1;
@@ -484,16 +496,14 @@ a.featured-work-item:active .featured-work-item-media {
   line-height: 1.3;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  color: #062338;
-  mix-blend-mode: difference;
+  color: #ffffff;
 }
 .experience-item-desc {
   font-family: 'Montserrat', sans-serif;
   font-weight: 400;
   font-size: 0.8rem;
   line-height: 1.5;
-  color: rgba(6, 35, 56, 0.7);
-  mix-blend-mode: difference;
+  color: rgba(255, 255, 255, 0.7);
   max-width: 440px;
 }
 @media (max-width: 768px) {
@@ -531,13 +541,19 @@ a.featured-work-item:active .featured-work-item-media {
   z-index: 50;
   height: 2.2rem;
   pointer-events: auto;
+  /* The SVG itself is a shared asset (also used navy-on-light in work.html)
+     with its fill baked into an internal <style> — since it's loaded via
+     <img>, that fill can't be reached from here directly. brightness(0)
+     flattens it to solid black first, then invert(1) flips that to white,
+     regardless of the source fill color — scoped to just this page's nav. */
+  filter: brightness(0) invert(1);
 }
 #site-nav .nav-label {
   position: relative;
   z-index: 50;
   font-family: 'Microgramma', sans-serif;
   font-size: 0.95rem;
-  color: #062338;
+  color: #ffffff;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   pointer-events: auto;
@@ -588,9 +604,7 @@ a.featured-work-item:active .featured-work-item-media {
   font-family: 'Microgramma', sans-serif;
   font-size: clamp(1.4rem, 2.9vw, 2.3rem);
   font-weight: 400;
-  text-transform: uppercase;
   color: #ffffff;
-  mix-blend-mode: difference;
   opacity: 0;
 }
 .outro-cta-link {
@@ -653,7 +667,6 @@ a.featured-work-item:active .featured-work-item-media {
   font-family: 'Microgramma', sans-serif;
   font-size: clamp(2rem, 4.5vw, 3.2rem);
   font-weight: 400;
-  text-transform: uppercase;
   color: #ffffff;
   opacity: 0;
 }
