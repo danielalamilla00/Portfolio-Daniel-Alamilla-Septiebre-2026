@@ -1,12 +1,50 @@
 uniform float uTime;
 uniform float uCursorInfluence;
 uniform vec3 uCursorPoint;
+// Gates ONLY the ambient traveling-wave displacement below (not the cursor
+// dent) — 0 during the hero's resting state (scroll=0) so the silhouette
+// reads as a clean, undistorted sphere there, ramping to 1 over the 0->P1
+// transition so every later phase keeps the exact same always-on ambient
+// breathing it always had. Set from main.js.
+uniform float uAmbientAmount;
+
+// All of the constants below USED to be local `const`s here, each with an
+// identical copy hand-kept in sync in main.js (which needs the exact same
+// math to compute where the sprig's base should sit on this displaced
+// surface — see updateSprigFollow() there). Two copies of the same numbers
+// is exactly how things drift out of sync, so main.js is now the single
+// source of truth for all of them, passed in as uniforms — change a value
+// in ONE place (the constants block right above where `uniforms` is built
+// in main.js) and both the sphere's own displacement and the sprig's
+// tracking move together automatically.
+uniform float uFreq1;
+uniform float uFreq2;
+uniform float uFreq3;
+uniform vec3 uFlowDir1;
+uniform vec3 uFlowDir2;
+uniform vec3 uFlowDir3;
+uniform float uWeight1;
+uniform float uWeight2;
+uniform float uWeight3;
+uniform float uAmbientAmplitude;
+uniform float uFlowSpeed;
+uniform float uEdgeBoostStrength;
+uniform float uCursorRadius;
+uniform float uCursorDepth;
+uniform float uDentEdgeFrequency;
+uniform float uDentEdgeSpeed;
+uniform float uDentEdgeVariation;
+uniform float uDentDepthFrequency;
+uniform float uDentDepthSpeed;
 
 varying vec3 vNormal;
 varying vec3 vWorldPosition;
+varying vec3 vLocalPosition;
 varying float vNoise;
 
 // --- Simplex 3D noise (Ashima Arts / Ian McEwan) ---
+// Ported 1:1 to JS in main.js (updateSprigFollow's snoise3()) — if this
+// function's math ever changes, mirror the change there too.
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
@@ -74,100 +112,43 @@ float snoise(vec3 v) {
 
 // Three low-frequency noise layers, each traveling across the sphere in its
 // own direction and at its own speed, so several wide lobes sweep the whole
-// silhouette at once instead of one bump breathing in place.
-const float FREQ_1 = 0.6;
-const float FREQ_2 = 1.1;
-const float FREQ_3 = 1.7;
-
-const vec3 FLOW_DIR_1 = vec3(1.0, 0.25, -0.1);
-const vec3 FLOW_DIR_2 = vec3(-0.2, 1.0, 0.35);
-const vec3 FLOW_DIR_3 = vec3(0.7, -0.6, 0.55);
-
-const float WEIGHT_1 = 0.5;
-const float WEIGHT_2 = 0.3;
-const float WEIGHT_3 = 0.2;
-
+// silhouette at once instead of one bump breathing in place. Ported 1:1 to
+// JS in main.js as travelingWavesJS().
 float travelingWaves(vec3 n, float flowTime) {
-  vec3 c1 = n * FREQ_1 + FLOW_DIR_1 * flowTime;
-  vec3 c2 = n * FREQ_2 + FLOW_DIR_2 * flowTime;
-  vec3 c3 = n * FREQ_3 + FLOW_DIR_3 * flowTime;
+  vec3 c1 = n * uFreq1 + uFlowDir1 * flowTime;
+  vec3 c2 = n * uFreq2 + uFlowDir2 * flowTime;
+  vec3 c3 = n * uFreq3 + uFlowDir3 * flowTime;
 
-  return snoise(c1) * WEIGHT_1 + snoise(c2) * WEIGHT_2 + snoise(c3) * WEIGHT_3;
+  return snoise(c1) * uWeight1 + snoise(c2) * uWeight2 + snoise(c3) * uWeight3;
 }
-
-// Always-on ambient motion: the surface never sits still, but the outline
-// stays close to a sphere with only subtle motion. Note this only scales
-// the vertex displacement — the color flow (which reads the same noise
-// value directly in the fragment shader) keeps its own pace via FLOW_SPEED.
-const float AMBIENT_AMPLITUDE = 0.055;
-const float FLOW_SPEED = 0.14;
-
-// Displacing along the normal reads mostly as depth change where a point
-// faces the camera, but almost entirely as visible silhouette movement at
-// grazing angles — so boosting amplitude there (edgeFactor near 1) makes
-// the outline noticeably livelier without over-animating the front face.
-const float EDGE_BOOST_STRENGTH = 0.9;
-
-// Local dent that follows the raycasted cursor point, like a finger
-// pressing into gelatin. Radius/depth are in object-space units (sphere
-// radius is 1) and large enough to visibly break the outer silhouette,
-// not just texture the surface locally.
-// This is a pure inward press, so it can only recede the silhouette where
-// its influence actually reaches the grazing edge: on a unit sphere, the
-// chord distance from a front-facing point to the visible rim is ~1.4, so
-// the radius has to be large enough to reach past that, not just a small
-// local patch, for the whole outline to visibly react.
-const float CURSOR_RADIUS = 1.3;
-const float CURSOR_DEPTH = 0.5;
-
-// A dedicated noise field breaks the dent's edge (and its inner depth) out
-// of a perfectly round hole, and keeps animating with uTime so the pressed
-// area keeps bubbling even while the cursor holds still. Frequencies are
-// kept low (matching the ambient waves) so the finite-difference normal
-// recalculation below can still resolve them smoothly instead of faceting.
-const float DENT_EDGE_FREQUENCY = 1.8;
-const float DENT_EDGE_SPEED = 0.4;
-const float DENT_EDGE_VARIATION = 0.35;
-const float DENT_DEPTH_FREQUENCY = 1.5;
-const float DENT_DEPTH_SPEED = 0.3;
-
-// A small, fixed, smooth dimple at the sphere's +Y pole — where the leaves
-// (see main.js's leafAnchorDirection) visually meet the skin, so it reads
-// as the surface pinching in slightly right where they attach. Always on,
-// not noise-driven — deliberately simple, unlike the fuller calyx-scar
-// dimple this project has had before.
-const vec3 POLE = vec3(0.0, 1.0, 0.0);
-const float LEAF_DIMPLE_RADIUS = 0.32;
-const float LEAF_DIMPLE_DEPTH = 0.09;
 
 // Displaces a point on the unit sphere outward along its own normal by an
 // amount driven by the flowing noise field, then presses it back inward
-// near the cursor point with an irregular, animated dent, and carves the
-// small fixed leaf-attachment dimple at the pole.
+// near the cursor point with an irregular, animated dent. Ported 1:1 to JS
+// in main.js as displaceJS() — see updateSprigFollow() there, which
+// evaluates this exact function at the +Y pole every frame so the sprig's
+// own anchor tracks this same displacement instead of floating over a
+// dead, fixed point.
 vec3 displace(vec3 localPosition, float flowTime, float ambientMultiplier) {
   vec3 n = normalize(localPosition);
 
   float ambientNoise = travelingWaves(n, flowTime);
-  vec3 displaced = localPosition + n * ambientNoise * AMBIENT_AMPLITUDE * ambientMultiplier;
+  vec3 displaced = localPosition + n * ambientNoise * uAmbientAmplitude * ambientMultiplier * uAmbientAmount;
 
   float distToCursor = length(localPosition - uCursorPoint);
 
   // Perturb the influence radius per-vertex so the dent's boundary reads as
   // an irregular, organic edge instead of a clean circle.
-  float edgeNoise = snoise(localPosition * DENT_EDGE_FREQUENCY + vec3(uTime * DENT_EDGE_SPEED));
-  float dentRadius = CURSOR_RADIUS * (1.0 + edgeNoise * DENT_EDGE_VARIATION);
+  float edgeNoise = snoise(localPosition * uDentEdgeFrequency + vec3(uTime * uDentEdgeSpeed));
+  float dentRadius = uCursorRadius * (1.0 + edgeNoise * uDentEdgeVariation);
   float cursorFalloff = 1.0 - smoothstep(0.0, max(dentRadius, 0.05), distToCursor);
 
   // A second, gentler noise layer breaks up the depth inside the dent so
   // it isn't a flat-bottomed bowl, and keeps shifting over time.
-  float depthNoise = snoise(localPosition * DENT_DEPTH_FREQUENCY + vec3(uTime * DENT_DEPTH_SPEED, 5.2, -3.1));
-  float dentDepth = CURSOR_DEPTH * (0.85 + 0.15 * (depthNoise * 0.5 + 0.5));
+  float depthNoise = snoise(localPosition * uDentDepthFrequency + vec3(uTime * uDentDepthSpeed, 5.2, -3.1));
+  float dentDepth = uCursorDepth * (0.85 + 0.15 * (depthNoise * 0.5 + 0.5));
 
   displaced -= n * cursorFalloff * dentDepth * uCursorInfluence;
-
-  float distToPole = length(localPosition - POLE);
-  float leafDimpleFalloff = 1.0 - smoothstep(0.0, LEAF_DIMPLE_RADIUS, distToPole);
-  displaced -= n * leafDimpleFalloff * LEAF_DIMPLE_DEPTH;
 
   return displaced;
 }
@@ -175,7 +156,7 @@ vec3 displace(vec3 localPosition, float flowTime, float ambientMultiplier) {
 void main() {
   // Slow, continuously flowing time offset so the noise field drifts
   // instead of oscillating in place. Always running, regardless of cursor.
-  float flowTime = uTime * FLOW_SPEED;
+  float flowTime = uTime * uFlowSpeed;
 
   vec3 n = normalize(position);
 
@@ -195,7 +176,7 @@ void main() {
   vec3 worldPositionApprox = (modelMatrix * vec4(position, 1.0)).xyz;
   vec3 viewDirApprox = normalize(cameraPosition - worldPositionApprox);
   float edgeFactor = 1.0 - abs(dot(worldNormalApprox, viewDirApprox));
-  float ambientMultiplier = 1.0 + edgeFactor * EDGE_BOOST_STRENGTH;
+  float ambientMultiplier = 1.0 + edgeFactor * uEdgeBoostStrength;
 
   vec3 p0 = displace(position, flowTime, ambientMultiplier);
   vec3 p1 = displace(position + tangent * epsilon, flowTime, ambientMultiplier);
@@ -211,6 +192,13 @@ void main() {
 
   vec4 worldPosition = modelMatrix * vec4(p0, 1.0);
   vWorldPosition = worldPosition.xyz;
+  // Raw, UNDISPLACED object-space position — unlike vWorldPosition (which
+  // moves every frame from the ambient wave/cursor-dent displacement
+  // above), this is fixed to the mesh's own geometry. The fragment
+  // shader's fine pore/bump noise samples this instead, so that texture
+  // reads as baked into the material and holds still, rather than
+  // swimming/shimmering as the surface breathes.
+  vLocalPosition = position;
 
   gl_Position = projectionMatrix * viewMatrix * worldPosition;
 }

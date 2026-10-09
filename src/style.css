@@ -4,6 +4,29 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Catavalo';
+  src: url('/Catavalo/Catavalo-Light.otf') format('opentype');
+  font-weight: 300;
+  font-display: swap;
+}
+
+:root {
+  --font-sans: 'Inter Tight', sans-serif;
+  --font-display: 'Catavalo', serif;
+  --tracking-sans: -0.05em;
+  /* Lowered from 7vw per client feedback ("el margin izquierdo y derecho
+     de la web tiene que ser menor") — this is the site-wide gutter used
+     by the nav, hero subtext/headings, and the experience list, so the
+     reduction applies everywhere at once. */
+  --margin-x: 4vw;
+}
+@media (max-width: 768px) {
+  :root {
+    --margin-x: 1.25rem;
+  }
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -13,11 +36,7 @@
 html,
 body {
   width: 100%;
-  background-color: #000000;
-  background-image: url('/fondo-5.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background-color: #141414;
 }
 
 /* Pinned by GSAP ScrollTrigger (see main.js) during the scroll storytelling
@@ -47,16 +66,25 @@ body {
      through that boundary to blend against. Giving this element the same
      background itself puts that backdrop back inside the same context the
      text blends within.
-     NOTE: this must be an explicit color/image, not `inherit` — GSAP's pin
+     NOTE: this must be an explicit color, not `inherit` — GSAP's pin
      wraps this element in its own ".pin-spacer" div, which becomes its new
      immediate DOM parent, so `inherit` would pull that (transparent)
      spacer's background instead of body's. Keep this in sync with the
      html/body background above if that ever changes. */
-  background-color: #000000;
-  background-image: url('/fondo-5.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background-color: #141414;
+}
+
+/* Paused for this pass (see RINGS_ENABLED in main.js) — rings.js itself is
+   untouched, so this is the only line standing between here and bringing
+   the rings back later. */
+#rings-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  display: none;
 }
 
 #sphere-canvas {
@@ -69,150 +97,116 @@ body {
   z-index: 1;
 }
 
-/* Was a plain <img src="/hoja-1.png">; switched to an empty masked <div> so
-   the artwork can be recolored to an exact hex (#84d392) via CSS instead of
-   whatever color is baked into the PNG itself. mask-image uses the same
-   PNG's alpha channel to shape/fade background-color — same soft-edged
-   silhouette as before, just tinted flat green instead of the original
-   dark-green-on-white gradient. aspect-ratio matches the source file's
-   natural 520x1248 px (width:auto doesn't apply to a div with no intrinsic
-   size the way it did for the <img>). */
-.leaf-left,
-.leaf-right {
-  height: 175px;
-  aspect-ratio: 520 / 1248;
-  display: block;
-  background-color: #84d392;
-  -webkit-mask-image: url('/hoja-1.png');
-  mask-image: url('/hoja-1.png');
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-}
+/* Leaf and stem are now real 3D Three.js meshes (children of orangeGroup,
+   see main.js) instead of DOM elements — this is why there's no .leaf-left/
+   .stem/.leaf-left-wrap/.leaf-right-wrap here anymore (both were removed
+   entirely, so #sphere-canvas is just the plain sphere mesh now — see
+   .headline-word/--blend's z-index below for why that stopped mattering
+   for stacking order). */
 
-/* left/top are set in pixels by main.js every frame, projecting the
-   sphere's pole from 3D world space to screen coordinates, so the leaves
-   stay anchored to the actual sphere regardless of its position/scale
-   instead of a guessed percentage. The wrapper (not the <img> itself) is
-   what's positioned and scaled as a rigid group — scaling the image's own
-   height instead broke .leaf-left's fixed-pixel matrix() below (see main.js
-   history), since that matrix's translate component is calibrated for
-   exactly 175px and doesn't scale with it. */
-.leaf-left-wrap,
-.leaf-right-wrap {
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 2;
-  pointer-events: none;
-  transform-origin: 0 0;
-}
-
-/* Both leaves reuse the same source image (hoja-1.png). The tip in the
-   artwork isn't at the image's bbox corner (there's a soft glow fade
-   beyond the visually perceptible point) — measured from the actual
-   alpha data at ~16.5% across, 94% down.
-
-   The right leaf just rotates the artwork 30deg around that tip (its
-   natural curve already leans up-and-right, so this widens it into half
-   of the wing shape). The left leaf needs to be the mirror image of that
-   *exact* rotated shape, tip-for-tip — but a CSS scaleX(-1) mirrored
-   around any single fixed point can't reproduce that together with the
-   rotation (a mirror + rotation is a "glide" transform: no single
-   transform-origin percentage reproduces it, only an explicit matrix
-   does). So the left leaf's transform below is that matrix, computed
-   once (mirroring the right leaf's translate(-16.5%,-94%) rotate(30deg)
-   around the shared tip) — if the rotation angle or the 16.5%/94% tip
-   measurement ever changes, recompute this matrix to match. */
-.leaf-right {
-  transform: translate(-16.5%, -94%) rotate(30deg);
-  transform-origin: 16.5% 94%;
-  animation: leaf-breathe-right 8.5s ease-in-out infinite;
-  animation-delay: -2.6s;
-}
-.leaf-left {
-  transform: matrix(-0.8660254, 0.5, 0.5, 0.8660254, -71.8306, -148.4768);
-  transform-origin: 0 0;
-  animation: leaf-breathe-left 7.5s ease-in-out infinite;
-}
-
-/* Anchoring the leaves to the sphere's rigid position/scale (done in
-   main.js) keeps them glued when the sphere moves or resizes, but the
-   sphere's surface also has a constant, organic "breathing" noise
-   animation (see shaders/sphere.vert.glsl) that a rigid anchor can't
-   track exactly. Rather than replicate that shader noise in JS (fragile,
-   and easy to get subtly out of sync), this idle sway approximates the
-   same "alive, attached" feeling with a plain CSS loop — pivoting at each
-   leaf's anchored tip so it still reads as growing out of the sphere.
-   Slightly different durations/delay/angle per side so the two don't
-   sway in obvious lockstep. Tune TIMING/ANGLE here if the sphere's own
-   breathing speed changes.
-
-   leaf-left's matrix already sends the tip to this element's local
-   (0,0), so — because transform-origin is 0 0 — any rotate()/scale()
-   placed BEFORE the matrix() in the function list (i.e. applied after it
-   to the point) still pivots exactly on that same tip. That's why the
-   50% keyframe below prepends rotate/scale instead of trying to fold
-   them into the matrix itself. */
-@keyframes leaf-breathe-right {
-  0%,
-  100% {
-    transform: translate(-16.5%, -94%) rotate(30deg);
-  }
-  50% {
-    transform: translate(-16.5%, -94%) rotate(32deg) scale(1.045);
-  }
-}
-@keyframes leaf-breathe-left {
-  0%,
-  100% {
-    transform: matrix(-0.8660254, 0.5, 0.5, 0.8660254, -71.8306, -148.4768);
-  }
-  50% {
-    transform: rotate(-2deg) scale(1.045)
-      matrix(-0.8660254, 0.5, 0.5, 0.8660254, -71.8306, -148.4768);
-  }
-}
-
-/* Deliberately NO position/transform/opacity of its own — see main.js,
-   which animates .headline-word directly rather than this wrapper. Any
-   non-none transform (or opacity<1) on an ANCESTOR of a mix-blend-mode
-   element makes that ancestor a new stacking context, and the blend can
-   then no longer "see" the page background behind it to blend against
-   (it renders as if mix-blend-mode were "normal" instead). Animating the
-   .headline-word spans themselves sidesteps this entirely, since a
-   transform on the blend element itself doesn't isolate it from its own
-   backdrop — only from blend-mode descendants, which it has none of. */
-#hero-headline {
-  pointer-events: none;
-}
-
+/* .headline-word wraps both lines as ONE rigid block so GSAP's exit tween
+   (see main.js) scales/blurs them together around their own shared
+   center. NO transform/opacity of its own beyond this absolute placement
+   (historically for the soft-light .headline-word--blend copy, now
+   removed — the text is plain white, see .hw-sans/.hw-display below).
+   Pinned to the BOTTOM of the hero, in plain vw/vh — deliberately NOT
+   part of the 1920x1080 composition-scaled system the orange/nav use (see
+   computeCompositionScale in main.js), since that system is "cover"-style
+   and only lines up exactly at a 16:9-ish ratio, which can't hit an exact
+   pixel alignment against the nav at any aspect ratio (checked at
+   1280x580 and 1920x1080, which are very different shapes) the way plain
+   viewport-relative units can.
+   left/right use var(--margin-x), the same gutter the nav itself sits in
+   — but that alone only aligns this BOX's edge with the nav's own box,
+   not the actual glyph ink (fonts have side bearings: empty space baked
+   into "Motion AI"'s M and "Designer"'s final r beyond their visible
+   strokes). The exact ink-to-logo/ink-to-clock alignment the client asked
+   for is measured and corrected in JS (updateHeadlineAlignment in
+   main.js, via Range.getBoundingClientRect() on each word's text node —
+   re-run on resize and once webfonts finish loading, since metrics can
+   shift until then) — it overrides .hw-sans's `left` and .hw-display's
+   `right` with an exact px correction, and this rule's values are just
+   the pre-JS fallback/starting point.
+   Same story vertically: `bottom` here is a reasonable starting value,
+   corrected in JS so "Designer"'s own ink-bottom sits exactly as far from
+   the viewport's bottom edge as the nav logo sits from its top edge.
+   NOTE on the "g" descender getting clipped (client feedback, twice: "la
+   g no puede salir cortada" / "termina en una línea recta"): an earlier
+   pass put padding-bottom + a compensating negative margin-bottom HERE,
+   on this wrapper — which did nothing, and debugging with outlines on
+   every ancestor up to #hero-section confirmed why: #hero-section's
+   overflow:hidden was never the culprit (there was already plenty of
+   clearance below this wrapper), and this wrapper doesn't itself clip
+   its children either way (no overflow set). The actual cause was on
+   .hw-display ITSELF: background-clip:text only paints within that
+   span's own content-box, and with line-height:1 the "g"'s loop in
+   Catavalo extends below it — pixel-scanned confirmation: with the
+   gradient's exact mechanism intact (only the orange hidden, for a flat
+   background to scan against), every column through the "g" cut off at
+   EXACTLY y = .hw-display's own content-bottom, a dead flat line, while
+   neighboring non-descending columns ended at their own natural (higher,
+   varying) ink height — a flat line at one exact y is a clipped box
+   edge, not a glyph's own curve. So the fix lives on .hw-display's own
+   rule below (padding-bottom there, verified the same way), not here. */
 .headline-word {
   position: absolute;
+  left: var(--margin-x);
+  right: var(--margin-x);
+  bottom: 3vh;
+  height: 26.04vw; /* tight to "Designer"'s own nominal box-bottom (13.54vw + 12.5vw) — just a bounding reference for GSAP's scale-from-center pivot, not a clip boundary */
+  /* ABOVE #sphere-canvas (z-index 1) — both words sit ON the orange (see
+     reference/layout-titular.png), with the gradient fill's own
+     translucency doing the blending against it ("que se funde con la
+     naranja") instead of the sphere occluding the text outright. An
+     opaque WebGL canvas painted on top would hide the text completely
+     wherever they overlap regardless of any CSS alpha on the text
+     itself, since z-order (not alpha) decides what's even visible — so
+     the headline has to be the one drawn on top. */
   z-index: 2;
-  mix-blend-mode: difference;
-  font-family: 'Microgramma', sans-serif;
-  font-size: clamp(3.2rem, 9.5vw, 7.5rem);
-  font-weight: 400;
-  color: #ffffff;
-  white-space: nowrap;
   pointer-events: none;
 }
-
-.word-making {
-  top: 18%;
-  left: 10%;
+.hw-sans {
+  position: absolute;
+  left: 0; /* JS-corrected, see .headline-word's own comment */
+  top: 1.56vw;
+  font-size: 15.63vw;
+  line-height: 1;
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: var(--tracking-sans);
 }
-
-.word-things {
-  top: 46%;
-  left: 58%;
+.hw-display {
+  position: absolute;
+  right: 0; /* JS-corrected, see .headline-word's own comment — right instead of left now that "Designer" anchors to the right margin independently of "Motion AI" */
+  top: 13.54vw;
+  font-size: 12.5vw;
+  line-height: 1;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-weight: 300;
+  /* Originally gave the (now removed) background-clip:text gradient room
+     to paint Catavalo's "g" descender, which extends past a line-height:1
+     box. No longer needed with a plain white fill; kept on purpose — it's
+     harmless —
+     see .headline-word's own comment for how this was pixel-confirmed as
+     the actual clipping cause (not an ancestor's overflow). em-based so
+     it scales with this span's own font-size automatically. Safe to grow
+     downward with no compensating negative margin: this span is
+     position:absolute and top-anchored (not bottom-anchored), so adding
+     padding-bottom only extends the box further down — it doesn't shift
+     where the top/baseline sit, and nothing below it in normal flow
+     needs protecting from the growth. */
+  padding-bottom: 0.35em;
 }
-
-.word-move {
-  bottom: 18%;
-  left: 20%;
+/* Solid white (client feedback: the earlier background-clip:text
+   gradient + grain finish, and the soft-light --blend copy that sat on
+   top of it, were removed — the copy is gone from index.html too). No
+   glow/text-shadow; GSAP's exit `filter: blur()` on .headline-word (see
+   main.js) is unaffected. */
+.hw-sans,
+.hw-display {
+  color: #ffffff;
 }
 
 /* Second, smaller tagline that replaces the headline as the hero section
@@ -233,16 +227,16 @@ body {
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  padding: 13vh 10% 0 8%;
+  padding: 13vh 10% 0 var(--margin-x);
   pointer-events: none;
 }
 .tagline-line {
   position: relative;
   z-index: 2;
-  font-family: 'Microgramma', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(1.8rem, 4.2vw, 3.4rem);
   line-height: 1.15;
-  font-weight: 400;
+  font-weight: 300;
   text-transform: uppercase;
   color: #ffffff;
   mix-blend-mode: difference;
@@ -259,10 +253,66 @@ body {
   text-transform: none;
 }
 
+/* "Where creativity / meets technology" phase (right after the hero, see
+   PHRASE_PHASE_UNITS in main.js; reference: Diseño/reference-frase-
+   creativity.png). The background is the sphere itself, risen to cover the
+   whole screen — no overlay/gradient layer. */
+
+/* Same stacking rules as #hero-headline-2: this wrapper has no z-index,
+   transform or opacity of its own (main.js animates each .cp-line
+   directly), and z-index lives on the animated element itself. Flat white,
+   no gradient/blend. Each line's `top` is the position of its BASELINE:
+   main.js measures where the baseline falls inside the line box and pulls
+   the line up by exactly that much (margin-top), so --cp-line*-baseline
+   means what it says regardless of the fonts' ascent metrics. */
+#creativity-phrase {
+  --cp-size: clamp(1.75rem, 5vw, 7rem);
+  --cp-line1-x: 22vw;
+  --cp-line2-x: 43vw;
+  --cp-line1-baseline: 52vh;
+  --cp-line2-baseline: 63vh;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.cp-line {
+  position: absolute;
+  z-index: 2;
+  font-size: var(--cp-size);
+  line-height: 1;
+  white-space: nowrap;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: var(--tracking-sans);
+  opacity: 0; /* initial state; updateCreativityPhrase() in main.js drives it */
+}
+.cp-line-1 {
+  left: var(--cp-line1-x);
+  top: var(--cp-line1-baseline);
+}
+.cp-line-2 {
+  left: var(--cp-line2-x);
+  top: var(--cp-line2-baseline);
+}
+.cp-display {
+  font-family: var(--font-display);
+  font-weight: 300;
+  letter-spacing: normal;
+}
+@media (max-width: 768px) {
+  #creativity-phrase {
+    --cp-size: 9vw;
+    --cp-line1-x: var(--margin-x);
+    --cp-line2-x: calc(var(--margin-x) + 12vw);
+    --cp-line2-baseline: calc(52vh + 10.5vw);
+  }
+}
+
 #hero-subtext {
   position: absolute;
-  left: 8%;
-  right: 8%;
+  left: var(--margin-x);
+  right: var(--margin-x);
   top: 58%;
   z-index: 2;
   display: flex;
@@ -282,17 +332,19 @@ body {
 .subtext-headline,
 .subtext-link,
 .subtext-paragraph {
-  font-family: 'Montserrat', sans-serif;
+  font-family: var(--font-sans);
   color: #ffffff;
   white-space: normal; /* sobreescribe el nowrap que .tagline-line trae por defecto */
   opacity: 0; /* GSAP lo anima igual que a .tagline-line */
+  font-weight: 500;
+  letter-spacing: var(--tracking-sans);
 }
 .subtext-headline,
 .subtext-link {
   font-size: clamp(0.7rem, 0.95vw, 0.9rem);
-  font-weight: 600;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-sans);
   line-height: 1.4;
 }
 .subtext-link {
@@ -300,7 +352,8 @@ body {
 }
 .subtext-paragraph {
   font-size: clamp(0.7rem, 0.95vw, 0.9rem);
-  font-weight: 400;
+  font-weight: 500;
+  letter-spacing: var(--tracking-sans);
   line-height: 1.6;
 }
 
@@ -315,16 +368,16 @@ body {
   position: absolute;
   z-index: 2;
   top: 42%;
-  left: 6%;
+  left: var(--margin-x);
   /* Self-transform is fine here (unlike a transform on an ANCESTOR of a
      blend element): it only isolates further-nested descendants from the
      real backdrop, not the element's own blending against it, and this
      element has no descendants. Used to vertically center against the
      sphere, which sits near mid-screen through this phase. */
   transform: translateY(-50%);
-  font-family: 'Microgramma', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(2rem, 4.5vw, 3.2rem);
-  font-weight: 400;
+  font-weight: 300;
   line-height: 1.05;
   color: #ffffff;
   opacity: 0;
@@ -341,7 +394,7 @@ body {
   position: absolute;
   top: 15%;
   left: 42%;
-  right: 3%;
+  right: var(--margin-x);
   display: flex;
   gap: 1.5rem;
   /* no "bottom" here: height now comes from the content (square cards +
@@ -372,9 +425,9 @@ a.featured-work-item {
 .featured-work-item-title {
   display: inline-block;
   width: fit-content;
-  font-family: 'Microgramma', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(1.1rem, 2.2vw, 1.6rem);
-  font-weight: 400;
+  font-weight: 300;
   line-height: 1.0;
   color: #ffffff;
 }
@@ -397,11 +450,12 @@ a.featured-work-item {
   pointer-events: none;
 }
 .featured-work-item-desc {
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-weight: 500;
   font-size: 0.8rem;
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.65);
+  letter-spacing: var(--tracking-sans);
 }
 .featured-work-item img,
 .featured-work-item-media {
@@ -437,10 +491,10 @@ a.featured-work-item:active .featured-work-item-media {
   position: absolute;
   z-index: 2;
   top: 68.76%; /* tune by eye — alinea el borde inferior con #experience-list */
-  left: 6%;
-  font-family: 'Microgramma', sans-serif;
+  left: var(--margin-x);
+  font-family: var(--font-display);
   font-size: clamp(2rem, 4.5vw, 3.2rem);
-  font-weight: 400;
+  font-weight: 300;
   line-height: 1.05;
   color: #ffffff;
   opacity: 0;
@@ -451,7 +505,7 @@ a.featured-work-item:active .featured-work-item-media {
   z-index: 2;
   top: 52%;
   left: 52%;
-  right: 4%;
+  right: var(--margin-x);
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
@@ -475,9 +529,9 @@ a.featured-work-item:active .featured-work-item-media {
 .experience-item-company {
   flex: 0 0 30%;
   /* Misma tipografía que #experience-heading (el título de la sección),
-     no Montserrat — y más grande que antes. */
-  font-family: 'Microgramma', sans-serif;
-  font-weight: 400;
+     en Inter Tight/Catavalo según la regla global — y más grande que antes. */
+  font-family: var(--font-display);
+  font-weight: 300;
   font-size: clamp(1.1rem, 1.9vw, 1.5rem);
   line-height: 1.15;
   text-transform: uppercase;
@@ -490,26 +544,27 @@ a.featured-work-item:active .featured-work-item-media {
   gap: 0.4rem;
 }
 .experience-item-role {
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
+  font-family: var(--font-sans);
+  font-weight: 500;
   font-size: clamp(0.95rem, 1.5vw, 1.15rem);
   line-height: 1.3;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
   color: #ffffff;
+  letter-spacing: var(--tracking-sans);
 }
 .experience-item-desc {
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-weight: 500;
   font-size: 0.8rem;
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.7);
   max-width: 440px;
+  letter-spacing: var(--tracking-sans);
 }
 @media (max-width: 768px) {
   #experience-list {
-    left: 6%;
-    right: 6%;
+    left: var(--margin-x);
+    right: var(--margin-x);
   }
   .experience-item {
     flex-direction: column;
@@ -520,11 +575,12 @@ a.featured-work-item:active .featured-work-item-media {
   }
 }
 
-/* No z-index here on purpose: position:absolute + an explicit z-index
-   together create a stacking context, which isolates the mix-blend-mode
-   children below from the page background they need to blend against
-   (same bug documented on #hero-headline-2 above). z-index instead lives
-   directly on .nav-logo/.nav-label. */
+/* Nav: z-index lives directly on the logo and each link (not on this
+   wrapper) so no ancestor stacking context is created here. Links pinned
+   to the right via space-between (an earlier pass tried pulling them
+   next to the logo instead — reverted per client feedback: the links
+   stay right, it's the page's own left/right gutter (--margin-x) that
+   needed to shrink, not the logo-to-links gap). */
 #site-nav {
   position: absolute;
   top: 0;
@@ -533,7 +589,7 @@ a.featured-work-item:active .featured-work-item-media {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.75rem 2.5rem;
+  padding: 1.75rem var(--margin-x);
   pointer-events: none;
 }
 #site-nav .nav-logo {
@@ -541,32 +597,62 @@ a.featured-work-item:active .featured-work-item-media {
   z-index: 50;
   height: 2.2rem;
   pointer-events: auto;
-  /* The SVG itself is a shared asset (also used navy-on-light in work.html)
-     with its fill baked into an internal <style> — since it's loaded via
-     <img>, that fill can't be reached from here directly. brightness(0)
-     flattens it to solid black first, then invert(1) flips that to white,
-     regardless of the source fill color — scoped to just this page's nav. */
-  filter: brightness(0) invert(1);
+  /* The SVG is loaded via <img>, so its own fill can't be reached from CSS.
+     brightness(0) flattens it to black, invert(1) flips that to white.
+     --nav-logo-invert / --nav-ink / --nav-clock-ink are set from main.js
+     (updatePageColors) only during the creativity phase, to fade the nav
+     to #141414 over its off-white background; unset = the values here. */
+  filter: brightness(0) invert(var(--nav-logo-invert, 1));
 }
-#site-nav .nav-label {
+#site-nav .nav-links {
   position: relative;
   z-index: 50;
-  font-family: 'Microgramma', sans-serif;
-  font-size: 0.95rem;
-  color: #ffffff;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  display: flex;
+  gap: clamp(1.25rem, 2.6vw, 3rem);
+  list-style: none;
   pointer-events: auto;
 }
-
+#site-nav .nav-links a,
+#site-nav .nav-clock {
+  font-family: var(--font-sans);
+  font-weight: 300; /* lightened from 500 per client feedback ("menú más fino") — size/tracking/logo untouched */
+  letter-spacing: var(--tracking-sans);
+  font-size: clamp(0.8rem, 1.1vw, 1.2rem); /* lowered from clamp(0.9rem,1.25vw,1.4rem) per client feedback ("un poco mas pequeño") */
+  color: var(--nav-ink, #ffffff);
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+#site-nav .nav-links a:hover {
+  opacity: 0.6;
+}
+/* Live Valencia time next to "contact", same typography as the links
+   (see shared selector above) — not a link itself so no hover/cursor
+   affordance, just displayed text. Tabular figures keep the minutes from
+   jittering the layout by a px or two every time the digits change.
+   color overrides the shared white above with the most-present orange in
+   the headline's own gradient (client ask) — --hl-b (rgb(255,165,105)) is
+   the stop that dominates the most of the gradient's length (it's both
+   the end of the 0-40% run from --hl-a and the start of the 40-75% run
+   to --hl-c) and reads as a clear, saturated orange rather than --hl-c/
+   --hl-d's paler cream — used here solid/opaque since nav text isn't a
+   translucent fill like the headline's. */
+#site-nav .nav-clock {
+  font-variant-numeric: tabular-nums;
+  color: var(--nav-clock-ink, rgb(255, 165, 105));
+  opacity: 0.85;
+}
 @media (max-width: 768px) {
   #site-nav {
-    padding: 1.25rem 1.5rem;
+    padding: 1.25rem var(--margin-x);
   }
   #site-nav .nav-logo {
     height: 1.7rem;
   }
-  #site-nav .nav-label {
+  #site-nav .nav-links {
+    gap: 0.9rem;
+  }
+  #site-nav .nav-links a,
+  #site-nav .nav-clock {
     font-size: 0.75rem;
   }
 }
@@ -601,9 +687,9 @@ a.featured-work-item:active .featured-work-item-media {
 .outro-cta-question {
   position: relative;
   z-index: 2;
-  font-family: 'Microgramma', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(1.4rem, 2.9vw, 2.3rem);
-  font-weight: 400;
+  font-weight: 300;
   color: #ffffff;
   opacity: 0;
 }
@@ -613,10 +699,9 @@ a.featured-work-item:active .featured-work-item-media {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Montserrat', sans-serif;
+  font-family: var(--font-sans);
   font-size: clamp(0.85rem, 1.1vw, 1rem);
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  font-weight: 500;
   text-transform: uppercase;
   color: #ffffff;
   text-decoration: none;
@@ -631,6 +716,7 @@ a.featured-work-item:active .featured-work-item-media {
     0 0 16px 4px rgba(255, 255, 255, 0.4),
     0 0 26px 8px rgba(255, 255, 255, 0.25);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
+  letter-spacing: var(--tracking-sans);
 }
 
 .outro-cta-link:hover {
@@ -664,9 +750,9 @@ a.featured-work-item:active .featured-work-item-media {
   pointer-events: none;
 }
 .contact-cta-heading {
-  font-family: 'Microgramma', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(2rem, 4.5vw, 3.2rem);
-  font-weight: 400;
+  font-weight: 300;
   color: #ffffff;
   opacity: 0;
 }
@@ -677,11 +763,11 @@ a.featured-work-item:active .featured-work-item-media {
   gap: 0.5rem;
 }
 /* Plain text, not a button — same treatment as .contact-cta-heading: flat
-   white Microgramma, uppercase, no border/background/padding/box-shadow. */
+   white Catavalo, uppercase, no border/background/padding/box-shadow. */
 .contact-cta-link {
-  font-family: 'Microgramma', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(1rem, 1.8vw, 1.4rem);
-  font-weight: 400;
+  font-weight: 300;
   text-transform: uppercase;
   color: #ffffff;
   text-decoration: none;

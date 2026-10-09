@@ -7,20 +7,34 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <section id="hero-section">
+      <canvas id="rings-canvas"></canvas>
       <nav id="site-nav">
-        <img class="nav-logo" src="/Logo Alamilla.svg" alt="Alamilla" />
-        <span class="nav-label">MOTION &amp; AI DESIGNER</span>
+        <img class="nav-logo" src="/logo-alamilla-new.svg" alt="Alamilla" />
+        <!-- Links are visual only for now. data-section is the hook for future scroll-to-section logic. -->
+        <ul class="nav-links">
+          <li><a href="#projects" data-section="projects">projects</a></li>
+          <li><a href="#about" data-section="about">about me</a></li>
+          <li><a href="#experience" data-section="experience">experience</a></li>
+          <li><a href="#contact" data-section="contact">contact</a></li>
+          <li class="nav-clock"><span>valencia</span> <time id="nav-clock-time"></time></li>
+        </ul>
       </nav>
-      <div id="hero-headline">
-        <span class="headline-word word-making">Making</span>
-        <span class="headline-word word-things">Things</span>
-        <span class="headline-word word-move">Move</span>
-      </div>
+      <!-- Anchored to the bottom of the viewport directly in vw/vh (see
+           .headline-word in style.css), NOT part of the 1920x1080
+           composition-scaled system the orange/nav use — that system is
+           "cover"-style and only lines up exactly at a 16:9-ish ratio,
+           which would fight the client's ask to keep this pinned a fixed
+           ~3vh from the bottom at any aspect ratio, including ones far
+           from 16:9 (1280x580 and 1920x1080 both checked). -->
+      <span class="headline-word">
+        <span class="hw-sans">Motion AI</span>
+        <span class="hw-display">Designer</span>
+      </span>
       <div id="hero-headline-2">
         <span class="tagline-line">With emotion +</span>
         <span class="tagline-line">innovation, i push the</span>
@@ -109,6 +123,12 @@
         </div>
       </div>
       <canvas id="sphere-canvas"></canvas>
+      <!-- Creativity phase: two-line phrase over the full-screen orange,
+           driven per frame from main.js (updateCreativityPhrase). -->
+      <div id="creativity-phrase">
+        <p class="cp-line cp-line-1"><span class="cp-sans">Where</span> <span class="cp-display">creativity</span></p>
+        <p class="cp-line cp-line-2"><span class="cp-sans">meets</span> <span class="cp-display">technology</span></p>
+      </div>
       <div id="outro-cta">
         <p class="outro-cta-question">Want to see more?</p>
         <a href="work.html" class="outro-cta-link">CLICK HERE</a>
@@ -120,8 +140,6 @@
           <a href="tel:+34684373077" class="contact-cta-link">+34 684 37 30 77</a>
         </div>
       </div>
-      <div class="leaf-left-wrap"><div class="leaf-left"></div></div>
-      <div class="leaf-right-wrap"><div class="leaf-right"></div></div>
     </section>
     <script type="module" src="/src/main.js"></script>
   </body>
