@@ -20,12 +20,13 @@
     <nav id="site-nav">
       <img class="nav-logo" src="/logo-alamilla-new.svg" alt="Alamilla" />
       <ul class="nav-links">
-        <li><a href="#projects" data-section="projects">projects</a></li>
+        <li><a href="work.html" data-section="projects">projects</a></li>
+        <li><a href="#showreel" data-section="showreel">showreel</a></li>
         <li><a href="#about" data-section="about">about me</a></li>
         <li><a href="#experience" data-section="experience">experience</a></li>
         <li><a href="#contact" data-section="contact">contact</a></li>
-        <li class="nav-clock"><span>valencia</span> <time id="nav-clock-time"></time></li>
       </ul>
+      <p class="nav-clock"><span>valencia</span> <time id="nav-clock-time"></time></p>
     </nav>
     <section id="hero-section">
       <canvas id="rings-canvas"></canvas>
@@ -76,6 +77,10 @@
     </svg>
     <section id="projects">
       <div class="zp">
+        <!-- Where the nav's "showreel" link lands: the scroll position at
+             which the center card has just filled the screen and the reel
+             starts (style.css, .zp-anchor). -->
+        <span class="zp-anchor" id="showreel"></span>
         <div class="zp-sticky">
           <!-- .ft-scale and .ft-raster make it grow with the center video
                (main.js, setFeaturedScale); .ft-block takes the liquid

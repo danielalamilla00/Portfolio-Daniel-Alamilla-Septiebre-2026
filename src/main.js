@@ -1736,6 +1736,7 @@ function setReelFull(full) {
   syncReel();
 }
 function createReelPlayer() {
+  if (reel.player) return;
   const frame = document.createElement("iframe");
   frame.className = "zp-reel";
   frame.src = REEL_URL;
@@ -1761,6 +1762,11 @@ function setupReel(card, preview) {
     },
     { rootMargin: REEL_NEAR_MARGIN }
   ).observe(card);
+  // The nav's "showreel" link jumps straight to the reel from anywhere:
+  // the player starts loading as soon as the pointer (or the focus) is on
+  // the link, so it is not created only on arrival.
+  const reelLink = siteNavEl.querySelector('a[href="#showreel"]');
+  ["pointerenter", "focus"].forEach((type) => reelLink.addEventListener(type, createReelPlayer, { once: true }));
   new IntersectionObserver((entries) => {
     reel.onScreen = entries[entries.length - 1].isIntersecting;
     syncReel();
@@ -1777,7 +1783,7 @@ function setupReel(card, preview) {
 //   - while the panel comes up, at MORE_TEXT_SPEED of the panel's speed: it
 //     starts a little higher in the panel than where it ends the rise;
 //   - once the panel is in place it goes on up for MORE_TEXT_SETTLE_VH of
-//     scroll, slowing down, and stops centered. How far below the center
+//     scroll, slowing down, and stops in its place (style.css). How far below it
 //     it is when that stretch begins (MORE_TEXT_SETTLE_DROP_VH) follows
 //     from the other two, so its pace does not change where the panel
 //     stops: with the ease used there (quadratic out) the stretch starts
@@ -1812,7 +1818,7 @@ function updateMorePanel() {
   const settle = clamp((moreScrollDamped - MORE_PANEL_RISE_VH) / MORE_TEXT_SETTLE_VH, 0, 1);
   moreEl.classList.toggle("is-on", rise > 0);
   moreEl.style.transform = `translate3d(0, ${((1 - rise) * 100).toFixed(3)}%, 0)`;
-  // The block, in vh from its centered place (the panel is 100vh tall).
+  // The block, in vh from its place by CSS (the panel is 100vh tall).
   // Both terms only ever shrink as the scroll goes on: what is left of the
   // drop (positive, below the center) and of the head start it has on the
   // panel (negative). prefers-reduced-motion: it just rides the panel.

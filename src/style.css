@@ -466,6 +466,13 @@ body {
   position: relative;
   height: calc(200vh + var(--zp-after, 0vh));
 }
+/* The zoom's own scroll is the first 100vh that .zp-sticky is stuck (main.js,
+   setupZoomParallax): an anchor that far down .zp puts the page right
+   where the zoom has ended. */
+.zp-anchor {
+  position: absolute;
+  top: 100vh;
+}
 .zp-sticky {
   position: sticky;
   top: 0;
@@ -549,6 +556,9 @@ body {
                            to their height (measured: 0.85em leaves it
                            11px clear; 0.7em or 1em, 3-4px)
      --more-gap            space between the title and the text under it
+     --more-lower          how far below the middle of the panel the block
+                           of text sits (0 = centered): room for the nav
+                           above it on wide, short windows
      --more-black          the panel's color
      --more-angle          direction of the gradient that fills the title
      --more-gradient       that gradient: the aura's own colors (--c-*,
@@ -567,6 +577,7 @@ body {
   --more-shift-1: 1.55em;
   --more-shift-3: 0.85em;
   --more-gap: 2.6vw;
+  --more-lower: 4vh;
   --more-black: #0a0a0a;
   --more-angle: 120deg;
   --more-gradient: linear-gradient(
@@ -595,7 +606,7 @@ body {
 }
 .more-block {
   position: absolute;
-  inset: 0;
+  inset: var(--more-lower) 0 calc(-1 * var(--more-lower));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -735,13 +746,17 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  display: flex;
+  /* Logo | links | clock. The two outer columns are equal, so the links
+     are centered on the page's vertical axis whatever the widths of the
+     logo and the clock. */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   padding: 1.75rem var(--margin-x);
   pointer-events: none;
 }
 #site-nav .nav-logo {
+  justify-self: start;
   height: 2.2rem;
   pointer-events: auto;
   /* The SVG is loaded via <img>, so its own fill can't be reached from CSS.
@@ -770,12 +785,13 @@ body {
 #site-nav .nav-links a:hover {
   opacity: 0.6;
 }
-/* Live Valencia time next to "contact", same size as the links (see
+/* Live Valencia time at the right end of the bar, same size as the links (see
    shared selector above) — not a link itself so no hover/cursor
    affordance, just displayed text. Tabular figures keep the minutes from
    jittering the layout by a px or two every time the digits change.
    Orange on the dark hero (client ask), #141414 over the aura. */
 #site-nav .nav-clock {
+  justify-self: end;
   /* Catavalo SemiBold, unlike the Inter Tight links (client ask). No
      negative tracking: that value is tuned for the sans. */
   font-family: var(--font-display);
