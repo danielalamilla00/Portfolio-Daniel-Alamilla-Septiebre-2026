@@ -5,11 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ALAMILLA | Motion & AI Designer</title>
 <link rel="icon" type="image/png" href="/favicon.png">
-<link rel="preload" as="image" href="/fondo-4.jpg">
-<link rel="preload" as="font" type="font/woff2" href="Coolvetica Font/Coolvetica Rg Cond.woff2" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@100..900&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
 <style>
   #page-transition-overlay {
     position: fixed;
@@ -26,16 +24,11 @@
     -webkit-backdrop-filter: blur(0px);
     background: rgba(0,0,0,0);
   }
-  @font-face { font-family: 'Coolvetica';     src: url('Coolvetica Font/Coolvetica Rg.woff2') format('woff2'), url('Coolvetica Font/Coolvetica Rg.otf') format('opentype');           font-weight: 300; font-display: swap; }
-  @font-face { font-family: 'CoolveticaCond'; src: url('Coolvetica Font/Coolvetica Rg Cond.woff2') format('woff2'), url('Coolvetica Font/Coolvetica Rg Cond.otf') format('opentype'); font-display: swap; }
-  @font-face { font-family: 'Microgramma';    src: url('/Microgramma D Extended Bold.otf') format('opentype'); font-display: swap; }
-  :root { --ease-out: cubic-bezier(0.16, 1, 0.3, 1); }
+  /* --page: the site's dark gray, the same as index.html's background. */
+  :root { --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --page: #141414; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
-    background-color: #000;
-    background-image: url('/fondo-4.jpg');
-    background-size: 100% 100%; background-position: center;
-    background-repeat: no-repeat; background-attachment: fixed;
+    background-color: var(--page);
     color: #fff; min-height: 100vh; overflow-x: clip;
   }
 
@@ -48,65 +41,19 @@
   .wk-logo {
     display: inline-block;
     aspect-ratio: 1344.28 / 484.49;
-    background-color: #062338;
+    background-color: #ffffff;
     -webkit-mask: url('/logo-alamilla-new.svg') center / contain no-repeat;
     mask: url('/logo-alamilla-new.svg') center / contain no-repeat;
   }
   #wk-nav .wk-logo { height: 2.2rem; }
   #wk-nav a {
     font-family: 'Montserrat', sans-serif; font-size: 0.85rem;
-    color: #062338; text-decoration: none;
+    color: #ffffff; text-decoration: none;
     letter-spacing: 0.1em; text-transform: uppercase;
   }
 
   /* ── Body ───────────────────────────────────────────────────────────────── */
   #wk-body { padding: 11.5rem 4rem 0; }
-
-  /* ── Reel embed (below the grid) ────────────────────────────────────────── */
-  .wk-reel-section { padding: 5rem 0; }
-  .wk-reel-section .ex-letter       { color: #ffffff; mix-blend-mode: difference; }
-  .wk-reel-section .ex-section-divider { background: rgba(25,25,25,0.2); }
-  /* ── Reel thumbnail (collapsed state) ───────────────────────────────── */
-  .wk-reel-thumb {
-    padding: 0 3rem 1rem; cursor: pointer;
-  }
-  .wk-reel-thumb-inner {
-    position: relative; max-width: 720px; margin: 0 auto;
-    aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden;
-    background: #0c0c0c;
-  }
-  .wk-reel-play {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    transition: transform 200ms var(--ease-out);
-  }
-  .wk-reel-thumb:hover .wk-reel-play { transform: scale(1.08); }
-  .wk-reel-play svg { filter: drop-shadow(0 2px 12px rgba(0,0,0,0.6)); }
-
-  /* ── Reel lightbox (fullscreen state) ───────────────────────────────── */
-  #reel-lightbox {
-    position: fixed; inset: 0; z-index: 200;
-    background: rgba(0,0,0,0.92);
-    visibility: hidden; opacity: 0; pointer-events: none;
-    transition: opacity 300ms var(--ease-out);
-  }
-  #reel-lightbox.is-open { visibility: visible; opacity: 1; pointer-events: auto; }
-  #reel-lightbox-frame {
-    position: absolute; inset: 0;
-    transform-origin: top left; will-change: transform;
-  }
-  #reel-lightbox-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
-  #reel-lightbox-close {
-    position: fixed; top: 1.5rem; right: 1.5rem;
-    width: 2.2rem; height: 2.2rem; border-radius: 50%;
-    background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.18);
-    color: #fff; font-size: 1.15rem;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; z-index: 510; opacity: 0; pointer-events: none;
-    transition: opacity 250ms var(--ease-out) 200ms, background 140ms;
-  }
-  #reel-lightbox.is-open #reel-lightbox-close { opacity: 1; pointer-events: auto; }
-  #reel-lightbox-close:hover { background: rgba(0,0,0,0.7); }
 
   /* ── SELECTED PROJECTS letter-reveal heading ────────────────────────────── */
   .ex-section-heading {
@@ -120,7 +67,7 @@
   .ex-marquee-row:last-child { margin-bottom: 0; }
   .ex-letter-wrap { display: inline-block; overflow: hidden; line-height: 1.0; }
   .ex-letter {
-    display: inline-block; font-family: 'Microgramma', sans-serif; font-size: 5.5rem;
+    display: inline-block; font-family: 'Inter Tight', sans-serif; font-size: 5.5rem;
     color: rgba(255,255,255,0.9); text-transform: uppercase;
     letter-spacing: -0.02em; line-height: 1.05; white-space: pre;
     transform: translateY(110%);
@@ -154,8 +101,7 @@
   .wk-media-wrap {
     position: absolute; inset: 0; overflow: hidden;
     border-radius: inherit;
-    background-image: url('/fondo-4.jpg');
-    background-size: 100% 100vh; background-position: center; background-attachment: fixed;
+    background-color: var(--page);
   }
   .wk-media {
     position: absolute; inset: 0; width: 100%; height: 100%;
@@ -215,7 +161,7 @@
     pointer-events: none;
   }
   .c-title {
-    font-family: 'Microgramma', sans-serif;
+    font-family: 'Inter Tight', sans-serif;
     font-size: clamp(1.8rem, 4.5vw, 3.8rem);
     font-weight: 400; color: #ffffff; line-height: 1.0;
     display: block; margin-bottom: 0.55rem;
@@ -259,7 +205,7 @@
     font-family: 'Montserrat', sans-serif;
     font-weight: 400;
     font-size: 1rem;
-    color: #062338;
+    color: #ffffff;
   }
   .shared-footer .wk-logo {
     height: 1.4rem;
@@ -267,7 +213,6 @@
   }
   #wk-footer { padding: 0; }
   @media (max-width: 768px) { #wk-footer { padding: 2rem 2rem 3.5rem; } }
-  #card-expand-body .shared-footer { color: #062338; }
 
   /* ── Responsive ─────────────────────────────────────────────────────────── */
 
@@ -276,16 +221,9 @@
     .ex-marquee-row { margin-bottom: -0.3rem; }
     .ex-marquee-row + .ex-marquee-row { margin-top: 0.15em; }
     #wk-body { padding: 8rem 2.5rem 0; }
-    .wk-reel-section { padding: 3rem 0; }
   }
   @media (max-width: 768px) {
-    html, body { background-attachment: scroll; background-size: cover; }
-    .wk-media-wrap { background-attachment: scroll; background-size: cover; }
-    #card-expand-panel { background-attachment: scroll; }
-    #card-expand-body  { background-attachment: scroll; }
     #wk-nav a:last-child { display: none; }
-    .wk-reel-thumb { padding: 0 0 1rem; }
-    .wk-reel-thumb-inner { max-width: 100%; aspect-ratio: 4 / 3; border-radius: 18px; }
     #wk-grid { max-width: 100%; gap: 0.75rem; }
     .wk-grid-block { display: flex; flex-direction: column; gap: 0.75rem; }
     .wk-grid-card  { aspect-ratio: 4 / 3; }
@@ -328,9 +266,7 @@
     border-radius: 0; overflow-y: auto; overflow-x: hidden;
     -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
     scrollbar-width: none; visibility: hidden;
-    background-image: url('/fondo-4.jpg');
-    background-size: cover; background-position: top center;
-    background-attachment: fixed; background-repeat: no-repeat;
+    background-color: var(--page);
     transform-origin: top left; will-change: transform, border-radius;
     display: flex; flex-direction: column;
     transition: transform 800ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -353,14 +289,14 @@
     opacity: 0; transition: opacity 320ms var(--ease-out) 200ms;
     border-radius: 0; will-change: transform; transform-origin: center center;
   }
-  .ex-headline { font-family: 'Microgramma', sans-serif; font-size: 0.65rem; color: rgba(255,255,255,0.65); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
-  .ex-title    { font-family: 'Microgramma', sans-serif; font-size: clamp(1.5rem, 3.5vw, 2.5rem); color: #fff; line-height: 1.05; margin-bottom: 0.5rem; display: block; }
+  .ex-headline { font-family: 'Inter Tight', sans-serif; font-size: 0.65rem; color: rgba(255,255,255,0.65); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
+  .ex-title    { font-family: 'Inter Tight', sans-serif; font-size: clamp(1.5rem, 3.5vw, 2.5rem); color: #fff; line-height: 1.05; margin-bottom: 0.5rem; display: block; }
   .ex-desc     { font-family: 'Montserrat', sans-serif; font-size: 0.9rem; color: rgba(255,255,255,0.7); max-width: 520px; line-height: 1.45; margin-bottom: 1.5rem; display: block; }
   #card-expand-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
   .ex-btn {
     display: inline-flex; align-items: center; gap: 0.45rem;
     padding: 0.55rem 1.4rem; border-radius: 9999px;
-    font-family: 'Microgramma', sans-serif; font-size: 0.85rem;
+    font-family: 'Inter Tight', sans-serif; font-size: 0.85rem;
     letter-spacing: 0.04em; cursor: pointer; border: none;
     transition: transform 140ms var(--ease-out), background 160ms;
   }
@@ -369,9 +305,7 @@
   .ex-btn-ghost   { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.22); }
   #card-expand-body {
     position: relative; z-index: 1; color: #062338;
-    background-image: url('/fondo-4.jpg');
-    background-size: cover; background-position: top center;
-    background-attachment: fixed; background-repeat: no-repeat;
+    background-color: var(--page);
     border-radius: 0; padding: 3.5rem 2.5rem 5rem;
     max-width: 100%; margin: 0; margin-top: -2px;
   }
@@ -422,7 +356,7 @@
     opacity: 0; pointer-events: none; transition: opacity 400ms var(--ease-out); z-index: 20;
   }
   #card-expand-scroll-hint span {
-    font-family: 'Microgramma', sans-serif; font-size: 0.55rem;
+    font-family: 'Inter Tight', sans-serif; font-size: 0.55rem;
     letter-spacing: 0.15em; color: rgba(255,255,255,0.5); text-transform: uppercase;
   }
   #card-expand-scroll-hint svg { width: 18px; height: 18px; animation: hintBounce 1.4s ease-in-out infinite; }
@@ -654,30 +588,6 @@
 
   </section>
 
-  <!-- ── Motion Design Reel ─────────────────────────────────────────────── -->
-  <div class="wk-reel-section">
-    <div class="ex-body-section">
-      <div class="ex-section-heading" id="wk-reel-heading"></div>
-      <div class="ex-section-divider"></div>
-    </div>
-    <div class="wk-reel-thumb" id="wk-reel-thumb" role="button" tabindex="0" aria-label="Play showreel">
-      <div class="wk-reel-thumb-inner">
-        <div class="wk-reel-play">
-          <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-            <circle cx="36" cy="36" r="35" stroke="white" stroke-opacity="0.35" stroke-width="1.5"/>
-            <path d="M29 22l22 14-22 14V22z" fill="white"/>
-          </svg>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Reel lightbox ──────────────────────────────────────────────────── -->
-  <div id="reel-lightbox" aria-modal="true" role="dialog" aria-label="Showreel">
-    <div id="reel-lightbox-frame"></div>
-    <button id="reel-lightbox-close" aria-label="Close reel">&#x2715;</button>
-  </div>
-
 </div>
 
 <footer id="wk-footer" class="shared-footer">
@@ -793,8 +703,6 @@
     obs.observe(container);
     container._headingObserver = obs;
   }
-
-  buildHeading('wk-reel-heading', ['SHOWREEL']);
 
   // ── Card expand system ────────────────────────────────────────────────────
   const cardExpand              = document.getElementById('card-expand');
@@ -1391,91 +1299,6 @@
       closeCardExpand(true);
     }
   });
-
-  // ── Reel lightbox ─────────────────────────────────────────────────────
-  const reelThumb    = document.getElementById('wk-reel-thumb');
-  const reelLightbox = document.getElementById('reel-lightbox');
-  const reelFrame    = document.getElementById('reel-lightbox-frame');
-  const reelLbClose  = document.getElementById('reel-lightbox-close');
-  const REEL_SRC     = 'https://player.vimeo.com/video/1006517705?h=8c47176ec3&autoplay=1&loop=1';
-  const FLIP_EASE    = 'cubic-bezier(0.22, 1, 0.36, 1)';
-  let reelOpen = false;
-
-  function openReelLightbox() {
-    if (reelOpen) return;
-    reelOpen = true;
-
-    const thumbRect = reelThumb.querySelector('.wk-reel-thumb-inner').getBoundingClientRect();
-
-    reelLightbox.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
-
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const dx = thumbRect.left, dy = thumbRect.top;
-    const sx = thumbRect.width  / vw;
-    const sy = thumbRect.height / vh;
-
-    reelFrame.style.transition   = 'none';
-    reelFrame.style.transform    = `translate(${dx}px,${dy}px) scale(${sx},${sy})`;
-    reelFrame.style.borderRadius = '14px';
-
-    reelFrame.getBoundingClientRect();
-
-    reelFrame.innerHTML = `<iframe src="${REEL_SRC}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
-
-    reelFrame.style.transition   = `transform 900ms ${FLIP_EASE}, border-radius 900ms ${FLIP_EASE}`;
-    reelFrame.style.transform    = '';
-    reelFrame.style.borderRadius = '0px';
-
-    setTimeout(() => { reelFrame.style.transition = ''; }, 900);
-
-    if (reelLightbox.requestFullscreen) reelLightbox.requestFullscreen();
-    else if (reelLightbox.webkitRequestFullscreen) reelLightbox.webkitRequestFullscreen();
-  }
-
-  function closeReelLightbox() {
-    if (!reelOpen) return;
-    reelOpen = false;
-
-    reelFrame.innerHTML = '';
-
-    const thumbRect = reelThumb.querySelector('.wk-reel-thumb-inner').getBoundingClientRect();
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const dx = thumbRect.left, dy = thumbRect.top;
-    const sx = thumbRect.width  / vw;
-    const sy = thumbRect.height / vh;
-
-    reelFrame.style.transition   = 'none';
-    reelFrame.style.transform    = '';
-    reelFrame.style.borderRadius = '0px';
-
-    reelFrame.getBoundingClientRect();
-
-    reelFrame.style.transition   = `transform 650ms ${FLIP_EASE}, border-radius 650ms ${FLIP_EASE}`;
-    reelFrame.style.transform    = `translate(${dx}px,${dy}px) scale(${sx},${sy})`;
-    reelFrame.style.borderRadius = '14px';
-
-    if (document.fullscreenElement || document.webkitFullscreenElement) {
-      if (document.exitFullscreen) document.exitFullscreen();
-      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-    }
-
-    setTimeout(() => {
-      reelLightbox.classList.remove('is-open');
-      reelFrame.style.transition = '';
-      reelFrame.style.transform  = '';
-      reelFrame.style.borderRadius = '';
-      document.body.style.overflow = '';
-    }, 650);
-  }
-
-  reelThumb.addEventListener('click', openReelLightbox);
-  reelThumb.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openReelLightbox(); }
-  });
-  reelLbClose.addEventListener('click', closeReelLightbox);
-  reelLightbox.addEventListener('click', e => { if (e.target === reelLightbox) closeReelLightbox(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && reelOpen) closeReelLightbox(); });
 
   // ─── Card entrance animation ─────────────────────────────────────────────────
   const cardObserver = new IntersectionObserver((entries) => {

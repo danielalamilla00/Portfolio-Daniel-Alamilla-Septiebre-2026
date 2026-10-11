@@ -7,137 +7,105 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
+    <!-- The Three.js canvas (orange, then aura): fixed to the viewport
+         behind all content (see #sphere-canvas in style.css), so the aura
+         can carry on from the pinned hero into #projects. -->
+    <canvas id="sphere-canvas"></canvas>
+    <!-- Fixed to the viewport (see #site-nav in style.css), outside the
+         pinned hero so it stays on screen over #projects too. -->
+    <nav id="site-nav">
+      <img class="nav-logo" src="/logo-alamilla-new.svg" alt="Alamilla" />
+      <ul class="nav-links">
+        <li><a href="#projects" data-section="projects">projects</a></li>
+        <li><a href="#about" data-section="about">about me</a></li>
+        <li><a href="#experience" data-section="experience">experience</a></li>
+        <li><a href="#contact" data-section="contact">contact</a></li>
+        <li class="nav-clock"><span>valencia</span> <time id="nav-clock-time"></time></li>
+      </ul>
+    </nav>
     <section id="hero-section">
       <canvas id="rings-canvas"></canvas>
-      <nav id="site-nav">
-        <img class="nav-logo" src="/logo-alamilla-new.svg" alt="Alamilla" />
-        <!-- Links are visual only for now. data-section is the hook for future scroll-to-section logic. -->
-        <ul class="nav-links">
-          <li><a href="#projects" data-section="projects">projects</a></li>
-          <li><a href="#about" data-section="about">about me</a></li>
-          <li><a href="#experience" data-section="experience">experience</a></li>
-          <li><a href="#contact" data-section="contact">contact</a></li>
-          <li class="nav-clock"><span>valencia</span> <time id="nav-clock-time"></time></li>
-        </ul>
-      </nav>
       <!-- Anchored to the bottom of the viewport directly in vw/vh (see
            .headline-word in style.css), NOT part of the 1920x1080
-           composition-scaled system the orange/nav use — that system is
-           "cover"-style and only lines up exactly at a 16:9-ish ratio,
-           which would fight the client's ask to keep this pinned a fixed
-           ~3vh from the bottom at any aspect ratio, including ones far
-           from 16:9 (1280x580 and 1920x1080 both checked). -->
+           composition-scaled system the orange uses — that system is
+           "cover"-style and only lines up exactly at a 16:9-ish ratio. -->
+      <!-- Two short introductions over the hero. The outer box is what the
+           scroll moves out with the headline (main.js); the <p> is what
+           fades in on load (style.css). -->
+      <div class="hero-intro hero-intro-left">
+        <p>I'm Daniel Alamilla, a Valencian motion &amp; AI designer now based in Barcelona. I turn ideas into moving stories for screens, brands and spaces.</p>
+      </div>
+      <div class="hero-intro hero-intro-right">
+        <p>From holograms and urban screens to campaigns for Google, Meta and YouTube, I blend motion design, 3D and generative AI. Currently Design &amp; Content Manager at TMM Group.</p>
+      </div>
       <span class="headline-word">
-        <span class="hw-sans">Motion AI</span>
-        <span class="hw-display">Designer</span>
+        <!-- main.js (setupHeadlineFocus) clones this layer into the
+             blurred, aria-hidden copies of the mouse-focus effect. -->
+        <span class="hw-layer">
+          <span class="hw-layer-content">
+            <span class="hw-layer-inner">
+              <span class="hw-sans">Motion AI</span>
+              <span class="hw-display">Designer</span>
+            </span>
+          </span>
+        </span>
       </span>
-      <div id="hero-headline-2">
-        <span class="tagline-line">With emotion +</span>
-        <span class="tagline-line">innovation, i push the</span>
-        <span class="tagline-line">boundaries of digital</span>
-        <span class="tagline-line">creativity.</span>
-      </div>
-      <div id="hero-subtext">
-        <div class="subtext-col subtext-col-left">
-          <p class="subtext-headline tagline-line">I'M DANIEL ALAMILLA, A VALENCIA-BORN, BARCELONA-BASED MOTION & AI DESIGNER.</p>
-          <a href="#" class="subtext-link tagline-line">ABOUT ME <span class="link-arrow">→</span></a>
-        </div>
-        <div class="subtext-col subtext-col-right">
-          <p class="subtext-paragraph tagline-line">Every project tells a visual story—from digital screens to immersive physical environments. I design motion experiences that connect platforms and spaces, bringing brands to life through dynamic movement, narrative, and fluid creative direction.</p>
-        </div>
-      </div>
-      <div id="featured-work-heading">My featured<br />works</div>
-      <div id="featured-work">
-        <div class="featured-work-grid">
-          <div class="featured-work-col featured-work-col-a">
-            <a href="work.html#caprabo" class="featured-work-item">
-              <video class="featured-work-item-media" src="/projects/caprabo-tienda-1.mp4" autoplay muted loop playsinline></video>
-              <div class="featured-work-item-overlay"></div>
-              <div class="featured-work-item-meta">
-                <span class="featured-work-item-title">Caprabo</span>
-                <span class="featured-work-item-desc">Holographic 3D animations with a realistic floating effect.</span>
-              </div>
-            </a>
-            <a href="work.html#sitges-film-festival" class="featured-work-item">
-              <video class="featured-work-item-media" src="/projects/Styleframes_SItges_1.2.mp4" autoplay muted loop playsinline></video>
-              <div class="featured-work-item-overlay"></div>
-              <div class="featured-work-item-meta">
-                <span class="featured-work-item-title">Sitges Film Festival</span>
-                <span class="featured-work-item-desc">2D animations celebrating the cult community that defines the spirit of Sitges.</span>
-              </div>
-            </a>
-          </div>
-          <div class="featured-work-col featured-work-col-b">
-            <a href="work.html#hummel-valencia-basket" class="featured-work-item">
-              <video class="featured-work-item-media" src="/projects/valencia-basket-tarjeta.mp4" autoplay muted loop playsinline></video>
-              <div class="featured-work-item-overlay"></div>
-              <div class="featured-work-item-meta">
-                <span class="featured-work-item-title">Hummel x Valencia Basket</span>
-                <span class="featured-work-item-desc">A sponsorship film born to move — generated with Veo and composited in After Effects.</span>
-              </div>
-            </a>
-            <a href="work.html#spotify-daylist" class="featured-work-item">
-              <video class="featured-work-item-media" src="/projects/spotify-daylist-portada.mp4" autoplay muted loop playsinline></video>
-              <div class="featured-work-item-overlay"></div>
-              <div class="featured-work-item-meta">
-                <span class="featured-work-item-title">Spotify Daylist</span>
-                <span class="featured-work-item-desc">A bold, mobile-first promo translating Spotify's ever-changing playlists into motion.</span>
-              </div>
-            </a>
-          </div>
-        </div>
-      </div>
-      <div id="experience-heading">Work<br />experience</div>
-      <div id="experience-list">
-        <div class="experience-item">
-          <p class="experience-item-company">TMM GROUP (BARCELONA)</p>
-          <div class="experience-item-body">
-            <p class="experience-item-role">DESIGN &amp; CONTENT MANAGER<br />FEB. 2025 — PRESENT</p>
-            <p class="experience-item-desc">Creating dynamic and static content for screens and advanced technologies such as holograms, including full content management and direct client liaison.</p>
-          </div>
-        </div>
-        <div class="experience-item">
-          <p class="experience-item-company">LIGHTSOUND GROUP (BARCELONA)</p>
-          <div class="experience-item-body">
-            <p class="experience-item-role">MOTION &amp; GRAPHIC DESIGNER<br />NOV. 2024 — FEB. 2025</p>
-            <p class="experience-item-desc">Dynamic and static content for screens at live events and the company showroom.</p>
-          </div>
-        </div>
-        <div class="experience-item">
-          <p class="experience-item-company">ID FINANCE (BARCELONA)</p>
-          <div class="experience-item-body">
-            <p class="experience-item-role">GRAPHIC DESIGNER &amp; VIDEO EDITOR<br />JUL. 2023 — JUL. 2024</p>
-            <p class="experience-item-desc">Online and offline design for Id Finance, Moneyman and Plazo.es — urban Mupis and animated paid campaigns for Google, YouTube and Facebook.</p>
-          </div>
-        </div>
-        <div class="experience-item">
-          <p class="experience-item-company">ONIRIA AGENCY (VALENCIA)</p>
-          <div class="experience-item-body">
-            <p class="experience-item-role">VIDEO EDITOR &amp; DIGITAL CONTENT CREATOR<br />MAR. 2023 — JUN. 2023</p>
-            <p class="experience-item-desc">Social media design and management for different brands — creative concepts, video and photo editing for posts.</p>
-          </div>
-        </div>
-      </div>
-      <canvas id="sphere-canvas"></canvas>
-      <!-- Creativity phase: two-line phrase over the full-screen orange,
-           driven per frame from main.js (updateCreativityPhrase). -->
+      <!-- Creativity phase: two-line phrase over the aura, driven per frame
+           from main.js (updateCreativityPhrase), which animates each .word
+           on its own. The space between the two words stays outside them. -->
       <div id="creativity-phrase">
-        <p class="cp-line cp-line-1"><span class="cp-sans">Where</span> <span class="cp-display">creativity</span></p>
-        <p class="cp-line cp-line-2"><span class="cp-sans">meets</span> <span class="cp-display">technology</span></p>
+        <p class="cp-line cp-line-1" aria-label="Where creativity"><span class="word cp-sans">Where</span> <span class="word cp-display">creativity</span></p>
+        <p class="cp-line cp-line-2" aria-label="meets technology"><span class="word cp-sans">meets</span> <span class="word cp-display">technology</span></p>
       </div>
-      <div id="outro-cta">
-        <p class="outro-cta-question">Want to see more?</p>
-        <a href="work.html" class="outro-cta-link">CLICK HERE</a>
-      </div>
-      <div id="contact-cta">
-        <p class="contact-cta-heading">Let's contact</p>
-        <div class="contact-cta-details">
-          <a href="mailto:hola@dalamilla.com" class="contact-cta-link">hola@dalamilla.com</a>
-          <a href="tel:+34684373077" class="contact-cta-link">+34 684 37 30 77</a>
+    </section>
+    <!-- Zoom parallax. The 7 layers are built by main.js from
+         ZOOM_PARALLAX_PROJECTS (setupZoomParallax) and appended after the
+         title, which stays behind them (see .featured-title in style.css). -->
+    <!-- Liquid text (the projects title, main.js): alpha threshold. Anything
+         blurred under it shows as solid blobs that pull together as the
+         blur goes; -140 is how much alpha (of 255) it takes to show. -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <filter id="liquid-threshold">
+        <feColorMatrix in="SourceGraphic" type="matrix"
+          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 255 -140"/>
+      </filter>
+    </svg>
+    <section id="projects">
+      <div class="zp">
+        <div class="zp-sticky">
+          <!-- .ft-scale and .ft-raster make it grow with the center video
+               (main.js, setFeaturedScale); .ft-block takes the liquid
+               threshold filter below while the title forms. -->
+          <h2 class="featured-title" aria-label="Freshly Squeezed">
+            <span class="ft-scale">
+              <span class="ft-raster">
+                <span class="ft-block">
+                  <span class="ft-line ft-display" aria-hidden="true">Freshly</span>
+                  <span class="ft-line ft-sans" aria-hidden="true">Squeezed</span>
+                </span>
+              </span>
+            </span>
+          </h2>
+          <!-- "Still thirsty for more?": a black panel that comes up over
+               the showreel after the zoom (main.js, updateMorePanel). -->
+          <section class="more" aria-label="More projects">
+            <p class="more-label">(More projects)</p>
+            <div class="more-block">
+              <h2 class="more-title" aria-label="Still thirsty for more?">
+                <span class="more-line more-line-1" aria-hidden="true">Still</span>
+                <span class="more-line more-line-2" aria-hidden="true">Thirsty</span>
+                <span class="more-line more-line-3" aria-hidden="true">For more?</span>
+              </h2>
+              <div class="more-info">
+                <p>If the reel wasn't enough, dive into every project in full.</p>
+                <a class="more-link" href="work.html">Click here &rarr;</a>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </section>

@@ -5,131 +5,104 @@ import vertexShader from "./shaders/sphere.vert.glsl?raw";
 import fragmentShader from "./shaders/sphere.frag.glsl?raw";
 import auraVertexShader from "./shaders/aura.vert.glsl?raw";
 import auraFragmentShader from "./shaders/aura.frag.glsl?raw";
+import Player from "@vimeo/player";
+import { ORANGE_PALETTE, applyPalette, hexToRgb } from "./palette.js";
 
 gsap.registerPlugin(ScrollTrigger);
+applyPalette(); // the palette as --c-* variables, for style.css
 
-// The featured-work images load asynchronously (picsum.photos); if any
-// finish loading after ScrollTrigger has already measured the pinned
-// section's scroll distance, that measurement can go stale and cut the
-// pin short. Refreshing once everything (including images) has finished
-// loading re-measures against the final, settled layout.
+// Webfonts and video metadata can still change layout after the first
+// ScrollTrigger measurement; re-measure once everything has loaded so the
+// hero pin and the projects section start/end where they should.
 window.addEventListener("load", () => ScrollTrigger.refresh());
 
 const canvas = document.querySelector("#sphere-canvas");
+const heroSectionEl = document.querySelector("#hero-section");
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+// Render loop (animate() at the bottom): runs while anything in the canvas
+// can change, and stops once the hero has been scrolled past and everything
+// has settled, so the GPU idles while the videos zoom. The ScrollTriggers'
+// onUpdate and resize wake it back up.
+let frameRequested = false;
+function requestFrame() {
+  if (frameRequested) return;
+  frameRequested = true;
+  requestAnimationFrame(animate);
+}
+
 const scene = new THREE.Scene();
 
-// NORMAL_FOV/NORMAL_CAM_Z are the camera's resting values — exactly what
-// this project has always used (fov 45, z 3.1) for every phase from P1
-// onward. HERO_FOV/HERO_CAM_Z are a separate, much narrower "telephoto"
-// pair used ONLY while progress <= P1 (see animate()): a sphere viewed
-// through a small FOV from far away is nearly an orthographic projection,
-// which (unlike the wide, close-up FOV the hero used before) makes an
-// off-axis sphere's silhouette read as a true circle instead of a
-// perspective-distorted dome/egg — this is what section 2 of the brief
-// means by "aleja la esfera en z (o reduce el FOV)". camera.fov/position.z
-// are interpolated between the two pairs over progress 0->P1 every frame,
-// landing exactly on NORMAL_FOV/NORMAL_CAM_Z at P1 so every later phase is
-// bit-for-bit what it always was.
+// Width of the visible viewport, in CSS px: without the vertical scrollbar,
+// unlike window.innerWidth and the vw unit. The canvas (position: fixed,
+// 100% wide) and everything drawn in it are this wide, so the orange and
+// the aura are centered on what is actually seen. Cached (onResize keeps it
+// up to date): reading it mid-frame would force a layout.
+let viewportWidth = document.documentElement.clientWidth;
+
+// Narrow "telephoto" camera: a sphere viewed through a small FOV from far
+// away is nearly an orthographic projection, so even the huge, off-center
+// hero orange reads as a true circle instead of a perspective-distorted
+// dome. The whole hero + creativity phase uses this one camera.
 const HERO_FOV = 4;
 const HERO_CAM_Z = 30;
-const NORMAL_FOV = 45;
-const NORMAL_CAM_Z = 3.1;
 
-const camera = new THREE.PerspectiveCamera(
-  NORMAL_FOV,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  100
-);
-camera.position.set(0, 0, NORMAL_CAM_Z);
+const camera = new THREE.PerspectiveCamera(HERO_FOV, viewportWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 0, HERO_CAM_Z);
 camera.lookAt(0, 0, 0);
 
-// The hero's orange + headline are all measured against this same
-// 1920x1080 reference composition (matches Diseño/mockup-hero-v4.png) and
-// scaled by one shared factor s, "cover"-style: anchored at the top,
-// centered horizontally, scaled up just enough to cover whichever axis
-// needs it most. On a narrow/tall viewport that cover-style scale would
-// blow the headline text out past the edges, so s is additionally capped
-// so the text block (750px wide in composition space, x=585 to 1335)
-// never exceeds 90% of the real viewport width.
+// The hero's orange is measured against a 1920x1080 reference composition
+// (Diseño/mockup-hero-v4.png) and scaled by one shared factor s,
+// "cover"-style: anchored at the top, centered horizontally, scaled up just
+// enough to cover whichever axis needs it most. On a narrow/tall viewport
+// that would blow the composition out past the edges, so s is additionally
+// capped so a 750px-wide block (x=585 to 1335 in composition space) never
+// exceeds 90% of the real viewport width.
 const COMPOSITION_WIDTH = 1920;
 const COMPOSITION_HEIGHT = 1080;
 const COMPOSITION_TEXT_WIDTH = 750;
 function computeCompositionScale() {
-  const coverScale = Math.max(window.innerWidth / COMPOSITION_WIDTH, window.innerHeight / COMPOSITION_HEIGHT);
-  const maxTextScale = (window.innerWidth * 0.9) / COMPOSITION_TEXT_WIDTH;
+  const coverScale = Math.max(viewportWidth / COMPOSITION_WIDTH, window.innerHeight / COMPOSITION_HEIGHT);
+  const maxTextScale = (viewportWidth * 0.9) / COMPOSITION_TEXT_WIDTH;
   return Math.min(coverScale, maxTextScale);
 }
 
-// The hero orange's target silhouette (composition px): a circle
-// centered at (960, HERO_CENTER_Y) with radius HERO_RADIUS — restored to
-// the two-line headline layout per client feedback ("restaura el layout
-// anterior... los dos [Motion AI y Designer] SOBRE la naranja"), fitted
-// from reference/layout-titular.png by sampling the sphere's own
-// silhouette edge at several x columns and solving for the circle that
-// passes through them (apex at x=960 → y=140, edge at x=0/1920 → y≈568),
-// bigger and higher than the single-line pass's 1250/1550 so both words
-// sit on top of it instead of just grazing "Designer"'s bottom edge. Top
-// edge at HERO_CENTER_Y-HERO_RADIUS (140), sides exiting the screen
-// toward y=567.5 (verified: at x=0, this circle crosses
-// y = 1432 - sqrt(1292^2 - 960^2) = 567.5).
+// The hero orange's silhouette (composition px): a circle centered at
+// (960, HERO_CENTER_Y) with radius HERO_RADIUS, fitted from
+// reference/layout-titular.png — top edge at y=140, sides leaving the
+// screen at y≈567.5 (1432 - sqrt(1292² - 960²)), so "Motion AI / Designer"
+// both sit on it.
 const HERO_RADIUS = 1292;
 const HERO_CENTER_Y = 1432;
 
-// Closed-form (no iterative solve needed): valid specifically because
-// HERO_FOV is small enough that the hero camera is near-orthographic (see
-// its comment above) — in that regime a sphere's apparent radius/position
-// on screen is linear in world units (r_px = f_px * R / HERO_CAM_Z),
-// unlike full perspective where off-axis position and apparent size are
-// coupled through the sphere's true tangent-cone silhouette. f is the
-// usual vertical-fov pinhole focal length in px (innerHeight + fov
-// based); s folds in the current composition scale so the reference
-// circle (center 960,HERO_CENTER_Y, radius HERO_RADIUS, all in
-// composition px) always lands on the same screen pixels regardless of
-// window size — called fresh every frame (see animate()), so it's
-// inherently always up to date on resize too, no separate resize-handling
-// needed.
+// Closed-form, valid because the hero camera is near-orthographic: on
+// screen, a sphere's radius/position is linear in world units
+// (r_px = f_px * R / HERO_CAM_Z). s folds in the composition scale so the
+// reference circle always lands on the same screen pixels; called every
+// frame, so it's always up to date on resize.
 function computeHeroSphereParams(s) {
-  const fovRad = (HERO_FOV * Math.PI) / 180;
-  const f = window.innerHeight / 2 / Math.tan(fovRad / 2);
+  const f = window.innerHeight / 2 / Math.tan((HERO_FOV * Math.PI) / 360);
   const scale = (HERO_CAM_Z * HERO_RADIUS * s) / f;
   const y = (HERO_CAM_Z * (window.innerHeight / 2 - HERO_CENTER_Y * s)) / f;
   return { scale, y };
 }
 
 // alpha:true + a fully transparent clear color so the canvas only paints
-// the sphere/nub — everywhere else stays transparent and the page's own
-// black body background (and now the headline text) shows through.
+// what's rendered — everywhere else the page's own background shows through.
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(viewportWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setClearColor(0x000000, 0);
 
-// ---- Shared surface-displacement constants -------------------------------
-// Single source of truth for sphere.vert.glsl's displace()/travelingWaves().
-// These USED to be duplicated as GLSL `const`s inside the shader; they're
-// defined here ONCE instead and passed down as uniforms (see `uniforms`
-// below) so a tweak here can never drift out of sync with a forgotten
-// second copy in the shader itself. (An earlier pass also mirrored this
-// exact math in JS, to track a now-removed peduncle mesh against the
-// sphere's own displacement — gone along with it; this file no longer has
-// a CPU-side reader of these values, only the GPU/shader does.)
-//
-// AMBIENT_AMPLITUDE/EDGE_BOOST_STRENGTH: lowered (from 0.055/0.9) per
-// client feedback ("la naranja ondula demasiado") to ~35-40% of their
-// previous strength — the silhouette should still breathe, just much more
-// subtly. Tune these two first for "more/less ondulación".
-const AMBIENT_AMPLITUDE = 0.02;
-const EDGE_BOOST_STRENGTH = 0.4;
+// ---- Sphere surface constants ---------------------------------------------
+// Single source of truth for sphere.vert.glsl, passed down as uniforms.
+// Three low-frequency noise layers, each traveling across the sphere in its
+// own direction/speed: they drive the large, slowly drifting color patches
+// of the peel (vNoise in the shaders).
 const FLOW_SPEED = 0.14;
-// Three low-frequency noise layers, each traveling across the sphere in
-// its own direction/speed, so several wide lobes sweep the silhouette at
-// once instead of one bump breathing in place.
 const FREQ_1 = 0.6;
 const FREQ_2 = 1.1;
 const FREQ_3 = 1.7;
@@ -141,10 +114,7 @@ const WEIGHT_2 = 0.3;
 const WEIGHT_3 = 0.2;
 // Cursor dent: radius/depth in object-space units (sphere radius is 1).
 // Lowered (from 1.3/0.5/0.35) per client feedback ("el hundimiento con el
-// cursor es demasiado fuerte") — these three are the single source of
-// truth (fed to the shader as uniforms just below, see uCursorRadius/
-// uCursorDepth/uDentEdgeVariation), so nothing else needs touching to
-// keep the dent's visuals and its hit-testing in sync.
+// cursor es demasiado fuerte").
 const CURSOR_RADIUS = 0.9;
 const CURSOR_DEPTH = 0.15;
 const DENT_EDGE_FREQUENCY = 1.8;
@@ -157,28 +127,15 @@ const uniforms = {
   uTime: { value: 0 },
   uCursorInfluence: { value: 0 },
   uCursorPoint: { value: new THREE.Vector3(0, 0, 0) },
-  // The sphere now rotates continuously (see ROTATION_SPEED below), so the
-  // fragment shader's orange-peel bump can no longer assume local space and
-  // world space point the same way (see the comment on uNormalMatrix's
-  // first use in sphere.frag.glsl). Updated every frame from the sphere's
-  // own matrixWorld, right after rotation is applied.
+  // The sphere rotates continuously (see ROTATION_SPEED below), so the
+  // fragment shader's peel bump (computed in local space) needs the
+  // sphere's own normal matrix. Updated every frame after rotation.
   uNormalMatrix: { value: new THREE.Matrix3() },
-  // Gates the vertex shader's ambient traveling-wave displacement (see
-  // sphere.vert.glsl): 0 during the hero's resting state so the silhouette
-  // reads as a clean, undistorted circle, interpolated to 1 over progress
-  // 0->P1 in animate() so every later phase keeps its always-on breathing
-  // exactly as before.
-  uAmbientAmount: { value: 1 },
-  // Peel pore density (sphere.frag.glsl) — set every frame from
-  // computeGrainScale(); 60 everywhere except the creativity phase, where
-  // it compensates the sphere's growth so pores keep their hero size.
+  // Peel pore density (sphere.frag.glsl), set every frame from
+  // computeGrainScale() so the pores keep their hero size during the rise.
   uGrainScale: { value: 60 },
-  // 1 everywhere except while the orange dissolves into the creativity
-  // phase's aura (updateAura).
+  // Fades to 0 while the orange dissolves into the aura (updateAura).
   uOpacity: { value: 1 },
-  // All of these just mirror the JS constants above into the shader (see
-  // their own comment) — values are set once, right after this object
-  // literal, and never change afterward.
   uFreq1: { value: FREQ_1 },
   uFreq2: { value: FREQ_2 },
   uFreq3: { value: FREQ_3 },
@@ -188,9 +145,7 @@ const uniforms = {
   uWeight1: { value: WEIGHT_1 },
   uWeight2: { value: WEIGHT_2 },
   uWeight3: { value: WEIGHT_3 },
-  uAmbientAmplitude: { value: AMBIENT_AMPLITUDE },
   uFlowSpeed: { value: FLOW_SPEED },
-  uEdgeBoostStrength: { value: EDGE_BOOST_STRENGTH },
   uCursorRadius: { value: CURSOR_RADIUS },
   uCursorDepth: { value: CURSOR_DEPTH },
   uDentEdgeFrequency: { value: DENT_EDGE_FREQUENCY },
@@ -200,38 +155,8 @@ const uniforms = {
   uDentDepthSpeed: { value: DENT_DEPTH_SPEED },
 };
 
-
 const orangeGroup = new THREE.Group();
-// Slightly smaller than a "full" 1.0 fit so the ambient wave's outward
-// excursions (see sphere.vert.glsl) don't push the silhouette past the
-// viewport edges and get clipped. Named so the scroll storytelling below
-// can animate away from this resting value. Lowered from 0.92 per client
-// feedback ("haz la naranja un poco mas pequeña") — the leaf/stem are
-// deliberately unaffected: they're children of orangeGroup (see below),
-// so they scale in exact lockstep with whatever this value is, and every
-// other phase scale below is defined as a multiple of this constant too,
-// so their ratio to it (and therefore the leaf/stem size at those phases)
-// doesn't drift either.
-const BASE_SPHERE_SCALE = 0.83;
-// Shifts the rendered sphere down within the (untouched, full-viewport)
-// canvas, freeing up headroom at the top for the leaves — moving the
-// canvas element itself via CSS would desync the pointer/raycast math in
-// updatePointer(), which assumes the canvas exactly matches the viewport.
-// -0.15 (raised from -0.25 per client feedback) still leaves the sphere's
-// top comfortably below #site-nav and the leaves well clear of it.
-const BASE_SPHERE_Y = -0.15;
-
-// Hero (scroll = 0) resting state is a SEPARATE pair of numbers from
-// BASE_SPHERE_SCALE/BASE_SPHERE_Y above — huge and mostly off-screen, per
-// the reference (Diseño/referencia-header.png). BASE_SPHERE_SCALE itself
-// is left untouched since EXPERIENCE_SPHERE_SCALE/FINAL_SPHERE_SCALE
-// further down are still defined as multiples of it.
-//
-// Unlike before, the hero scale/Y are no longer fixed constants — they're
-// a function of the current composition scale (see computeHeroSphereParams
-// above), recomputed every frame in animate() so they always match
-// whatever the current window size/aspect ratio is. HERO_X stays a plain
-// constant (0): the sphere is always horizontally centered in the hero.
+// The hero sphere is always horizontally centered.
 const HERO_X = 0;
 scene.add(orangeGroup);
 
@@ -240,8 +165,8 @@ const material = new THREE.ShaderMaterial({
   vertexShader,
   fragmentShader,
   uniforms,
-  // Only so it can fade out into the aura (uOpacity, see updateAura); at
-  // opacity 1 — every other phase — the output is identical to opaque.
+  // Only so it can fade out into the aura (uOpacity); at opacity 1 the
+  // output is identical to an opaque material.
   transparent: true,
 });
 const sphere = new THREE.Mesh(geometry, material);
@@ -250,43 +175,60 @@ orangeGroup.add(sphere);
 // ---- Aura ---------------------------------------------------------------
 // Creativity-phase background (Diseño/reference-aura-fondo.png): the orange
 // rises and dissolves into a blurred half-circle of light hanging from the
-// top edge, over a warm off-white page. A full-screen quad in this same
-// scene with its own shader (src/shaders/aura.frag.glsl), drawn FIRST
+// top edge, over the same dark page as the hero. A full-screen quad in this
+// same scene with its own shader (src/shaders/aura.frag.glsl), drawn FIRST
 // (renderOrder -1, no depth) so the sphere always renders on top of it.
-// Outside the circle it paints the page's CURRENT background color (the
-// same value applied to html/body/#hero-section, see updatePageColors), so
-// there's never a seam between canvas and page.
+// Outside the circle it paints the page's background color (PAGE_COLOR),
+// so there's never a seam between canvas and page.
 // Colors are sRGB 0..1 (ShaderMaterial output is not color-managed here,
 // same as the sphere's shader).
-const hexToVec3 = (hex) => new THREE.Vector3(((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255);
-// Aura palette, inside -> out.
-const AURA_COLOR_CENTER_A = 0xffc46b; // warm, very bright yellow-orange at the top center
-const AURA_COLOR_CENTER_B = 0xffb347;
-const AURA_COLOR_MID_A = 0xff8a2a; // vivid orange ring
-const AURA_COLOR_MID_B = 0xfc7c4a;
-const AURA_COLOR_EDGE = 0xe8552a; // coral rim
-const AURA_COLOR_HALO = 0xf4b79a; // soft peach-pink halo between the rim and the page
-const AURA_COLOR_SPHERE = 0xff5212; // flat stand-in for the orange's own tone, where the morph starts
-// Page background: dark everywhere else, warm off-white in this phase.
-const PAGE_COLOR_DARK = 0x141414; // = html/body/#hero-section background in style.css
-const PAGE_COLOR_LIGHT = 0xf6ecdd;
+const hexToVec3 = (hex) => new THREE.Vector3(...hexToRgb(hex).map((channel) => channel / 255));
+// Aura palette, inside -> out. The colors themselves live in palette.js.
+const AURA_COLOR_CENTER_A = ORANGE_PALETTE.yellowOrangeLight; // warm, very bright yellow-orange at the top center
+const AURA_COLOR_CENTER_B = ORANGE_PALETTE.yellowOrange;
+const AURA_COLOR_MID_A = ORANGE_PALETTE.orange; // vivid orange ring
+const AURA_COLOR_MID_B = ORANGE_PALETTE.orangeWarm;
+const AURA_COLOR_EDGE = ORANGE_PALETTE.coral; // rim
+const AURA_COLOR_HALO = ORANGE_PALETTE.peach; // soft halo between the rim and the page
+const AURA_COLOR_SPHERE = ORANGE_PALETTE.orangeDeep; // flat stand-in for the orange's own tone, where the morph starts
+// Page background, the same all the way down (the hero and #projects have
+// none of their own). Also the nav's ink while it sits over the aura.
+const PAGE_COLOR = ORANGE_PALETTE.dark; // = html/body background in style.css
 // Rim softness: from the orange's crisp silhouette to the final blur
 // (fraction of the radius over which the rim fades into the page).
 const AURA_FEATHER_START = 0.004;
 const AURA_FEATHER = 0.25;
 const AURA_GRAIN = 0.06; // static grain amplitude over everything (peak-to-peak, 0..1)
-const AURA_INSET = 0.98; // the aura starts this much smaller than the silhouette, so it never peeks out
+// Aura circle vs the orange's real silhouette at the start of the morph.
+// 1 = exactly the silhouette: its soft edge fades INWARD from that circle
+// (aura.frag.glsl), so it never peeks outside the orange. Measured: at
+// 0.98 the 2% strip between the two circles showed as a faint second ring
+// through the half-transparent sphere around m = 0.25.
+const AURA_INSET = 1.0;
 // Choreography, all as windows of the morph value m (0 = orange, 1 = aura):
 const SPHERE_FADE = [0.08, 0.55]; // sphere opacity 1 -> 0
 const AURA_ALPHA = [0.02, 0.45]; // aura opacity 0 -> 1
 const AURA_BLUR = [0.1, 0.9]; // rim AURA_FEATHER_START -> AURA_FEATHER ("velocidad del difuminado")
 const AURA_SHAPE = [0.35, 1.0]; // circle: real silhouette -> final shape
 const AURA_PALETTE = [0.1, 0.7]; // flat orange tone -> palette
-const PAGE_COLOR_T = [0.1, 0.8]; // page background dark -> off-white
 const NAV_DARK_T = [0.35, 0.65]; // nav white -> #141414 (logo through its filter)
+// Projects: the aura does not leave with the phrase. It stays, and over
+// the AURA_PROJECTS_T stretch of the projects section's scroll it slides
+// down to the middle of the screen and grows into that section's
+// background, behind the videos (see computeAuraProjects / updateAura).
+//   AURA_PROJECTS_CENTER_X/Y   final center, as fractions of the viewport
+//   AURA_PROJECTS_RADIUS_DIAG  final radius, as a fraction of the viewport's
+//                              diagonal: the orange fills nearly everything
+//                              and the page only darkens the corners
+//   AURA_PROJECTS_FEATHER      final rim softness (vs AURA_FEATHER before)
+const AURA_PROJECTS_T = [0, 0.4];
+const AURA_PROJECTS_CENTER_X = 0.5;
+const AURA_PROJECTS_CENTER_Y = 0.5;
+const AURA_PROJECTS_RADIUS_DIAG = 0.75;
+const AURA_PROJECTS_FEATHER = 0.55;
 
 const auraUniforms = {
-  uViewport: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+  uViewport: { value: new THREE.Vector2(viewportWidth, window.innerHeight) },
   uPixelRatio: { value: renderer.getPixelRatio() },
   uCenter: { value: new THREE.Vector2() },
   uRadius: { value: 1 },
@@ -302,7 +244,7 @@ const auraUniforms = {
   uColorMidB: { value: hexToVec3(AURA_COLOR_MID_B) },
   uColorEdge: { value: hexToVec3(AURA_COLOR_EDGE) },
   uColorHalo: { value: hexToVec3(AURA_COLOR_HALO) },
-  uColorPage: { value: hexToVec3(PAGE_COLOR_DARK) },
+  uColorPage: { value: hexToVec3(PAGE_COLOR) },
 };
 const auraMesh = new THREE.Mesh(
   new THREE.PlaneGeometry(2, 2),
@@ -324,9 +266,9 @@ scene.add(auraMesh);
 // C + axis * R²/d, radius R·sqrt(1 - R²/d²), in the plane facing the
 // camera. SILHOUETTE_SAMPLES points on it are projected with the current
 // camera and a least-squares circle is fitted to them (Kåsa fit), so the
-// result is right for any FOV, distance or offset — not "projected center
-// ± scale". Valid as long as nothing deforms the silhouette, which is why
-// the ambient waves and the cursor dent are held at 0 during the morph.
+// result is right for any distance or offset — not "projected center ±
+// scale". Valid as long as nothing deforms the silhouette, which is why
+// the cursor dent is held at 0 during the morph.
 const SILHOUETTE_SAMPLES = 12;
 const _silC = new THREE.Vector3();
 const _silAxis = new THREE.Vector3();
@@ -334,7 +276,7 @@ const _silU = new THREE.Vector3();
 const _silV = new THREE.Vector3();
 const _silP = new THREE.Vector3();
 function sphereSilhouetteCircle() {
-  const W = window.innerWidth;
+  const W = viewportWidth;
   const H = window.innerHeight;
   camera.updateMatrixWorld();
   orangeGroup.updateMatrixWorld(true);
@@ -395,32 +337,17 @@ const smoothstep = (e0, e1, v) => {
 };
 const win = (range, m) => smoothstep(range[0], range[1], m);
 
-// Page background + nav ink, both driven by the same morph. Applied to
-// html/body AND #hero-section (whose own background exists for the
-// mix-blend-mode stacking reasons documented in style.css), and passed to
-// the aura shader as its page color. Only written when the value changes.
+// Nav ink, driven by the morph: white over the dark hero, #141414 once the
+// aura is behind it. Only written when the value changes.
 const siteNavEl = document.querySelector("#site-nav");
-const heroSectionEl = document.querySelector("#hero-section");
 const NAV_CLOCK_COLOR = [255, 165, 105]; // #site-nav .nav-clock's own color in style.css
-const rgbOf = (hex) => [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255];
 const mixRgb = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
-let lastPageColor = "";
 let lastNavT = -1;
-function updatePageColors(m) {
-  const pageRgb = mixRgb(rgbOf(PAGE_COLOR_DARK), rgbOf(PAGE_COLOR_LIGHT), win(PAGE_COLOR_T, m));
-  auraUniforms.uColorPage.value.set(pageRgb[0] / 255, pageRgb[1] / 255, pageRgb[2] / 255);
-  const css = `rgb(${pageRgb.join(", ")})`;
-  if (css !== lastPageColor) {
-    lastPageColor = css;
-    const inline = pageRgb.join() === rgbOf(PAGE_COLOR_DARK).join() ? "" : css; // back to the stylesheet when dark
-    document.documentElement.style.backgroundColor = inline;
-    document.body.style.backgroundColor = inline;
-    heroSectionEl.style.backgroundColor = inline;
-  }
+function updateNavInk(m) {
   const navT = win(NAV_DARK_T, m);
   if (Math.abs(navT - lastNavT) > 0.002 || (navT === 0) !== (lastNavT === 0)) {
     lastNavT = navT;
-    const dark = rgbOf(PAGE_COLOR_DARK);
+    const dark = hexToRgb(PAGE_COLOR);
     if (navT === 0) {
       ["--nav-ink", "--nav-clock-ink", "--nav-logo-invert"].forEach((v) => siteNavEl.style.removeProperty(v));
     } else {
@@ -436,30 +363,48 @@ function updatePageColors(m) {
 // At m = 0+ the aura is transparent, crisp and AURA_INSET of the orange's
 // real silhouette (so it never peeks out); then its opacity rises while the
 // sphere's falls, its rim blurs, its palette replaces the orange's flat
-// tone and its circle moves from the silhouette to the final shape. The
-// sphere itself is heading to that same final shape (computeSpherePhase),
-// so while both are visible they stay one shape. Called every frame AFTER
-// orangeGroup and the camera are updated.
-function updateAura(m) {
-  updatePageColors(m);
+// tone and its circle moves from the silhouette to the phrase-phase shape.
+// The sphere itself is heading to that same shape (computeSpherePhase), so
+// while both are visible they stay one shape.
+// projects = computeAuraProjects(progress): 0 -> 1 as the projects section
+// scrolls in; the circle then goes on from the phrase-phase shape to the
+// projects one (centered, much bigger, softer rim). `onScreen` is false
+// once the projects section has scrolled above the viewport altogether:
+// nothing is drawn then. Called every frame AFTER orangeGroup and the
+// camera are updated.
+function updateAura(m, projects, onScreen) {
+  updateNavInk(m);
   const sphereOpacity = 1 - win(SPHERE_FADE, m);
   uniforms.uOpacity.value = sphereOpacity;
   orangeGroup.visible = sphereOpacity > 0.001;
-  auraMesh.visible = m > 0.0005;
+  auraMesh.visible = m > 0.0005 && onScreen;
   if (!auraMesh.visible) return;
 
+  const W = viewportWidth;
+  const H = window.innerHeight;
   const sil = sphereSilhouetteCircle();
-  const target = computeAuraFinalShape();
+  const phase = computeAuraFinalShape();
   const k = win(AURA_SHAPE, m);
-  auraUniforms.uCenter.value.set(THREE.MathUtils.lerp(sil.cx, target.cx, k), THREE.MathUtils.lerp(sil.cy, target.cy, k));
-  auraUniforms.uRadius.value = THREE.MathUtils.lerp(sil.r * AURA_INSET, target.r, k);
+  const cx = THREE.MathUtils.lerp(sil.cx, phase.cx, k);
+  const cy = THREE.MathUtils.lerp(sil.cy, phase.cy, k);
+  const r = THREE.MathUtils.lerp(sil.r * AURA_INSET, phase.r, k);
+  auraUniforms.uCenter.value.set(
+    THREE.MathUtils.lerp(cx, W * AURA_PROJECTS_CENTER_X, projects),
+    THREE.MathUtils.lerp(cy, H * AURA_PROJECTS_CENTER_Y, projects)
+  );
+  auraUniforms.uRadius.value = THREE.MathUtils.lerp(r, Math.hypot(W, H) * AURA_PROJECTS_RADIUS_DIAG, projects);
   const blur = win(AURA_BLUR, m);
   auraUniforms.uBlur.value = blur;
-  auraUniforms.uFeather.value = THREE.MathUtils.lerp(AURA_FEATHER_START, AURA_FEATHER, blur);
-  auraUniforms.uAlpha.value = win(AURA_ALPHA, m);
+  auraUniforms.uFeather.value = THREE.MathUtils.lerp(
+    THREE.MathUtils.lerp(AURA_FEATHER_START, AURA_FEATHER, blur),
+    AURA_PROJECTS_FEATHER,
+    projects
+  );
+  const alpha = win(AURA_ALPHA, m);
+  auraUniforms.uAlpha.value = alpha;
   auraUniforms.uColorMix.value = win(AURA_PALETTE, m);
-  auraUniforms.uGrain.value = AURA_GRAIN * win(AURA_ALPHA, m);
-  auraUniforms.uViewport.value.set(window.innerWidth, window.innerHeight);
+  auraUniforms.uGrain.value = AURA_GRAIN * alpha;
+  auraUniforms.uViewport.value.set(W, H);
   auraUniforms.uPixelRatio.value = renderer.getPixelRatio();
 }
 
@@ -476,7 +421,7 @@ const pointerNDC = new THREE.Vector2();
 const localCursorPoint = new THREE.Vector3();
 
 function updatePointer(event) {
-  const x = (event.clientX / window.innerWidth) * 2 - 1;
+  const x = (event.clientX / viewportWidth) * 2 - 1;
   const y = -(event.clientY / window.innerHeight) * 2 + 1;
   pointerNDC.set(x, y);
 
@@ -499,142 +444,43 @@ window.addEventListener("pointerleave", () => {
 });
 
 function onResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
+  viewportWidth = document.documentElement.clientWidth;
+  camera.aspect = viewportWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(viewportWidth, window.innerHeight);
   updateHeadlineAlignment();
   layoutCreativityPhrase();
+  requestFrame();
 }
 window.addEventListener("resize", onResize);
+// The vertical scrollbar can come or go without the window being resized.
+new ResizeObserver(() => {
+  if (document.documentElement.clientWidth !== viewportWidth) onResize();
+}).observe(document.documentElement);
 
-// Scroll storytelling now has 7 phases across a pin of +=400% (timeline
-// total duration is 8 units, each unit = 1/8 of that scroll distance):
-//   0.0-1/4    hero -> "headline" phase
-//   1/4-3/8    hold: "headline" text and sphere both sit still (deliberately
-//              empty timeline positions 2-3 below), forcing extra scroll
-//              before the next phase can start
-//   3/8-5/8    "headline" -> "featured work" phase
-//   5/8-3/4    grid scroll: sphere frozen in its featured-work position,
-//              .featured-work-grid itself scrolls up instead (see
-//              updateFeaturedWorkScroll() below) — timeline position 5 is a
-//              no-op tween that just reserves this stretch of scroll.
-//   3/4-7/8    outro: .featured-work-item fades/slides out while the sphere
-//              shrinks and re-centers
-//   7/8-1.0    final buffer: sphere finishes settling into its small,
-//              centered resting state
-// orangeGroup's scale/position are computed from scrollProgress inside
-// animate() every frame via computeSpherePhase() below (previously this was
-// written directly in ScrollTrigger's onUpdate, but a 2-segment phase split
-// reads more clearly as one function of progress than inline branching in
-// the callback). onUpdate now only records scrollProgress itself.
-//
-// PEAK_SPHERE_SCALE/PEAK_X_SHIFT/PEAK_Y are the already-tuned end state of
-// the old single-phase animation (a fixed client spec of scale 1.6 against
-// the original BASE_SPHERE_SCALE of 0.92, with X chosen via a projection
-// check against a reference screenshot — see prior history), now reused as
-// the midpoint of the new 2-phase curve instead of being retuned from
-// scratch. Expressed as a multiple of BASE_SPHERE_SCALE (rather than that
-// literal 1.6) so it keeps the exact same ratio to the resting size — and
-// therefore the exact same leaf/stem size at this phase, since they're
-// children of orangeGroup and scale with it automatically — if
-// BASE_SPHERE_SCALE is ever retuned again. FEATURED_X_SHIFT mirrors
-// PEAK_X_SHIFT to the left; FEATURED_Y is a first guess to raise the
-// sphere a little relative to rest — both are placeholders to adjust by
-// eye against the featured work grid.
-const PEAK_SPHERE_SCALE = BASE_SPHERE_SCALE * (1.6 / 0.92);
-const PEAK_X_SHIFT = 1.4;
-const PEAK_Y = 0;
-const FEATURED_X_SHIFT = -1.4;
-const FEATURED_Y = 0.15;
-// Lower-left "corner" resting spot for the new work-experience phase —
-// client spec is "lower and into the left corner", mirroring an OFF+BRAND-
-// style reference screenshot's small-sphere-to-one-side layout (sphere
-// lower-left, experience list to its right). Starting values only — tune
-// by eye once on screen.
-const EXPERIENCE_SPHERE_SCALE = BASE_SPHERE_SCALE * 1.35;
-const EXPERIENCE_X_SHIFT = -1.6;
-const EXPERIENCE_Y = -0.75;
-// Outro resting state: centered, 20% bigger than the sphere's resting
-// (BASE_SPHERE_SCALE) size — not a shrink-and-park like before.
-const FINAL_SPHERE_SCALE = BASE_SPHERE_SCALE * 1.2;
-const FINAL_SPHERE_X = 0;
-const FINAL_SPHERE_Y = 0; // camera looks at world origin, so 0 = vertical screen center
-
-// Post-experience phase: sphere leaves its lower-left corner and returns
-// to dead center — same (0,0) screen-center point FINAL_SPHERE_X/Y already
-// use. Scale stays at EXPERIENCE_SPHERE_SCALE through this move (only x/y
-// change); the client's "grow until it fills the screen" is a separate,
-// later sub-phase — see FILL_SPHERE_SCALE below.
-const CENTER_SPHERE_X = 0;
-const CENTER_SPHERE_Y = 0;
-
-// Final reveal: once centered, the sphere itself grows until its own
-// surface gradient fills the entire viewport — no separate full-screen
-// mesh, the sphere IS the background at the end. 0.9x the camera's
-// distance from the origin (camera.position.z) is the scale at which the
-// sphere's silhouette, from the camera's perspective, covers even the
-// screen's far corners at any realistic aspect ratio (verified up to
-// ~5:1, far past any real display) while leaving a comfortable gap so the
-// camera never ends up "inside" the sphere (front surface sits at
-// world-z = scale, vs. the camera at camera.position.z — at 0.9x that's
-// always a 10% gap). No leaf/stem-specific constant needed — as children
-// of orangeGroup they scale with it automatically, and their anchor point
-// (near the sphere's north pole) naturally scrolls off the top of the
-// screen once the sphere grows past the visible frustum, so they simply
-// disappear off-screen in lockstep with the sphere's growth.
-const FILL_SPHERE_SCALE = camera.position.z * 0.9;
-
-// 12 breakpoints across an 18-unit pinned timeline — extended from the
-// original 5 (P1-P5, 8 units, scrollTrigger end:"+=400%") to fit the
-// work-experience phase (P1-P9, 12 units) and then this post-experience
-// vanish phase (P9b-P11, 16 units). Unit width (50% scroll distance per
-// unit, i.e. end% / total units) is unchanged, and every breakpoint
-// through P9 keeps the exact same absolute scroll distance it always had —
-// only new units were appended after it, so every earlier phase's timing
-// feels identical to before.
-//
-// Client feedback moved the work-experience phase to AFTER the outro CTA
-// ("WANT TO SEE MORE?") instead of before it, and flagged that phase as
-// feeling rushed once that move landed, since it used to run all the way
-// to the very end of the scroll — which only worked because that used to
-// BE the end; now something comes after it. Fixed by giving this phase
-// two explicit holds instead of one: P6-P7 is where the CTA's fade-in
-// comfortably finishes with room to spare, and P7-P8 is a second, entirely
-// static hold with nothing scheduled in it at all — the "let it breathe
-// before moving on" buffer. Only after both does the sphere make its final
-// move out to the lower-left experience corner (P8-P9) for the
-// work-experience list.
-//
-// "Where creativity meets technology" phase: PHRASE_PHASE_UNITS new units
-// inserted at the very START of the timeline (right after the hero, before
-// "With emotion + innovation…"). Every breakpoint below is the same unit
-// count it always was, just offset by PHRASE_PHASE_UNITS (unitAt() adds
-// it), and the ScrollTrigger end grows by the same 50%-per-unit, so every
-// later phase lasts exactly the scroll distance it did before.
-// Background: the orange rises and dissolves into a blurred aura of light
-// (Diseño/reference-aura-fondo.png) — see the "Aura" block further down.
-// One morph value m drives it (0 = hero orange, 1 = aura fully formed; see
-// computeAuraMorph). Timeline, in units:
+// ---- Pinned hero timeline -------------------------------------------------
+// The hero is pinned for TIMELINE_UNITS units of scroll (50% of the
+// viewport height each, see the ScrollTrigger below) and released right
+// as the phrase finishes leaving; #projects follows in normal flow.
+// One morph value m drives the background (0 = hero orange, 1 = aura fully
+// formed; see computeAuraMorph). Timeline, in units:
+//   0 -> 1                      "Motion AI / Designer" exits
 //   0 -> AURA_RISE_END          orange rises toward the aura's final shape
 //                               while fading out; the aura grows from its
-//                               silhouette (headline exits over 0 -> 1 as before)
+//                               silhouette; page + nav go light/dark
 //   PHRASE_ENTER_START (m = AURA_TEXT_AT) -> PHRASE_ENTER_END   phrase enters
 //   PHRASE_ENTER_END -> PHRASE_HOLD_END      hold (phrase still)
-//   PHRASE_HOLD_END -> PHRASE_PHASE_END      phrase exits, aura stays
-//   PHRASE_PHASE_END -> AURA_REVERSE_END     reverse morph: the camera has
-//                               switched to normal (unseen, sphere invisible)
-//                               and the aura condenses back into the sphere
-//                               at its peak spot, page/nav back to dark
-//   AURA_REVERSE_END -> P1      sphere settles (ambient waves ramp back in)
-const PHRASE_PHASE_UNITS = 5.5;
-const TIMELINE_UNITS = 18 + PHRASE_PHASE_UNITS;
-const unitAt = (u) => (PHRASE_PHASE_UNITS + u) / TIMELINE_UNITS;
-const AURA_RISE_END = 2 / TIMELINE_UNITS; // rise + sphere->aura morph: 2 units of scroll
+//   PHRASE_HOLD_END -> PHRASE_PHASE_END      phrase exits; the aura stays
+//                               and carries on into #projects
+// Durations, in units — these are the knobs; everything below is derived.
+const AURA_RISE_UNITS = 2; // rise + sphere->aura morph
 const AURA_TEXT_AT = 0.82; // the phrase starts entering once the aura is this formed
-const PHRASE_ENTER_UNITS = 1.75;
-const PHRASE_HOLD_END = 4.5 / TIMELINE_UNITS;
-const PHRASE_PHASE_END = unitAt(0);
-const AURA_REVERSE_END = unitAt(1);
+const PHRASE_ENTER_UNITS = 1; // was 1.75: client feedback, the phrase has to come in faster
+// Hold + exit were 1.3 + 1 units; shortened per client feedback ("que no
+// tarde tantos scrolls en salir") — the softness of the exit comes from its
+// easing/blur/damping (see the phrase block), not from scroll distance.
+const PHRASE_HOLD_UNITS = 0.55;
+const PHRASE_EXIT_UNITS = 0.75;
 // Easing of the rise/morph progress (sine.inOut: gentle start and landing).
 const riseEase = gsap.parseEase("sine.inOut");
 function invertEase(ease, y) {
@@ -647,50 +493,42 @@ function invertEase(ease, y) {
   }
   return hi;
 }
-const PHRASE_ENTER_START = AURA_RISE_END * invertEase(riseEase, AURA_TEXT_AT);
+const PHRASE_ENTER_START_UNITS = AURA_RISE_UNITS * invertEase(riseEase, AURA_TEXT_AT);
+const TIMELINE_UNITS = PHRASE_ENTER_START_UNITS + PHRASE_ENTER_UNITS + PHRASE_HOLD_UNITS + PHRASE_EXIT_UNITS;
+// The same points as fractions of the whole timeline (= scrollProgress).
+const AURA_RISE_END = AURA_RISE_UNITS / TIMELINE_UNITS;
+const PHRASE_ENTER_START = PHRASE_ENTER_START_UNITS / TIMELINE_UNITS;
 const PHRASE_ENTER_END = PHRASE_ENTER_START + PHRASE_ENTER_UNITS / TIMELINE_UNITS;
-
-const P1 = unitAt(2); // sphere reaches its peak (matches the tagline already fully visible)
-const P2 = unitAt(3); // end of the hold
-const P3 = unitAt(5); // sphere reaches its featured position (starts the grid scroll reveal)
-const P4 = unitAt(6); // grid reveal ends, grid exit sub-phase starts (sphere still frozen)
-const P5 = unitAt(7); // grid fully off-screen; sphere about to start shrinking to its final-rest position
-const P6 = unitAt(8); // sphere reaches its final-rest position; outro CTA starts its entrance
-const P7 = unitAt(9); // CTA entrance is long finished by here — rest of this unit is already just held
-const P8 = unitAt(10); // end of the pure-hold buffer; sphere starts moving to the experience corner
-const P9 = unitAt(11); // sphere reaches the experience corner (work-experience list visible)
-// Client feedback: the experience section needs to hold a beat longer
-// before the vanish phase starts, and the final shrink-to-0 felt too
-// rushed — so P9b is a new, dedicated hold (sphere+text fully static) that
-// didn't exist before, and the shrink sub-phase (P10-P11) now spans 2
-// units instead of 1, doubling how long the easeInQuint has to play out.
-// The hold itself (P9-P9b) started at just 1 unit and was still called
-// "too fast" — bumped to 3 units here.
-const P9b = unitAt(14); // NEW: end of the hold at the experience corner — text starts fading out / sphere starts moving to center only after this
-const P10 = unitAt(15); // sphere reaches dead center; experience text finishes fading out here too
-const P11 = unitAt(17); // sphere (and leaves, automatically) finish growing to FILL_SPHERE_SCALE — 2 full units (P10-P11) instead of 1, slower
+const PHRASE_HOLD_END = PHRASE_ENTER_END + PHRASE_HOLD_UNITS / TIMELINE_UNITS;
+const PHRASE_PHASE_END = 1;
 
 // Final shape of the aura, in CSS px: a circle centered horizontally at
 // AURA_CENTER_X (fraction of the width), its center AURA_CENTER_Y (fraction
-// of the height; negative = just above the top edge), radius such that its
-// bottom reaches AURA_BOTTOM_Y of the height. At 16:9 that's a radius of
-// ~55% of the width; deriving it from the height keeps the same vertical
-// coverage on narrow/tall screens too.
+// of the height; negative = just above the top edge). Its radius is the
+// LARGER of two measures, so it reads the same size on any screen shape:
+//   - AURA_RADIUS_W of the width (the size knob: raise it for a bigger
+//     aura). On wide windows this is the one that applies, and the bottom
+//     of the circle then runs past the bottom edge, softly cut by its rim;
+//   - whatever makes its bottom reach AURA_BOTTOM_Y of the height, which
+//     takes over on narrow/tall screens (where a % of the width alone
+//     would leave a small disc at the top).
+// At 16:9 both give about the same circle.
 const AURA_CENTER_X = 0.5;
 const AURA_CENTER_Y = -0.04;
+const AURA_RADIUS_W = 0.55;
 const AURA_BOTTOM_Y = 0.95;
 function computeAuraFinalShape() {
-  const W = window.innerWidth;
+  const W = viewportWidth;
   const H = window.innerHeight;
   const cy = H * AURA_CENTER_Y;
-  return { cx: W * AURA_CENTER_X, cy, r: H * AURA_BOTTOM_Y - cy };
+  return { cx: W * AURA_CENTER_X, cy, r: Math.max(W * AURA_RADIUS_W, H * AURA_BOTTOM_Y - cy) };
 }
 
-// Sphere params (hero telephoto camera) whose silhouette matches the aura's
-// final shape — where the orange is heading as it rises and dissolves. The
+// Sphere params (hero camera) whose silhouette matches the aura's final
+// shape — where the orange is heading as it rises and dissolves. The
 // camera (z = HERO_CAM_Z) stays far outside it (scale is ~2 world units).
 function computeAuraSphereParams() {
-  const W = window.innerWidth;
+  const W = viewportWidth;
   const H = window.innerHeight;
   const f = H / 2 / Math.tan((HERO_FOV * Math.PI) / 360);
   const { cx, cy, r } = computeAuraFinalShape();
@@ -701,131 +539,40 @@ function computeAuraSphereParams() {
   };
 }
 
-// 0 = hero orange, 1 = aura fully formed (sphere gone). Eased with
-// riseEase; the reverse morph mirrors it right after the phase.
 function computeAuraMorph(progress) {
-  if (progress <= PHRASE_PHASE_END) return riseEase(clamp(progress / AURA_RISE_END, 0, 1));
-  if (progress <= AURA_REVERSE_END) {
-    return 1 - riseEase((progress - PHRASE_PHASE_END) / (AURA_REVERSE_END - PHRASE_PHASE_END));
-  }
-  return 0;
+  return riseEase(clamp(progress / AURA_RISE_END, 0, 1));
+}
+// 0 -> 1 over the AURA_PROJECTS_T stretch of the projects section's own
+// scroll (which runs from the moment it starts coming in — exactly where
+// the hero's pin lets go — to its end), eased like the rise.
+function computeAuraProjects(progress) {
+  return riseEase(clamp((progress - AURA_PROJECTS_T[0]) / (AURA_PROJECTS_T[1] - AURA_PROJECTS_T[0]), 0, 1));
 }
 
 // Peel grain size (sphere.frag.glsl's uGrainScale = pores per unit of the
 // sphere's own surface). In the hero camera the on-screen sphere size is
 // proportional to its scale, so multiplying by (current scale / hero scale)
 // keeps the pores the size they have in the hero while the orange changes
-// size during the rise. From PHRASE_PHASE_END on (normal camera, sphere at
-// its peak) it's GRAIN_SCALE, exactly as every later phase.
+// size during the rise.
 const GRAIN_SCALE = 60;
 function computeGrainScale(progress) {
-  if (progress > P1) return GRAIN_SCALE;
   const heroScale = computeHeroSphereParams(computeCompositionScale()).scale;
-  if (progress <= PHRASE_PHASE_END) return (GRAIN_SCALE * computeSpherePhase(progress).scale) / heroScale;
-  return GRAIN_SCALE; // after the phase the sphere is back in the normal camera, at its usual size
+  return (GRAIN_SCALE * computeSpherePhase(progress).scale) / heroScale;
 }
 
+// Hero arc -> rises toward the aura's final shape, driven by the same
+// eased morph as the aura so the two stay locked (it fades out on the way,
+// see updateAura). Recomputed every call (every frame), so it stays
+// correct through any resize.
 function computeSpherePhase(progress) {
-  if (progress <= PHRASE_PHASE_END) {
-    // Creativity phase: hero arc -> rises toward the aura's final shape
-    // (driven by the same eased morph as the aura, so the two stay
-    // locked), fading out on the way (see updateAura). Recomputed every
-    // call (every frame), so it stays correct through any resize.
-    const hero = computeHeroSphereParams(computeCompositionScale());
-    const aura = computeAuraSphereParams();
-    const m = computeAuraMorph(progress);
-    return {
-      scale: THREE.MathUtils.lerp(hero.scale, aura.scale, m),
-      x: THREE.MathUtils.lerp(HERO_X, aura.x, m),
-      y: THREE.MathUtils.lerp(hero.y, aura.y, m),
-    };
-  }
-  if (progress <= P1) {
-    // Right after the creativity phase. The camera switches from the hero
-    // pair to the normal one at PHRASE_PHASE_END, while the sphere is
-    // invisible (fully dissolved into the aura), so the switch can't be
-    // seen and no FOV ramp ever deforms a visible sphere. The sphere is
-    // already at its peak spot; the aura condenses back into it there over
-    // PHRASE_PHASE_END -> AURA_REVERSE_END (updateAura, reverse morph).
-    return { scale: PEAK_SPHERE_SCALE, x: PEAK_X_SHIFT, y: PEAK_Y };
-  }
-  if (progress <= P2) {
-    // hold: same progress range as the .tagline-line hold in the timeline
-    // above — the sphere stays put at its peak while the user keeps
-    // scrolling through the "headline" text.
-    return { scale: PEAK_SPHERE_SCALE, x: PEAK_X_SHIFT, y: PEAK_Y };
-  }
-  if (progress <= P3) {
-    const t = (progress - P2) / (P3 - P2);
-    return {
-      scale: PEAK_SPHERE_SCALE,
-      x: THREE.MathUtils.lerp(PEAK_X_SHIFT, FEATURED_X_SHIFT, t),
-      y: THREE.MathUtils.lerp(PEAK_Y, FEATURED_Y, t),
-    };
-  }
-  if (progress <= P5) {
-    // grid-scroll phase (reveal through P4, then exit through P5): the
-    // sphere doesn't move at all here — only the grid does (see
-    // updateFeaturedWorkScroll()).
-    return { scale: PEAK_SPHERE_SCALE, x: FEATURED_X_SHIFT, y: FEATURED_Y };
-  }
-  if (progress <= P6) {
-    // Shrink to final rest — same lerp/target this phase always used
-    // (FINAL_SPHERE_*), just no longer the very last thing that happens.
-    const t = (progress - P5) / (P6 - P5);
-    return {
-      scale: THREE.MathUtils.lerp(PEAK_SPHERE_SCALE, FINAL_SPHERE_SCALE, t),
-      x: THREE.MathUtils.lerp(FEATURED_X_SHIFT, FINAL_SPHERE_X, t),
-      y: THREE.MathUtils.lerp(FEATURED_Y, FINAL_SPHERE_Y, t),
-    };
-  }
-  if (progress <= P8) {
-    // hold: sphere stays at final rest through BOTH sub-holds (P6-P7 while
-    // the CTA/cards finish entering, P7-P8 as pure breathing room) while
-    // the outro CTA is shown.
-    return { scale: FINAL_SPHERE_SCALE, x: FINAL_SPHERE_X, y: FINAL_SPHERE_Y };
-  }
-  if (progress <= P9) {
-    const t = (progress - P8) / (P9 - P8);
-    return {
-      scale: THREE.MathUtils.lerp(FINAL_SPHERE_SCALE, EXPERIENCE_SPHERE_SCALE, t),
-      x: THREE.MathUtils.lerp(FINAL_SPHERE_X, EXPERIENCE_X_SHIFT, t),
-      y: THREE.MathUtils.lerp(FINAL_SPHERE_Y, EXPERIENCE_Y, t),
-    };
-  }
-  if (progress <= P9b) {
-    // NEW hold: sphere stays parked in the experience corner a beat
-    // longer, text still fully visible, before anything starts moving
-    // toward the vanish phase.
-    return { scale: EXPERIENCE_SPHERE_SCALE, x: EXPERIENCE_X_SHIFT, y: EXPERIENCE_Y };
-  }
-  if (progress <= P10) {
-    // Sphere parked in the experience corner -> dead center. Scale held
-    // at EXPERIENCE_SPHERE_SCALE, only position changes here — runs
-    // alongside the experience text's fade-out (see the GSAP timeline,
-    // position 14).
-    const t = (progress - P9b) / (P10 - P9b);
-    return {
-      scale: EXPERIENCE_SPHERE_SCALE,
-      x: THREE.MathUtils.lerp(EXPERIENCE_X_SHIFT, CENTER_SPHERE_X, t),
-      y: THREE.MathUtils.lerp(EXPERIENCE_Y, CENTER_SPHERE_Y, t),
-    };
-  }
-  if (progress <= P11) {
-    // Centered: scale grows out to FILL_SPHERE_SCALE with an accelerating
-    // ease-in (easeInQuint above), not a linear ramp, so the growth starts
-    // slow and rushes outward right at the end — the leaf/stem scale (and
-    // scroll off-screen) with it automatically, being children of
-    // orangeGroup.
-    const t = easeInQuint((progress - P10) / (P11 - P10));
-    return {
-      scale: THREE.MathUtils.lerp(EXPERIENCE_SPHERE_SCALE, FILL_SPHERE_SCALE, t),
-      x: CENTER_SPHERE_X,
-      y: CENTER_SPHERE_Y,
-    };
-  }
-  // Final state: sphere fully grown, its own gradient filling the screen.
-  return { scale: FILL_SPHERE_SCALE, x: CENTER_SPHERE_X, y: CENTER_SPHERE_Y };
+  const hero = computeHeroSphereParams(computeCompositionScale());
+  const aura = computeAuraSphereParams();
+  const m = computeAuraMorph(progress);
+  return {
+    scale: THREE.MathUtils.lerp(hero.scale, aura.scale, m),
+    x: THREE.MathUtils.lerp(HERO_X, aura.x, m),
+    y: THREE.MathUtils.lerp(hero.y, aura.y, m),
+  };
 }
 
 // Live clock next to "contact" in the nav, showing Valencia's current
@@ -856,8 +603,7 @@ setInterval(updateNavClock, 1000);
 // Pixel-exact headline alignment against the nav (client ask: "Motion
 // AI"'s visible ink flush with the logo's left edge, "Designer"'s visible
 // ink flush with the clock's right edge, "Designer"'s lowest ink point —
-// the "g" descender — exactly as far from the viewport's bottom as the
-// logo is from its top).
+// the "g" descender — HEADLINE_BOTTOM_GAP_VH above the hero's bottom edge).
 //
 // Range.getBoundingClientRect() is NOT the ink box — it's the text run's
 // layout box (advance widths x font ascent/descent), which includes side
@@ -928,8 +674,15 @@ function rasterInk(font, text, fontSizePx) {
 }
 
 function measureTextInk(el) {
-  const textNode = Array.from(el.childNodes).find((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
-  const text = textNode.textContent;
+  // The text may be a single text node or split into per-letter spans
+  // ("Motion AI"): walk every text node under el, one entry per character.
+  const glyphs = [];
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    for (let i = 0; i < node.textContent.length; i++) glyphs.push({ node, offset: i });
+  }
+  const text = glyphs.map((g) => g.node.textContent[g.offset]).join("");
   const cs = getComputedStyle(el);
   const fontSizePx = parseFloat(cs.fontSize);
   const font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
@@ -940,8 +693,8 @@ function measureTextInk(el) {
   const lastIndex = text.trimEnd().length - 1;
   const charRect = (i) => {
     const range = document.createRange();
-    range.setStart(textNode, i);
-    range.setEnd(textNode, i + 1);
+    range.setStart(glyphs[i].node, glyphs[i].offset);
+    range.setEnd(glyphs[i].node, glyphs[i].offset + 1);
     return range.getBoundingClientRect();
   };
   // Where the glyph's own ink sits relative to its Range-left origin.
@@ -1002,11 +755,428 @@ function measureLogoInk(img) {
   }
 }
 
+// ---- Headline focus -------------------------------------------------------
+// Look of "Diseño/Vide de referencia Blur titulo.mp4": the headline never
+// moves; what moves is the focus. Sharp vertical bands — the same for both
+// lines, in screen coordinates — travel across a headline that is
+// otherwise heavily out of focus:
+//   - by itself, with no cursor on it: one band per screen width swinging
+//     from edge to edge and back, so at times the center is sharp and the
+//     ends blurred, at times the other way round (two half bands);
+//   - under the cursor: a single band that follows it, leaving a trail.
+// Built from HEADLINE_BLUR_LAYERS stacked copies of the headline's content
+// (.hw-layer, same .hw-sans/.hw-display so updateHeadlineAlignment aligns
+// them all): one sharp, the rest with increasing blur, each masked along
+// x. At any x the masks are a partition of unity (the weights add up to 1)
+// and the copies are composited additively (mix-blend-mode: plus-lighter
+// in style.css), so the text is never doubled, dimmed or brightened where
+// two blur levels cross-fade.
+// The masks are not repainted per frame. Each .hw-layer is a wide strip
+// carrying a fixed, repeating mask that is slid/stretched with a transform,
+// and its .hw-layer-content applies the exact inverse so the text stays
+// put. (Measured on this machine's GPU: moving or regenerating a mask-image
+// every frame dropped the hero from 60 to ~47fps — which is also why the
+// trail is one stretchable band and not a per-sample focus map.) The only
+// repaint is the mask's period changing during the short hand-over between
+// the automatic motion and the cursor.
+// The blur lives on the copies — children of .headline-word — so GSAP's
+// scroll exit (opacity/blur/scale on .headline-word itself) is untouched.
+const HEADLINE_BLUR_MAX_VW = 0.75; // strongest blur: horizontal std-dev in vw (14.4px at 1920)
+const HEADLINE_BLUR_Y_RATIO = 0.8; // vertical spread relative to horizontal (a bit less, as in the reference)
+// Copies in the stack: 1 sharp + (n - 1) blur steps. Compared side by side
+// on this machine: 3 is all but indistinguishable from 4 and holds 60fps
+// with the focus moving on its own (4 dropped as low as ~30 under load);
+// 2 shows a "double exposure" halo where sharp cross-fades straight into
+// the strongest blur.
+const HEADLINE_BLUR_LAYERS = 3;
+// A focus band, in vw: fully sharp over HEADLINE_FOCUS_CORE_VW, then easing
+// into full blur over HEADLINE_FOCUS_EDGE_VW per side.
+const HEADLINE_FOCUS_CORE_VW = 25;
+const HEADLINE_FOCUS_EDGE_VW = 15;
+// Following: the band eases to its target (cursor or automatic position)
+// with 1 - exp(-HEADLINE_FOCUS_FOLLOW * delta) per frame — at 8, ~0.4s to
+// get there, which is also how long the cursor takes to take over.
+const HEADLINE_FOCUS_FOLLOW = 8;
+// Trail (cursor only): a second point chases the cursor more slowly and
+// the sharp zone spans from it to the leading edge, so where the cursor has
+// just been takes about this long to fall out of focus again. The stretch
+// is capped at HEADLINE_TRAIL_MAX_VW of extra width.
+const HEADLINE_TRAIL_S = 0.8;
+const HEADLINE_TRAIL_MAX_VW = 45;
+const HEADLINE_HIT_PAD_PX = 40; // the headline's box is grown by this much for hit-testing
+// Automatic motion: seconds per pass (edge to edge, sine.inOut, there and
+// back) and the distance between bands. At 100vw there is one band per
+// screen width, so one whole band or two halves are on screen.
+const HEADLINE_AUTO_PASS_S = 4.5;
+const HEADLINE_AUTO_PERIOD_VW = 100;
+// Under the cursor the bands are spread this far apart instead, so only
+// the cursor's own is ever on screen; the other slides out sideways (and
+// back in when the automatic motion returns) over HEADLINE_HANDOVER_S.
+const HEADLINE_CURSOR_PERIOD_VW = 160;
+const HEADLINE_HANDOVER_S = 0.4;
+// After the cursor leaves the headline, the band waits this long where it
+// is before the automatic motion picks it up from that very spot.
+const HEADLINE_AUTO_RESUME_S = 0.6;
+// The strip (style.css: .hw-layer is 220vw wide) has a band centered here,
+// in vw from its left edge — enough to keep the screen covered for any
+// band position and any stretch.
+const HEADLINE_STRIP_WINDOW_VW = 110;
+
+// Thickening by cursor proximity, letter by letter, on both lines (port
+// of the VariableFontCursorProximity component). The closer the cursor is
+// to a letter's center, inside a radius, the heavier the letter:
+//   - "Motion AI": Inter Tight is a variable font, so its 'wght' goes from
+//     HEADLINE_VF_REST to HEADLINE_VF_MAX;
+//   - "Designer": Catavalo is not variable, so the weight is simulated
+//     with an outline in the text's own color (-webkit-text-stroke) from 0
+//     to HEADLINE_STROKE_MAX_EM. Half the outline grows outward, so each
+//     letter also gets that much extra room on both sides to keep
+//     neighbours from running into each other.
+// It answers only to the real cursor (never to the automatic focus),
+// shares its hit-test and per-frame update with the focus, and applies to
+// every stacked copy at once (CSS variables on .headline-word), so the
+// copies stay superimposed to the pixel. No effect on touch devices or
+// with prefers-reduced-motion.
+const HEADLINE_VF_REST = 500; // resting weight (= .hw-sans's font-weight in style.css)
+const HEADLINE_VF_MAX = 850; // weight right under the cursor
+const HEADLINE_STROKE_MAX_EM = 0.035; // "Designer" outline right under the cursor, in its own em
+const HEADLINE_PROXIMITY_RADIUS_EM = 1.1; // radius of influence, in font sizes of each line
+const HEADLINE_PROXIMITY_FOLLOW = 10; // each letter eases with 1 - exp(-HEADLINE_PROXIMITY_FOLLOW * delta) per frame
+
+const headlineWordEl = document.querySelector(".headline-word");
+let updateHeadlineFocus = () => {};
+let prepareHeadlineForMeasure = () => {};
+let measureHeadlineHitbox = () => {};
+
+function setupHeadlineFocus() {
+  // prefers-reduced-motion: one sharp, static headline — no copies, no masks.
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const autoOnly = window.matchMedia("(hover: none)").matches;
+  const sharpLayer = headlineWordEl.querySelector(".hw-layer");
+
+  // Both lines split into one inline-block per letter, done on the
+  // original before it is cloned so every copy has the same structure.
+  // Each letter reads its own variable from .headline-word: `prefix` + its
+  // index, going from `rest` to `max`. `digits` is the precision written:
+  // every new value repaints all the copies, so the steps are kept as
+  // coarse as stays invisible (1 unit of weight; 0.001em ~ 0.25px of
+  // outline at 1920).
+  const lines = autoOnly
+    ? []
+    : [
+        {
+          selector: ".hw-sans",
+          prefix: "--vf-",
+          rest: HEADLINE_VF_REST,
+          max: HEADLINE_VF_MAX,
+          digits: 0,
+          bind: (span, name) => span.style.setProperty("font-variation-settings", `"wght" var(${name}, ${HEADLINE_VF_REST})`),
+        },
+        {
+          selector: ".hw-display",
+          prefix: "--vs-",
+          rest: 0,
+          max: HEADLINE_STROKE_MAX_EM,
+          digits: 3,
+          bind: (span, name) => {
+            span.style.setProperty("-webkit-text-stroke", `calc(var(${name}, 0) * 1em) currentColor`);
+            span.style.setProperty("--grow", `calc(var(${name}, 0) * 0.5em)`);
+          },
+        },
+      ];
+  lines.forEach((line) => {
+    const el = sharpLayer.querySelector(line.selector);
+    line.text = el.textContent;
+    el.setAttribute("aria-label", line.text);
+    el.replaceChildren(
+      ...Array.from(line.text).map((ch, i) => {
+        const span = document.createElement("span");
+        span.className = "vf-char";
+        span.setAttribute("aria-hidden", "true");
+        span.textContent = ch === " " ? " " : ch;
+        line.bind(span, `${line.prefix}${i}`);
+        return span;
+      })
+    );
+  });
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("width", "0");
+  svg.setAttribute("height", "0");
+  svg.setAttribute("aria-hidden", "true");
+  svg.style.position = "absolute";
+  const blurNodes = [];
+  const layers = [sharpLayer];
+  for (let i = 1; i < HEADLINE_BLUR_LAYERS; i++) {
+    // An SVG filter instead of CSS blur(): it can blur more along x than y.
+    const filter = document.createElementNS(svgNS, "filter");
+    filter.setAttribute("id", `hw-blur-${i}`);
+    filter.setAttribute("x", "-10%");
+    filter.setAttribute("y", "-30%");
+    filter.setAttribute("width", "120%");
+    filter.setAttribute("height", "160%");
+    filter.setAttribute("color-interpolation-filters", "sRGB");
+    const blur = document.createElementNS(svgNS, "feGaussianBlur");
+    filter.appendChild(blur);
+    svg.appendChild(filter);
+    blurNodes.push(blur);
+    // Only the original copy is readable; the blurred ones are decoration.
+    // The filter goes on .hw-layer-inner on purpose: it is not a composited
+    // layer of its own, so the blur is rasterized once into its parent's
+    // texture and reused. On .hw-layer-content (composited: will-change)
+    // the browser re-ran all three blurs every frame — measured here, the
+    // automatic focus went from ~30 to ~54fps just by moving it.
+    const copy = sharpLayer.cloneNode(true);
+    copy.setAttribute("aria-hidden", "true");
+    copy.querySelector(".hw-layer-inner").style.filter = `url(#hw-blur-${i})`;
+    headlineWordEl.appendChild(copy);
+    layers.push(copy);
+  }
+  document.body.appendChild(svg);
+
+  // Per line: its letters copy by copy (index 0 = the sharp one), their
+  // live values, and their centers/radius (measured at rest, see below).
+  lines.forEach((line) => {
+    line.sets = Array.from(headlineWordEl.querySelectorAll(line.selector)).map((el) => Array.from(el.querySelectorAll(".vf-char")));
+    line.values = line.sets[0].map(() => line.rest);
+    line.centers = [];
+    line.radius = 0;
+  });
+
+  // Inline-block letters lose the font's kerning (each is laid out on its
+  // own), which would shift the resting headline off where plain text
+  // sits. Each pair's kerning is measured from an unsplit, invisible copy
+  // (Range rects per glyph) and put back on the letter as --kern (an em
+  // margin, see .vf-char in style.css), in every copy. Measured, applied,
+  // then re-measured: each box snaps to the layout grid (1/64px) and the
+  // rounding adds up along the line.
+  const KERNING_PASSES = 3;
+  function applyKerning(line) {
+    const source = line.sets[0][0].parentNode;
+    const fontSize = parseFloat(getComputedStyle(source).fontSize);
+    const reference = source.cloneNode(false);
+    reference.removeAttribute("aria-label");
+    reference.style.visibility = "hidden";
+    reference.textContent = line.text;
+    source.parentNode.appendChild(reference);
+    const referenceLefts = Array.from(line.text, (_, i) => {
+      const range = document.createRange();
+      range.setStart(reference.firstChild, i);
+      range.setEnd(reference.firstChild, i + 1);
+      return range.getBoundingClientRect().left;
+    });
+    reference.remove();
+
+    line.sets.forEach((set) => set.forEach((char) => char.style.removeProperty("--kern")));
+    const margins = line.sets[0].map(() => 0);
+    for (let pass = 0; pass < KERNING_PASSES; pass++) {
+      const lefts = line.sets[0].map((char) => char.getBoundingClientRect().left);
+      let previousDrift = 0;
+      for (let i = 0; i < margins.length; i++) {
+        const drift = referenceLefts[i] - referenceLefts[0] - (lefts[i] - lefts[0]);
+        margins[i] += drift - previousDrift;
+        previousDrift = drift;
+        // Snapped to the layout grid, then nudged a hair past it: the
+        // browser truncates em -> px toward zero, which would otherwise
+        // swallow every single-step correction.
+        const snapped = Math.round(margins[i] * 64) / 64;
+        const value = `${((snapped + Math.sign(snapped) * 0.004) / fontSize).toFixed(6)}em`;
+        line.sets.forEach((set) => (snapped !== 0 ? set[i].style.setProperty("--kern", value) : set[i].style.removeProperty("--kern")));
+      }
+    }
+  }
+
+  // Mask of layer i across one period of the strip, around the band's
+  // center (50% of the tile; the offsets are in vw, so the band keeps its
+  // width whatever the period). With b = blur amount (0 sharp .. 1 max) at
+  // a point, layer i (blur level i / (N - 1)) weighs
+  // max(0, 1 - |b * (N - 1) - i|): at most two neighbours are ever on, and
+  // their weights add up to 1. Stops only where b changes (the two edges).
+  const half = HEADLINE_FOCUS_CORE_VW / 2;
+  const EDGE_STOPS = 16;
+  const offsets = [];
+  for (let k = 0; k <= EDGE_STOPS; k++) offsets.push(-(half + HEADLINE_FOCUS_EDGE_VW) + (k / EDGE_STOPS) * HEADLINE_FOCUS_EDGE_VW);
+  for (let k = 0; k <= EDGE_STOPS; k++) offsets.push(half + (k / EDGE_STOPS) * HEADLINE_FOCUS_EDGE_VW);
+  layers.forEach((layer, i) => {
+    const stops = offsets.map((offset) => {
+      const b = smoothstep(half, half + HEADLINE_FOCUS_EDGE_VW, Math.abs(offset));
+      const weight = Math.max(0, 1 - Math.abs(b * (HEADLINE_BLUR_LAYERS - 1) - i));
+      return `rgba(0, 0, 0, ${weight.toFixed(4)}) calc(50% + ${offset.toFixed(3)}vw)`;
+    });
+    layer.style.setProperty("--hw-mask", `linear-gradient(90deg, ${stops.join(", ")})`);
+  });
+
+  function sizeBlurs() {
+    blurNodes.forEach((node, k) => {
+      const sx = (((k + 1) / (HEADLINE_BLUR_LAYERS - 1)) * HEADLINE_BLUR_MAX_VW * window.innerWidth) / 100;
+      node.setAttribute("stdDeviation", `${sx.toFixed(2)} ${(sx * HEADLINE_BLUR_Y_RATIO).toFixed(2)}`);
+    });
+  }
+  sizeBlurs();
+  window.addEventListener("resize", sizeBlurs);
+
+  // Pointer: .headline-word is pointer-events:none, so the cursor is
+  // hit-tested by hand against its box (measured in its resting state by
+  // updateHeadlineAlignment, grown by HEADLINE_HIT_PAD_PX).
+  let hitbox = { left: 0, top: 0, right: 0, bottom: 0 };
+  let stripLeft = 0; // the strips' own left edge on screen (= the headline's)
+  measureHeadlineHitbox = () => {
+    const rect = headlineWordEl.getBoundingClientRect();
+    hitbox = {
+      left: rect.left - HEADLINE_HIT_PAD_PX,
+      top: rect.top - HEADLINE_HIT_PAD_PX,
+      right: rect.right + HEADLINE_HIT_PAD_PX,
+      bottom: rect.bottom + HEADLINE_HIT_PAD_PX,
+    };
+    stripLeft = rect.left;
+    // Letter centers and radii, once, at rest — never per pointermove.
+    lines.forEach((line) => {
+      line.centers = line.sets[0].map((char) => {
+        const box = char.getBoundingClientRect();
+        return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+      });
+      line.radius = HEADLINE_PROXIMITY_RADIUS_EM * parseFloat(getComputedStyle(line.sets[0][0]).fontSize);
+    });
+  };
+  let pointerX = 0;
+  let pointerY = 0;
+  let pointerInside = false;
+  if (!autoOnly) {
+    window.addEventListener("pointermove", (event) => {
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+      pointerInside =
+        event.clientX >= hitbox.left && event.clientX <= hitbox.right &&
+        event.clientY >= hitbox.top && event.clientY <= hitbox.bottom;
+    });
+    document.documentElement.addEventListener("pointerleave", () => {
+      pointerInside = false;
+    });
+  }
+
+  // Focus state, eased every frame (frame-rate independent): the band's
+  // leading point, its trailing point, the distance between bands, and the
+  // automatic motion's own clock.
+  let head = 0;
+  let tail = 0;
+  let periodVw = HEADLINE_AUTO_PERIOD_VW;
+  let autoRunning = true;
+  let autoTime = 0;
+  let sinceCursorLeft = 0;
+  let wasVisible = true;
+  const written = {};
+  const write = (name, value) => {
+    if (written[name] === value) return;
+    written[name] = value;
+    headlineWordEl.style.setProperty(name, value);
+  };
+
+  // Alignment and the measurements above are taken with every letter at
+  // rest: drop the per-letter variables (the letters fall back to their
+  // resting value) and forget they were written, so the next frame puts
+  // the live ones back. Then restore the kerning for the current font size.
+  prepareHeadlineForMeasure = () => {
+    lines.forEach((line) => {
+      line.values.forEach((_, i) => {
+        headlineWordEl.style.removeProperty(`${line.prefix}${i}`);
+        delete written[`${line.prefix}${i}`];
+      });
+      applyKerning(line);
+    });
+  };
+
+  // Called from animate() every frame. `visible` is false once the scroll
+  // exit has faded the headline out: the focus stops (automatic motion
+  // included) and the blurred copies are not rendered until it comes back.
+  updateHeadlineFocus = (delta, visible) => {
+    if (visible !== wasVisible) {
+      wasVisible = visible;
+      headlineWordEl.classList.toggle("is-focus-paused", !visible);
+    }
+    const cursorOn = visible && pointerInside;
+
+    // Thickening: every letter eases toward what its distance to the
+    // cursor asks for — or back to rest when the cursor is off the
+    // headline or the headline has scrolled away.
+    const ease = 1 - Math.exp(-HEADLINE_PROXIMITY_FOLLOW * delta);
+    lines.forEach((line) => {
+      const span = line.max - line.rest;
+      for (let i = 0; i < line.values.length; i++) {
+        let target = line.rest;
+        if (cursorOn) {
+          const distance = Math.hypot(pointerX - line.centers[i].x, pointerY - line.centers[i].y);
+          target += span * (1 - smoothstep(0, line.radius, distance));
+        }
+        line.values[i] += (target - line.values[i]) * ease;
+        if (Math.abs(target - line.values[i]) < span * 0.0002) line.values[i] = target;
+        write(`${line.prefix}${i}`, line.values[i].toFixed(line.digits));
+      }
+    });
+    if (!visible) return;
+
+    const W = window.innerWidth;
+    let targetX = head; // waiting for the automatic motion to resume: stay put
+    if (cursorOn) {
+      targetX = pointerX;
+      autoRunning = false;
+      sinceCursorLeft = 0;
+    } else {
+      sinceCursorLeft += delta;
+      if (!autoRunning && sinceCursorLeft >= HEADLINE_AUTO_RESUME_S) {
+        // Pick the swing up where the band is now: no jump.
+        autoTime = (HEADLINE_AUTO_PASS_S / Math.PI) * Math.acos(clamp(1 - (2 * head) / W, -1, 1));
+        autoRunning = true;
+      }
+      if (autoRunning) {
+        autoTime += delta;
+        targetX = W * (0.5 - 0.5 * Math.cos((Math.PI * autoTime) / HEADLINE_AUTO_PASS_S));
+      }
+    }
+    const follow = 1 - Math.exp(-HEADLINE_FOCUS_FOLLOW * delta);
+    const trail = Math.exp((-3 / HEADLINE_TRAIL_S) * delta);
+    if (cursorOn) {
+      head += (targetX - head) * follow;
+      tail = targetX + (tail - targetX) * trail; // chases the cursor, more slowly
+    } else {
+      // No trail of its own: whatever stretch is left closes around the band.
+      const gap = (tail - head) * trail;
+      head += (targetX - head) * follow;
+      tail = head + (Math.abs(gap) < 0.05 ? 0 : gap);
+    }
+    if (Math.abs(targetX - head) < 0.05) head = targetX;
+    if (cursorOn && Math.abs(targetX - tail) < 0.05) tail = targetX;
+
+    // Bands spread apart under the cursor (and while waiting to resume),
+    // one per screen width when the motion is automatic.
+    const wantedPeriod = autoRunning ? HEADLINE_AUTO_PERIOD_VW : HEADLINE_CURSOR_PERIOD_VW;
+    periodVw += (wantedPeriod - periodVw) * (1 - Math.exp((-3 / HEADLINE_HANDOVER_S) * delta));
+    if (Math.abs(wantedPeriod - periodVw) < 0.02) periodVw = wantedPeriod;
+
+    // The band spans tail..head: centered between them, stretched by their
+    // distance. Stretching the strip by `scale` widens the band around
+    // HEADLINE_STRIP_WINDOW_VW; sliding it puts that band on `center`; the
+    // content gets the inverse transform.
+    const stretch = Math.min(Math.abs(head - tail), (HEADLINE_TRAIL_MAX_VW / 100) * W);
+    const center = head + (Math.sign(tail - head) * stretch) / 2;
+    const scale = 1 + stretch / ((HEADLINE_FOCUS_CORE_VW / 100) * W);
+    const shift = center - stripLeft - scale * (HEADLINE_STRIP_WINDOW_VW / 100) * W;
+    write("--hw-strip-x", `${shift.toFixed(2)}px`);
+    write("--hw-strip-scale", scale.toFixed(5));
+    write("--hw-content-x", `${(-shift / scale).toFixed(3)}px`);
+    write("--hw-content-scale", (1 / scale).toFixed(6));
+    write("--hw-period", `${periodVw.toFixed(2)}vw`);
+  };
+}
+setupHeadlineFocus();
+
 const headlineWords = Array.from(document.querySelectorAll(".headline-word"));
 const hwSansEls = Array.from(document.querySelectorAll(".hw-sans"));
 const hwDisplayEls = Array.from(document.querySelectorAll(".hw-display"));
 const navLogoEl = document.querySelector(".nav-logo");
 const navClockTimeEl = document.querySelector("#nav-clock-time");
+const HEADLINE_BOTTOM_GAP_VH = 1.5;
 
 function updateHeadlineAlignment() {
   // Measure in the resting state: GSAP's exit tween puts y/scale/blur on
@@ -1014,6 +1184,10 @@ function updateHeadlineAlignment() {
   // the measurement and put it back afterwards.
   const savedTransforms = headlineWords.map((el) => el.style.transform);
   headlineWords.forEach((el) => (el.style.transform = "none"));
+  // ...and with "Motion AI" at its resting weight (the widening while the
+  // letters fatten under the cursor is part of that effect, not something
+  // to re-align against).
+  prepareHeadlineForMeasure();
 
   // Reset to the CSS starting point so repeated calls never compound.
   hwSansEls.forEach((el) => (el.style.left = "0px"));
@@ -1036,17 +1210,20 @@ function updateHeadlineAlignment() {
 
   // Bottom: se ancla el punto MÁS BAJO de la tinta de "Designer" (el final
   // del descendente de la g, measureTextInk().bottom) a
-  // HEADLINE_BOTTOM_GAP_VH del borde inferior, así la g se ve entera.
-  // Se mueve el bloque .headline-word completo, así que "Motion AI" sube
-  // con "Designer" y conserva la misma separación vertical.
-  const HEADLINE_BOTTOM_GAP_VH = 1.5;
+  // HEADLINE_BOTTOM_GAP_VH del borde inferior del hero, así la g se ve
+  // entera. Medido contra el propio #hero-section (no contra la ventana)
+  // para que siga siendo correcto aunque el redimensionado ocurra con el
+  // hero ya fuera de pantalla. Se mueve el bloque .headline-word completo,
+  // así que "Motion AI" sube con "Designer" y conserva la misma separación.
+  const heroBottom = heroSectionEl.getBoundingClientRect().bottom;
   const displayInkAfter = measureTextInk(hwDisplayEls[0]);
   const targetBottomGap = (HEADLINE_BOTTOM_GAP_VH * window.innerHeight) / 100;
-  const currentBottomGap = window.innerHeight - displayInkAfter.bottom;
+  const currentBottomGap = heroBottom - displayInkAfter.bottom;
   const baseBottomPx = (3 * window.innerHeight) / 100;
   const bottomPx = baseBottomPx + (targetBottomGap - currentBottomGap);
   headlineWords.forEach((el) => (el.style.bottom = `${bottomPx}px`));
 
+  measureHeadlineHitbox(); // still in the resting state: no exit transform on it
   headlineWords.forEach((el, i) => (el.style.transform = savedTransforms[i]));
 
   if (window.__debugHeadline) {
@@ -1054,7 +1231,7 @@ function updateHeadlineAlignment() {
     const d = measureTextInk(hwDisplayEls[0]);
     console.log("[headline] M-logo dx:", (s.left - logoInkLeft).toFixed(2),
       "| r-clock dx:", (d.right - clockInk.right).toFixed(2),
-      "| g-bottom gap:", (window.innerHeight - d.bottom).toFixed(2));
+      "| g-bottom gap:", (heroBottom - d.bottom).toFixed(2));
   }
 }
 updateHeadlineAlignment();
@@ -1072,99 +1249,67 @@ navLogoEl.decode().then(() => {
 }).catch(() => {});
 onNavClockChange = updateHeadlineAlignment;
 
-const outroCtaQuestion = document.querySelector(".outro-cta-question");
-const outroCtaLink = document.querySelector(".outro-cta-link");
-const contactCtaHeading = document.querySelector(".contact-cta-heading");
-const contactCtaLinks = Array.from(document.querySelectorAll(".contact-cta-link"));
-
-// Aparición: fundido simple ligado al scroll, sin escalado ni rebote —
-// durante la fase en la que la esfera se encoge y centra (P5 a P6).
-const FLOAT_FADE_START = P5 + (P6 - P5) * 0.4;
-const FLOAT_FADE_END = P6;
-// El CTA se desvanece otra vez cuando la esfera empieza a moverse hacia la
-// esquina de work-experience — es decir, al final del segundo hold (P8),
-// no del primero (P7). Mismo tratamiento rápido que #featured-work-heading
-// al salir de su fase.
-const CTA_FADE_OUT_END = P8 + (P9 - P8) * 0.35;
-
-// Aceleración final (ease-in a la quinta potencia) para el desvanecimiento
-// final de la esfera: arranca lento y termina con un cierre rápido hacia 0.
-function easeInQuint(t) {
-  return t * t * t * t * t;
-}
-
-function updateOutroCta(progress) {
-  const fadeIn = clamp((progress - FLOAT_FADE_START) / (FLOAT_FADE_END - FLOAT_FADE_START), 0, 1);
-  const fadeOut = 1 - clamp((progress - P8) / (CTA_FADE_OUT_END - P8), 0, 1);
-  const opacity = Math.min(fadeIn, fadeOut);
-  outroCtaQuestion.style.opacity = opacity;
-  outroCtaLink.style.opacity = opacity;
-  // .outro-cta-link has pointer-events:auto in CSS (needed once it's the
-  // visible CTA), but while opacity is still 0 it sits invisibly on top of
-  // whatever else occupies that same screen position (e.g. the
-  // featured-work grid, since #outro-cta shares the pinned section's
-  // coordinate space the whole time) and silently steals hover/clicks from
-  // it. Only actually enable pointer events once it's visible.
-  outroCtaLink.style.pointerEvents = opacity > 0 ? "auto" : "none";
-}
-
-// Final "Let's contact" phase: fades in over the tail of the P11-1.0
-// window, i.e. after the sphere has already finished growing to
-// FILL_SPHERE_SCALE (see computeSpherePhase) — starting a little into that
-// window rather than right at P11 so the text doesn't appear while the
-// screen is still visibly mid-growth, and reaching full opacity well
-// before scroll end so it isn't cut short. No fade-out: this is the last
-// phase of the scroll, so once visible it just stays.
-const CONTACT_FADE_START = P11 + (1 - P11) * 0.15;
-const CONTACT_FADE_END = P11 + (1 - P11) * 0.65;
-
-function updateContactCta(progress) {
-  const opacity = clamp((progress - CONTACT_FADE_START) / (CONTACT_FADE_END - CONTACT_FADE_START), 0, 1);
-  contactCtaHeading.style.opacity = opacity;
-  contactCtaLinks.forEach((link) => {
-    link.style.opacity = opacity;
-    // Same reasoning as outroCtaLink above: these sit in the pinned
-    // section's shared coordinate space the whole time, so keep them
-    // click-through until they're actually visible.
-    link.style.pointerEvents = opacity > 0 ? "auto" : "none";
-  });
-}
-
-// ---- "Where creativity meets technology" phase -----------------------------
-// Driven per frame (like updateOutroCta) from scrollProgress, which is
-// additionally damped here (PHRASE_DAMPING, frame-rate independent) on top
-// of the ScrollTrigger scrub, so an abrupt scroll never makes the lines
-// jerk. The window itself is in timeline units (PHRASE_ENTER_START/END,
-// PHRASE_HOLD_END, PHRASE_PHASE_END above).
-const PHRASE_STAGGER = 0.25; // fraction of the entrance window line 2 starts after line 1
-const PHRASE_FADE_PORTION = 0.4; // each line reaches opacity 1 within this first fraction of its own travel
-const PHRASE_BLUR_PX = 4;
+// ---- "Where creativity meets technology" phrase ---------------------------
+// Driven per frame from scrollProgress, additionally damped here
+// (PHRASE_DAMPING, frame-rate independent) on top of the ScrollTrigger
+// scrub, so an abrupt scroll never makes it jerk. The window itself is in
+// timeline units (PHRASE_ENTER_START/END, PHRASE_HOLD_END, PHRASE_PHASE_END
+// above).
+// Entrance: every word (.word in index.html) fades in on its own with a
+// small sideways slide, one after another. Line 1 comes from the left,
+// line 2 mirrors it from the right. Within each line the word nearest the
+// middle of the phrase leads (client ask): "creativity", then "Where";
+// "meets", then "technology". Exit: the whole line fades, lifts and
+// softens.
+const PHRASE_WORD_SHIFT_EM = 0.6; // how far each word slides in from, in em
+const PHRASE_WORD_BLUR_PX = 3; // each word also sharpens from this blur
+// Delay between the two words of a line, as a fraction of the whole
+// entrance window (PHRASE_ENTER_UNITS of scroll).
+const PHRASE_WORD_STAGGER = 0.15;
+const PHRASE_LINE2_AT = 0.5; // line 2 starts when line 1 is this far through
 const PHRASE_EXIT_Y_PX = -30;
-const PHRASE_DAMPING = 6; // 1 - exp(-PHRASE_DAMPING * delta) per frame
-const phraseEnterEase = gsap.parseEase("power3.out");
+const PHRASE_EXIT_BLUR_PX = 6; // the lines also soften out of focus as they leave
+// 1 - exp(-PHRASE_DAMPING * delta) per frame. Lower = more glide: at 4 the
+// phrase keeps easing for ~half a second after the scroll stops, which is
+// what keeps the (short) exit from ever feeling abrupt.
+const PHRASE_DAMPING = 4;
+const phraseWordEase = gsap.parseEase("power2.out");
 const phraseExitEase = gsap.parseEase("sine.inOut");
-const phraseLines = Array.from(document.querySelectorAll(".cp-line"));
-const phraseLineState = phraseLines.map(() => ({ offX: 0 }));
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 let phraseProgress = 0;
 
+const phraseLines = Array.from(document.querySelectorAll(".cp-line")).map((el, index) => {
+  const words = Array.from(el.querySelectorAll(".word"));
+  // prefers-reduced-motion: the words never animate, the line just fades.
+  if (prefersReducedMotion) words.forEach((word) => (word.style.opacity = "1"));
+  return {
+    el,
+    words,
+    applied: words.map(() => -1), // last eased value written per word
+    // Order the words appear in: line 1 last word first ("creativity",
+    // "Where"), line 2 in reading order ("meets", "technology").
+    rank: words.map((_, i) => (index === 0 ? words.length - 1 - i : i)),
+    direction: index === 0 ? -1 : 1, // slides in from the left / from the right
+  };
+});
+// Shares of the entrance window (0..1), derived from the two knobs above:
+// a line lasts PHRASE_LINE_SPAN, line k starts at k * PHRASE_LINE2_AT of
+// that, and inside a line each word lasts whatever the stagger leaves.
+const PHRASE_LINE_SPAN = 1 / (1 + (phraseLines.length - 1) * PHRASE_LINE2_AT);
+const PHRASE_WORD_SPAN = PHRASE_LINE_SPAN - (phraseLines[0].words.length - 1) * PHRASE_WORD_STAGGER;
+
 // Puts each line's BASELINE on its CSS `top` (see #creativity-phrase in
-// style.css) and caches how far each line has to travel to start fully
-// off-screen (line 1 off the left edge, line 2 off the right edge).
-// Transforms don't change offsets/widths or the marker-to-top difference,
-// so this is safe to run mid-animation.
+// style.css). Transforms don't change the marker-to-top difference, so
+// this is safe to run mid-animation.
 function layoutCreativityPhrase() {
-  phraseLines.forEach((line, i) => {
-    line.style.marginTop = "0px";
+  phraseLines.forEach(({ el }) => {
+    el.style.marginTop = "0px";
     const marker = document.createElement("span");
     marker.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline;padding:0;margin:0;border:0;";
-    line.appendChild(marker);
-    const baselineOffset = marker.getBoundingClientRect().bottom - line.getBoundingClientRect().top;
+    el.appendChild(marker);
+    const baselineOffset = marker.getBoundingClientRect().bottom - el.getBoundingClientRect().top;
     marker.remove();
-    line.style.marginTop = `${-baselineOffset}px`;
-
-    const width = line.getBoundingClientRect().width;
-    const margin = window.innerWidth * 0.05 + PHRASE_BLUR_PX * 2;
-    phraseLineState[i].offX = i === 0 ? -(line.offsetLeft + width + margin) : window.innerWidth - line.offsetLeft + margin;
+    el.style.marginTop = `${-baselineOffset}px`;
   });
 }
 layoutCreativityPhrase();
@@ -1176,192 +1321,654 @@ function updateCreativityPhrase(progress, delta) {
   const enterT = clamp((p - PHRASE_ENTER_START) / (PHRASE_ENTER_END - PHRASE_ENTER_START), 0, 1);
   const exitT = phraseExitEase(clamp((p - PHRASE_HOLD_END) / (PHRASE_PHASE_END - PHRASE_HOLD_END), 0, 1));
 
-  phraseLines.forEach((line, i) => {
-    // Each line runs over its own (1 - PHRASE_STAGGER) slice of the window.
-    const local = clamp((enterT - i * PHRASE_STAGGER) / (1 - PHRASE_STAGGER), 0, 1);
-    const e = phraseEnterEase(local);
-    const opacity = clamp(local / PHRASE_FADE_PORTION, 0, 1) * (1 - exitT);
-    line.style.opacity = opacity;
-    if (opacity === 0) return;
-    // prefers-reduced-motion: fade only — no lateral travel, no blur, no lift.
-    const x = reducedMotion ? 0 : phraseLineState[i].offX * (1 - e);
-    const y = reducedMotion ? 0 : PHRASE_EXIT_Y_PX * exitT;
-    const blur = reducedMotion ? 0 : PHRASE_BLUR_PX * (1 - e);
-    line.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-    line.style.filter = blur > 0.01 ? `blur(${blur}px)` : "none";
+  phraseLines.forEach((line, index) => {
+    const { el, words, applied, rank, direction } = line;
+    const lineStart = index * PHRASE_LINE2_AT * PHRASE_LINE_SPAN;
+
+    if (prefersReducedMotion) {
+      // Fade of the whole line only: no words, no travel, no blur.
+      const lineT = clamp((enterT - lineStart) / PHRASE_LINE_SPAN, 0, 1);
+      el.style.opacity = phraseWordEase(lineT) * (1 - exitT);
+      return;
+    }
+
+    // Exit (and nothing before the entrance starts) is on the whole line.
+    el.style.opacity = enterT > lineStart ? 1 - exitT : 0;
+    el.style.transform = `translate3d(0, ${PHRASE_EXIT_Y_PX * exitT}px, 0)`;
+    el.style.filter = exitT > 0.001 ? `blur(${PHRASE_EXIT_BLUR_PX * exitT}px)` : "none";
+
+    words.forEach((word, i) => {
+      const wordStart = lineStart + rank[i] * PHRASE_WORD_STAGGER;
+      const t = clamp((enterT - wordStart) / PHRASE_WORD_SPAN, 0, 1);
+      // >= 0.9999 counts as done: the last word's window ends exactly at 1
+      // and float rounding would otherwise leave it a hair short forever,
+      // keeping a (near-zero) transform and blur filter on it.
+      const e = t >= 0.9999 ? 1 : phraseWordEase(t);
+      if (e === applied[i]) return;
+      applied[i] = e;
+      word.style.opacity = e;
+      word.style.transform = e < 1 ? `translateX(${direction * PHRASE_WORD_SHIFT_EM * (1 - e)}em)` : "none";
+      word.style.filter = e < 1 ? `blur(${PHRASE_WORD_BLUR_PX * (1 - e)}px)` : "none";
+    });
   });
 }
 
+// ---- Projects title: "Freshly Squeezed" --------------------------------------
+// The projects section's title, between the aura and the videos
+// (.featured-title in style.css; sizes and position are CSS variables
+// there). Three things happen to it:
+//   - Entrance, "liquid text": each line starts as a blur too wide to see
+//     and sharpens into its letters, under an alpha threshold
+//     (#liquid-threshold in index.html, on .ft-block while it lasts) that
+//     turns that blur into solid blobs pulling together like drops. With
+//     f going 0 -> 1 along the line's FEATURED_LIQUID_DURATION:
+//       blur = min(FEATURED_LIQUID_BLUR / f - FEATURED_LIQUID_BLUR, FEATURED_LIQUID_BLUR_MAX) px
+//       opacity = f ^ FEATURED_LIQUID_OPACITY_POWER
+//     The second line starts FEATURED_LIQUID_LINE_DELAY later. Once both
+//     are in, every filter is off: plain sharp text.
+//     It is NOT scrubbed, and what sets it off depends on which way the
+//     scroll is going (updateFeaturedGate), because the "Where creativity"
+//     phrase shares the middle of the screen with it:
+//       down  it plays in time as soon as the phrase, on its way out, has
+//             faded down to FEATURED_START_PHRASE_OPACITY — still inside
+//             the hero's pin; the title is fixed on screen by then. From
+//             there until the phrase is gone the two are seen together.
+//       up    the two are never seen together: the title plays back out
+//             and is also faded by the scroll itself over the first
+//             FEATURED_UP_GUARD of the projects section, so it is gone by
+//             the section's start — and the phrase only returns above it.
+//   - Then it stays put.
+//   - With the zoom, it grows exactly like the center video: the zoom's
+//     own timeline hands it that layer's scale on every update
+//     (setupZoomParallax -> setFeaturedScale).
+const FEATURED_LIQUID_DURATION = 1.5; // seconds, per line
+const FEATURED_LIQUID_LINE_DELAY = 0.2; // "Squeezed" starts this long after "Freshly"
+const FEATURED_LIQUID_BLUR = 8; // px: see the formula above
+const FEATURED_LIQUID_BLUR_MAX = 100; // px
+const FEATURED_LIQUID_OPACITY_POWER = 0.4;
+// Where in f the entrance starts when the title comes in. From 0 the first
+// 0.65s or so show nothing at all — measured: the first drops clear the
+// threshold at f ~ 0.45 — so the title seemed to arrive late; starting
+// just under that, it is there almost at once. (Going back out it still
+// runs all the way down to 0.)
+const FEATURED_LIQUID_START_F = 0.4;
+// Scrolling down, the title starts when the leaving phrase is down to this
+// opacity (1 = the moment it begins to leave, 0 = only once it is gone).
+const FEATURED_START_PHRASE_OPACITY = 0.5;
+// Scrolling up, the stretch of the projects section's progress, right
+// after its start, over which the title fades away.
+const FEATURED_UP_GUARD = 0.05;
+// Scrolling up, the phrase opacity from which the title must be gone.
+// Measured over the aura: at 0.03 the phrase changes no pixel by more
+// than 7/255, under the aura's own grain (neighbouring pixels differ by
+// up to 16/255) — nothing of it can be told apart yet.
+const FEATURED_PHRASE_BACK = 0.03;
+const FEATURED_FADE_RATE = 14; // title opacity: 1 - exp(-FEATURED_FADE_RATE * delta) per frame
+// Same, when the phrase is already coming back with the title still up (a
+// scroll up too fast for the guard, or one that turns around mid hand-over):
+// out in 3-4 frames rather than in one.
+const FEATURED_CUT_RATE = 40;
+const FEATURED_DIRECTION_SLOP_PX = 6; // scroll this far the other way before it counts as a change of direction
+const featuredTitleEl = document.querySelector(".featured-title");
+const featuredScaleEl = featuredTitleEl.querySelector(".ft-scale");
+const featuredRasterEl = featuredTitleEl.querySelector(".ft-raster");
+const featuredBlockEl = featuredTitleEl.querySelector(".ft-block");
+const featuredLines = Array.from(featuredBlockEl.querySelectorAll(".ft-line")).map((el) => ({ el, f: 0 }));
+// SVG filters on HTML elements: without them (old Safari) the lines still
+// blur and fade in, just not through the threshold.
+const featuredThreshold = !prefersReducedMotion && CSS.supports("filter", "url(#liquid-threshold) blur(0.6px)");
+function renderFeaturedLine(line) {
+  const { el, f } = line;
+  // prefers-reduced-motion: a plain fade, no filters at all.
+  if (prefersReducedMotion) {
+    el.style.opacity = f;
+    return;
+  }
+  el.style.opacity = f ** FEATURED_LIQUID_OPACITY_POWER;
+  el.style.filter = f < 1 ? `blur(${Math.min(FEATURED_LIQUID_BLUR / f - FEATURED_LIQUID_BLUR, FEATURED_LIQUID_BLUR_MAX)}px)` : "none";
+}
+const featuredLiquid = gsap.timeline({
+  paused: true,
+  // The threshold only while the title is forming (or un-forming): off at
+  // both ends, where there is nothing to see or nothing left to blur.
+  onUpdate: () => {
+    const progress = featuredLiquid.progress();
+    featuredTitleEl.classList.toggle("is-liquid", featuredThreshold && progress > 0 && progress < 1);
+  },
+});
+featuredLines.forEach((line, index) => {
+  featuredLiquid.fromTo(
+    line,
+    { f: 0 },
+    { f: 1, duration: FEATURED_LIQUID_DURATION, ease: "none", onUpdate: () => renderFeaturedLine(line) },
+    index * FEATURED_LIQUID_LINE_DELAY
+  );
+  renderFeaturedLine(line);
+});
+
+// Scale of the whole title (with the zoom). Redrawing text this big at a
+// new size on every frame is slow (measured: the zoom ran at ~30fps with
+// it, 60 without), so the scale is split in two: .ft-raster takes a
+// coarse one — the next step up, FEATURED_RASTER_STEP apart, never past
+// `maxScale` — which is the size the text is actually drawn at, and only
+// changes a handful of times along the zoom; .ft-scale, a compositor
+// layer, takes the rest (<= 1: always a reduction of that drawing, so
+// the text stays sharp) and is free to change every frame.
+const FEATURED_RASTER_STEP = 1.5;
+let featuredRaster = 0;
+function setFeaturedScale(scale, maxScale) {
+  const step = FEATURED_RASTER_STEP ** Math.ceil(Math.log(Math.max(scale, 1)) / Math.log(FEATURED_RASTER_STEP) - 1e-6);
+  const raster = Math.min(step, Math.max(maxScale, scale));
+  if (raster !== featuredRaster) {
+    featuredRaster = raster;
+    featuredRasterEl.style.transform = raster === 1 ? "none" : `scale(${raster})`;
+  }
+  featuredScaleEl.style.transform = scale === raster ? "none" : `scale(${scale / raster})`;
+}
+
+let featuredWanted = false;
+let featuredOpacity = 0;
+let featuredFading = false; // its opacity has not reached its target yet
+let featuredDirection = 1; // 1 = scrolling down, -1 = up
+let featuredDirectionY = window.scrollY;
+// Every frame, right after the phrase has been updated.
+function updateFeaturedGate(delta) {
+  const y = window.scrollY;
+  if ((y - featuredDirectionY) * featuredDirection < -FEATURED_DIRECTION_SLOP_PX) {
+    featuredDirection = -featuredDirection;
+    featuredDirectionY = y;
+  } else if ((y - featuredDirectionY) * featuredDirection > 0) {
+    featuredDirectionY = y;
+  }
+
+  const phraseOpacity = Math.max(...phraseLines.map(({ el }) => parseFloat(el.style.opacity || "0")));
+  // Past its hold (leaving, or gone): its opacity is also 0 before it ever comes in.
+  const phraseLeft = phraseProgress > PHRASE_HOLD_END;
+  let wanted;
+  let target;
+  let rate = FEATURED_FADE_RATE;
+  if (featuredDirection > 0) {
+    wanted = phraseLeft && phraseOpacity < FEATURED_START_PHRASE_OPACITY;
+    target = wanted ? 1 : 0;
+  } else {
+    const clear = phraseLeft && phraseOpacity < FEATURED_PHRASE_BACK;
+    wanted = clear && projectsProgress >= FEATURED_UP_GUARD;
+    target = clear ? smoothstep(0, FEATURED_UP_GUARD, projectsProgress) : 0;
+    if (!clear) rate = FEATURED_CUT_RATE;
+  }
+  if (wanted !== featuredWanted) {
+    featuredWanted = wanted;
+    // Only under the threshold: without it (plain fade) every f is visible.
+    const startTime = featuredThreshold ? FEATURED_LIQUID_START_F * FEATURED_LIQUID_DURATION : 0;
+    if (!wanted) featuredLiquid.reverse();
+    else if (featuredLiquid.time() < startTime) featuredLiquid.play(startTime);
+    else featuredLiquid.play();
+  }
+
+  const previous = featuredOpacity;
+  featuredOpacity += (target - featuredOpacity) * (1 - Math.exp(-rate * delta));
+  if (Math.abs(target - featuredOpacity) < 0.002) featuredOpacity = target;
+  featuredFading = featuredOpacity !== target;
+  if (featuredOpacity !== previous) featuredTitleEl.style.opacity = featuredOpacity;
+}
+// Makes the CSS variables of .featured-title mean what they say, by
+// measuring the ink and setting the corrections (--ft-lead-fix: gap
+// between the lines, --ft-dx-fix: each line's ink centered, --ft-dy-fix:
+// the block's ink centered on --ft-center-y). Everything is measured on a
+// hidden copy of the block with nothing on it (the real lines may be
+// mid-entrance, the real block mid-zoom) and stored in em/vw: the title is
+// sized in vw, so the corrections stay right on resize. Needs the webfonts.
+function layoutFeaturedTitle() {
+  ["--ft-lead-fix", "--ft-dy-fix"].forEach((name) => featuredTitleEl.style.removeProperty(name));
+  const zoomTransforms = [featuredScaleEl.style.transform, featuredRasterEl.style.transform];
+  featuredScaleEl.style.transform = "none";
+  featuredRasterEl.style.transform = "none";
+  const probe = featuredBlockEl.cloneNode(true);
+  probe.querySelectorAll("[style]").forEach((el) => el.removeAttribute("style"));
+  probe.style.visibility = "hidden";
+  featuredRasterEl.appendChild(probe);
+  const frame = featuredTitleEl.getBoundingClientRect();
+  const vw = frame.width / 100;
+  const probeLines = Array.from(probe.querySelectorAll(".ft-line"));
+
+  const [display, sans] = probeLines;
+  const gap = parseFloat(getComputedStyle(sans).marginTop); // = --ft-gap, no correction yet
+  const leadFix = gap - (measureTextInk(sans).top - measureTextInk(display).baseline);
+  featuredTitleEl.style.setProperty("--ft-lead-fix", `${(leadFix / vw).toFixed(4)}vw`);
+
+  const inks = probeLines.map((line) => measureTextInk(line));
+  probeLines.forEach((line, k) => {
+    const dx = frame.left + frame.width / 2 - (inks[k].left + inks[k].right) / 2;
+    featuredLines[k].el.style.setProperty("--ft-dx-fix", `${(dx / parseFloat(getComputedStyle(line).fontSize)).toFixed(5)}em`);
+  });
+  const inkMiddle = (Math.min(...inks.map((ink) => ink.top)) + Math.max(...inks.map((ink) => ink.bottom))) / 2;
+  const dyFix = frame.top + parseFloat(getComputedStyle(probe).top) - inkMiddle;
+  featuredTitleEl.style.setProperty("--ft-dy-fix", `${(dyFix / vw).toFixed(4)}vw`);
+
+  probe.remove();
+  [featuredScaleEl.style.transform, featuredRasterEl.style.transform] = zoomTransforms;
+}
+document.fonts.ready.then(layoutFeaturedTitle);
+
 let scrollProgress = 0;
+// The sphere/aura follow a damped copy of scrollProgress (frame-rate
+// independent, on top of the scrub), so an abrupt scroll never makes the
+// orange or the aura jerk.
 const AURA_DAMPING = 5; // 1 - exp(-AURA_DAMPING * delta) per frame, see animate()
 let sphereProgressDamped = 0;
+// The projects section's own scroll progress (0 as it starts coming in, 1
+// at its end) drives the aura's second move, with the same damping; and
+// once the whole section has scrolled above the viewport the aura is no
+// longer drawn. Both come from the ScrollTriggers created right after the
+// zoom parallax.
+let projectsProgress = 0;
+let projectsProgressDamped = 0;
+let projectsScrolledPast = false;
 
 const heroScrollTimeline = gsap.timeline({
   scrollTrigger: {
     trigger: "#hero-section",
     start: "top top",
-    // Was "+=400%" for the original 8-unit timeline (50% scroll distance
-    // per unit — 400/8), then "+=600%" once the work-experience phase
-    // appended 4 more units (12 total), then "+=700%" and "+=800%" as the
-    // post-experience vanish phase grew (14, then 16 total): a hold at the
-    // experience corner, and doubling the shrink sub-phase's own duration.
-    // Still called too fast after that — the hold itself grew again here,
-    // from 1 unit to 3, landing on 18*50=900%. The creativity phase then
-    // prepended PHRASE_PHASE_UNITS more (23 total = 1150%) — still 50% per
-    // unit, so everything after it lasts exactly what it did before.
-    end: `+=${TIMELINE_UNITS * 50}%`,
+    end: `+=${TIMELINE_UNITS * 50}%`, // 50% of the viewport height of scroll per timeline unit
     pin: true,
-    // A plain `scrub: true` links progress 1:1 to scroll position with zero
-    // lag, so the sphere snaps to a dead stop the instant scrolling stops —
-    // not the fluid, video-like motion of the Pinterest reference. Passing
-    // a number instead makes ScrollTrigger smooth/catch-up to the real
-    // scroll position over that many seconds, so the growth+shift keeps
-    // gliding for a beat after the scroll input ends. Tune this duration
-    // (bigger = more lag/inertia, smaller = snappier) to taste.
+    // A number instead of `true`: ScrollTrigger catches up to the real
+    // scroll position over that many seconds, so motion keeps gliding for
+    // a beat after the scroll input ends instead of stopping dead.
     scrub: 1,
     onUpdate: (self) => {
       scrollProgress = self.progress;
+      requestFrame();
     },
   },
 });
 
 heroScrollTimeline
-  // Salida "glow horizon": además del fundido + subida ya existentes, las
-  // palabras se desenfocan y escalan ligeramente hacia afuera, como si se
-  // disolvieran en un resplandor — con un pequeño stagger entre palabras.
-  // Sin tinte de color (text-shadow) a propósito: .headline-word usa
-  // mix-blend-mode:difference (ver comentario en style.css), así que
-  // cualquier color añadido en el mismo elemento se invertiría contra el
-  // fondo de forma impredecible en vez de leerse como un resplandor limpio.
+  // "Glow horizon" exit: the headline fades, lifts, blurs and scales out
+  // slightly, as if dissolving into a glow.
   .fromTo(
     ".headline-word",
-    // No xPercent/yPercent needed any more — .headline-word is now plainly
-    // absolutely positioned (left/top in composition px, see style.css),
-    // not centered via a transform hack, so GSAP only needs to animate the
-    // exit's own y/scale/blur/opacity on top of that.
     { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
     { opacity: 0, y: -60, scale: 1.15, filter: "blur(14px)", duration: 1, ease: "none" },
     0
   )
-  // Creativity phase (0 -> PHRASE_PHASE_UNITS): sphere rise, phrase and
-  // gradient layer are all per-frame (computeSpherePhase /
-  // updateCreativityPhrase), this only reserves the scroll. Every position
-  // after it is offset by PHRASE_PHASE_UNITS, so the "position N" notes in
-  // the comments below are relative to the end of this phase.
-  .to({}, { duration: PHRASE_PHASE_UNITS }, 0)
-  .fromTo(
-    ".tagline-line",
-    { opacity: 0, y: 40 },
-    { opacity: 1, y: 0, duration: 1, ease: "none" },
-    PHRASE_PHASE_UNITS + 1
-  )
-  // positions 2-3 deliberately empty: this is where the text sits still on
-  // screen while the user keeps scrolling
-  .to(".tagline-line", { opacity: 0, y: -40, duration: 1, ease: "none" }, PHRASE_PHASE_UNITS + 3)
-  .fromTo(
-    "#featured-work-heading, .featured-work-item",
-    { opacity: 0, y: 40 },
-    { opacity: 1, y: 0, duration: 1, stagger: 0.15, ease: "none" },
-    PHRASE_PHASE_UNITS + 4
-  )
-  .to({}, { duration: 1 }, PHRASE_PHASE_UNITS + 5) // empty buffer: reserves scroll for the grid-reveal sub-phase (P3-P4)
-  .to({}, { duration: 1 }, PHRASE_PHASE_UNITS + 6) // empty buffer: reserves scroll for the grid-exit sub-phase (P4-P5) — sphere stays frozen through this too, see computeSpherePhase()
-  // Position 7 = P5, exactly where the grid finishes exiting and the
-  // sphere starts shrinking to its final-rest position — same spot the
-  // outro CTA has always lived. .featured-work-item itself doesn't fade
-  // out by opacity, it already scrolled off the top of the screen during
-  // the buffer above (see updateFeaturedWorkScroll()'s exit phase), but
-  // #featured-work-heading isn't part of that scroll-away and needs its
-  // own exit: fade it out fast right as the sphere starts leaving.
-  .to("#featured-work-heading", { opacity: 0, y: -40, duration: 0.35, ease: "none" }, PHRASE_PHASE_UNITS + 7)
-  // empty buffer: reserves scroll for the shrink-to-final sub-phase
-  // (P5-P6) — the outro CTA fade-in is per-frame (updateOutroCta), not a
-  // GSAP tween, so there's nothing else to add here.
-  .to({}, { duration: 1 }, PHRASE_PHASE_UNITS + 7)
-  // empty buffer: hold #1 at final rest (P6-P7) — outro CTA finishes its
-  // fade-in here (per-frame), comfortably before this unit is even over.
-  .to({}, { duration: 1 }, PHRASE_PHASE_UNITS + 8)
-  // empty buffer: hold #2 at final rest (P7-P8) — a second, entirely
-  // static buffer with nothing scheduled at all. Client feedback: the CTA
-  // was disappearing too fast — this extra unit is purely "let it sit"
-  // breathing room, on top of #1 already finishing early.
-  .to({}, { duration: 1 }, PHRASE_PHASE_UNITS + 9)
-  // Position 10 = P8, where the sphere starts moving out to the
-  // work-experience corner (client feedback: work-experience must come
-  // AFTER the outro CTA, not before it, so this whole phase moved to the
-  // very end). The CTA fades back out over this same move — handled
-  // per-frame in updateOutroCta() via CTA_FADE_OUT_END, no GSAP tween
-  // needed for that half — while the experience heading/list fades IN,
-  // finishing right as the sphere arrives (P9): same choreography
-  // #featured-work-heading/.featured-work-item used while the sphere
-  // approached its featured position earlier. Picked the GSAP-timeline
-  // .fromTo()+stagger approach because these items are a fixed list that
-  // only ever needs a single one-shot reveal — exactly the same shape as
-  // .featured-work-item.
-  .fromTo(
-    "#experience-heading, .experience-item",
-    { opacity: 0, y: 40 },
-    { opacity: 1, y: 0, duration: 1, stagger: 0.15, ease: "none" },
-    PHRASE_PHASE_UNITS + 10
-  )
-  // Position 11 = P9, where the sphere arrives at the work-experience
-  // corner: empty buffer reserving the hold (P9-P9b) — client feedback
-  // wanted the experience section to sit longer before the vanish phase
-  // starts. duration:3 (grew from an initial 1, still called too fast) —
-  // nothing fades or moves for these 3 full units.
-  .to({}, { duration: 3 }, PHRASE_PHASE_UNITS + 11)
-  // Position 14 = P9b, where the hold ends: the experience text fades
-  // back OUT (mirror of its entrance above) while the sphere moves from
-  // the corner to dead center — that move itself is per-frame in
-  // computeSpherePhase(), nothing more to tween here.
-  .to(
-    "#experience-heading, .experience-item",
-    { opacity: 0, y: -40, duration: 1, stagger: 0.1, ease: "none" },
-    PHRASE_PHASE_UNITS + 14
-  )
-  // Position 15 = P10->P11: sphere (and leaves) grow out to
-  // FILL_SPHERE_SCALE — purely per-frame (computeSpherePhase's
-  // easeInQuint branch), so this is just a reserved-scroll placeholder,
-  // same pattern as the grid-scroll sub-phases above. duration:2 (not 1) —
-  // client feedback the growth felt too rushed, so it gets two full units
-  // for the same easeInQuint curve to play out over, instead of one.
-  .to({}, { duration: 2 }, PHRASE_PHASE_UNITS + 15)
-  .to({}, { duration: 1 }, PHRASE_PHASE_UNITS + 17); // final buffer: sphere stays fully grown, its gradient filling the screen
+  // The two introductions leave with it, over the same stretch: a fade and
+  // a small lift.
+  .fromTo(".hero-intro", { opacity: 1, y: 0 }, { opacity: 0, y: -40, duration: 1, ease: "none" }, 0)
+  // Sphere rise, aura and phrase are all per-frame (computeSpherePhase /
+  // updateAura / updateCreativityPhrase); this only reserves the scroll.
+  .to({}, { duration: TIMELINE_UNITS }, 0);
 
-// Grid-scroll phase: once the sphere has settled into its featured-work
-// position (progress > GRID_SCROLL_START), further scroll no longer moves
-// the sphere at all — instead it translates .featured-work-grid upward,
-// revealing items that don't fit the viewport. With only 4 placeholder
-// items this barely moves (they already fit), but the mechanism is ready
-// for a longer real project list.
+// ---- Projects: zoom parallax ------------------------------------------------
+// GSAP port of the reference ZoomParallax component: 7 layers stacked in a
+// sticky viewport, each scaled up from 1 over the first 100vh that .zp is stuck, so
+// the media zoom out from the screen center and layer 0 ends up filling
+// the screen. Layer sizes/offsets live in style.css
+// (.zp-layer:nth-of-type).
+// Layer 0's final scale is not a fixed number: it is whatever makes its
+// media cover the visible viewport (zoomCoverScale), recomputed on every
+// ScrollTrigger refresh (so on resize). The other layers keep their
+// proportion to it (ZOOM_PARALLAX_SCALES[i] / ZOOM_PARALLAX_SCALES[0]).
+// The zoom's own scroll is 100vh; it ends ZOOM_PARALLAX_HOLD before the
+// end of that, at full scale. Then .zp goes on: REEL_HOLD_VH more with the
+// showreel filling the screen, on its own ("Showreel" below), and
+// MORE_PANEL_VH in which the black panel comes up over it ("Still
+// thirsty" below). All of it is one timeline, 1 unit of time = 100vh of
+// scroll.
 //
-// A second, separate exit sub-phase (GRID_SCROLL_END through GRID_EXIT_END,
-// i.e. P4 through P5) then keeps translating the grid further up until it's
-// fully off-screen — this is how the grid "leaves" now, instead of the
-// opacity fade the timeline used to do.
-const featuredWorkGrid = document.querySelector(".featured-work-grid");
-const GRID_SCROLL_START = P3;
-const GRID_SCROLL_END = P4; // reveal phase ends, exit phase begins
-const GRID_EXIT_END = P5; // grid is fully off-screen by here
-const GRID_VISIBLE_HEIGHT_RATIO = 0.8; // visible-height budget vs. viewport — tune by eye
-const GRID_EXIT_DISTANCE_PX = window.innerHeight; // extra upward travel during the exit sub-phase — generous enough to clear the grid regardless of its height
+// EDIT HERE to change the covers: one entry per layer, in layer order.
+//   0 center (fills the screen at the end)   1 top (wide)
+//   2 left (tall and narrow)                 3 right
+//   4 bottom center                          5 bottom left
+//   6 bottom right (the small one)
+// `src` is the file exactly as it sits under public/ (spaces, "ñ" and
+// all): it is URL-encoded where it is used. A .mp4/.webm becomes a
+// <video>, anything else an <img>. Each cover links to work.html#<slug>,
+// unless its entry says `href: null`: the center one is the showreel —
+// its `src` is the short local loop it shows until it fills the screen,
+// where the whole reel takes over (see "Showreel" below).
+const ZOOM_PARALLAX_PROJECTS = [
+  { slug: "showreel", title: "Showreel 2026", src: "/proyectos/Reel/Portada_Reel.mp4", alt: "Daniel Alamilla Showreel", href: null },
+  { slug: "otono-tmm", title: "Otoño TMM", src: "/proyectos/Otoño TMM/Portada_Tardor TMM.mp4", alt: "Otoño TMM project cover" },
+  { slug: "sitges", title: "Sitges Film Festival", src: "/proyectos/Sitges/Styleframes/Styleframes_SItges_1.2.mp4", alt: "Sitges Film Festival project cover" },
+  { slug: "spotify", title: "Spotify Daylist", src: "/proyectos/Spotify/Portada_Spotify Daylist.mp4", alt: "Spotify Daylist project cover" },
+  { slug: "hummel-betis", title: "Hummel Betis", src: "/proyectos/Hummel Betis/Hummel Betis_Tarjeta.mp4", alt: "Hummel Betis project cover" },
+  { slug: "tmm-esferas", title: "TMM Esferas", src: "/proyectos/TMM Esferas/Portada_TMM Esferas.mp4", alt: "TMM Esferas project cover" },
+  { slug: "estiu-tmm", title: "Estiu TMM", src: "/proyectos/Estiu TMM/Portada_Estiu TMM.mp4", alt: "Estiu TMM project cover" },
+].map((project) => ({ href: `work.html#${project.slug}`, ...project }));
+const ZOOM_PARALLAX_SCALES = [4, 5, 6, 5, 6, 8, 9]; // relative to one another (the reference's values)
+const ZOOM_PARALLAX_COVER = 1.03; // layer 0 ends this much bigger than an exact cover of the viewport
+const ZOOM_PARALLAX_HOLD = 0.2; // last share of the zoom's own scroll (20vh of its 100vh)
 
-function updateFeaturedWorkScroll(progress) {
-  const availableHeight = window.innerHeight * GRID_VISIBLE_HEIGHT_RATIO;
-  const maxScroll = Math.max(0, featuredWorkGrid.offsetHeight - availableHeight);
+let zoomCenterCover = null; // the showreel's card, .zp-media of layer 0 (setupZoomParallax)
+let zoomTimeline = null; // set by setupZoomParallax
 
-  if (progress <= GRID_SCROLL_START) {
-    featuredWorkGrid.style.transform = "translateY(0px)";
-    return;
-  }
-  if (progress <= GRID_SCROLL_END) {
-    const t = (progress - GRID_SCROLL_START) / (GRID_SCROLL_END - GRID_SCROLL_START);
-    featuredWorkGrid.style.transform = `translateY(-${maxScroll * t}px)`;
-    return;
-  }
-  const exitT = clamp((progress - GRID_SCROLL_END) / (GRID_EXIT_END - GRID_SCROLL_END), 0, 1);
-  featuredWorkGrid.style.transform = `translateY(-${maxScroll + GRID_EXIT_DISTANCE_PX * exitT}px)`;
+// The nav inside the center project: its ink is the page's dark from the
+// creativity phase on (updateNavInk); each item (logo, links, clock) turns
+// white (.is-white in style.css) once the card that grows to fill the
+// screen has reached behind it — and stays white from there on, over the
+// showreel and over the black panel that comes up over it. Checked
+// whenever that card moves.
+const navItems = Array.from(siteNavEl.querySelectorAll(".nav-logo, .nav-links a, .nav-clock"));
+function updateNavContrast() {
+  const cover = zoomCenterCover.getBoundingClientRect();
+  navItems.forEach((item) => {
+    const box = item.getBoundingClientRect();
+    const x = (box.left + box.right) / 2;
+    const y = (box.top + box.bottom) / 2;
+    item.classList.toggle("is-white", x >= cover.left && x <= cover.right && y >= cover.top && y <= cover.bottom);
+  });
 }
+
+// ---- Showreel ---------------------------------------------------------------
+// The center card has two states:
+//   - small, and all through the zoom: the short local loop (Portada_Reel),
+//     like every other card;
+//   - once it has grown to fill the screen: the WHOLE showreel, from second
+//     0 every time, in a Vimeo player (REEL_URL) laid over the loop and
+//     filling the card like object-fit: cover (.zp-reel in style.css).
+// The player is created ahead of time, when the card comes near the screen,
+// and waits there, paused and invisible. When the card reaches full size it
+// is sent back to 0 and played, and as soon as it reports "playing" it is
+// faded in over the loop (which then stops). When the card shrinks back
+// under full size it is faded out again — the loop takes over — stopped and
+// left at 0. While the black panel covers it, it is only paused: it goes on
+// from where it was. Always silent.
+//   REEL_FULL_AT           share of its final size at which the card
+//                          becomes the reel
+//   REEL_FULL_HYSTERESIS   how far back under that it must shrink before it
+//                          becomes the loop again, so a scroll wavering
+//                          right at the threshold does not restart the reel
+//   REEL_CROSSFADE_S       seconds of the fade between the two
+//   REEL_HOLD_VH           scroll, in viewport heights, that the reel stays
+//                          full screen for after the zoom's own hold and
+//                          before the panel starts to come up
+const REEL_FULL_AT = 1;
+const REEL_FULL_HYSTERESIS = 0.03;
+const REEL_CROSSFADE_S = 0.4;
+const REEL_HOLD_VH = 200;
+const REEL_URL = "https://player.vimeo.com/video/1006517705?muted=1&loop=1&controls=0&title=0&byline=0&portrait=0&dnt=1&autopause=0";
+const REEL_NEAR_MARGIN = "100% 0px"; // how far from the screen the card still is when its player is created
+const reel = {
+  card: null, // .zp-media of layer 0 (setupReel)
+  preview: null, // its <video>: the local loop
+  player: null, // the Vimeo player, once created
+  full: false, // the card is at full size: the reel's turn
+  live: false, // ...and the reel is playing and shown
+  onScreen: false,
+  covered: false, // the black panel is all the way up
+  timer: 0, // what is left to do once the running fade ends
+};
+const ignore = () => {}; // a player command that did not go through (not loaded yet, or blocked)
+// Whichever of the two is on plays while the card can be seen.
+function syncReel() {
+  const visible = reel.onScreen && !reel.covered;
+  if (reel.player) {
+    if (visible && reel.full) reel.player.play().catch(ignore);
+    else if (!visible) reel.player.pause().catch(ignore);
+  }
+  if (!visible) reel.preview.pause();
+  else if (!reel.live) reel.preview.play().catch(ignore);
+}
+// The player's "playing": the reel is really moving, so it can be shown.
+function showReel() {
+  if (!reel.full || reel.live) return; // (it also fires when it resumes from under the panel)
+  reel.live = true;
+  reel.card.classList.add("is-live");
+  clearTimeout(reel.timer);
+  reel.timer = setTimeout(() => reel.preview.pause(), REEL_CROSSFADE_S * 1000);
+}
+function setReelFull(full) {
+  if (full === reel.full) return;
+  reel.full = full;
+  clearTimeout(reel.timer);
+  const rewind = () => {
+    if (!reel.player) return;
+    reel.player.pause().catch(ignore);
+    reel.player.setCurrentTime(0).catch(ignore);
+  };
+  if (full) {
+    rewind(); // always from the start
+  } else {
+    reel.live = false;
+    reel.card.classList.remove("is-live");
+    reel.timer = setTimeout(rewind, REEL_CROSSFADE_S * 1000); // once it has faded out
+  }
+  syncReel();
+}
+function createReelPlayer() {
+  const frame = document.createElement("iframe");
+  frame.className = "zp-reel";
+  frame.src = REEL_URL;
+  frame.allow = "autoplay; fullscreen; picture-in-picture";
+  frame.title = "Daniel Alamilla Showreel";
+  frame.tabIndex = -1; // nothing to operate in it: no controls, no pointer events
+  reel.card.appendChild(frame);
+  reel.player = new Player(frame);
+  reel.player.on("playing", showReel);
+  syncReel();
+}
+// Called by setupZoomParallax with layer 0's card and its <video>.
+function setupReel(card, preview) {
+  reel.card = card;
+  reel.preview = preview;
+  card.classList.add("has-reel");
+  card.style.setProperty("--reel-fade", `${REEL_CROSSFADE_S}s`);
+  new IntersectionObserver(
+    (entries, observer) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      observer.disconnect();
+      createReelPlayer();
+    },
+    { rootMargin: REEL_NEAR_MARGIN }
+  ).observe(card);
+  new IntersectionObserver((entries) => {
+    reel.onScreen = entries[entries.length - 1].isIntersecting;
+    syncReel();
+  }).observe(card);
+}
+
+// ---- "Still thirsty for more?" panel ----------------------------------------
+// After the showreel's hold, a black panel comes up from below over it, at
+// the speed of the scroll, until it covers everything (.more in index.html
+// / style.css); the reel stops once it does. Everything in it is its child
+// and comes up with it. The block of text also moves inside the panel,
+// always the same way — up on screen while the scroll goes down, never
+// back:
+//   - while the panel comes up, at MORE_TEXT_SPEED of the panel's speed: it
+//     starts a little higher in the panel than where it ends the rise;
+//   - once the panel is in place it goes on up for MORE_TEXT_SETTLE_VH of
+//     scroll, slowing down, and stops centered. How far below the center
+//     it is when that stretch begins (MORE_TEXT_SETTLE_DROP_VH) follows
+//     from the other two, so its pace does not change where the panel
+//     stops: with the ease used there (quadratic out) the stretch starts
+//     at 2 * drop / length vh per vh of scroll.
+// This function is the only thing that positions the panel and the block,
+// from one number: the scroll since the panel started (syncZoom sets
+// moreScroll from the zoom's own timeline), followed per frame by an
+// exponential approach (animate()), which cannot overshoot.
+//   MORE_PANEL_VH         scroll that this stretch adds to the zoom section
+//                         (.zp), in viewport heights
+//   MORE_PANEL_RISE_VH    how much of it the panel takes to come up; 100 =
+//                         exactly the speed of the scroll
+//   MORE_TEXT_SPEED       speed of the text on screen while the panel comes
+//                         up, as a share of the panel's (1 = glued to it)
+//   MORE_TEXT_SETTLE_VH   scroll, after the rise, in which the text goes on
+//                         up to the middle of the screen
+const MORE_PANEL_VH = 150;
+const MORE_PANEL_RISE_VH = 100;
+const MORE_TEXT_SPEED = 0.94;
+const MORE_TEXT_SETTLE_VH = 30;
+const MORE_TEXT_SETTLE_DROP_VH = (MORE_TEXT_SPEED * MORE_TEXT_SETTLE_VH) / 2;
+const moreEl = document.querySelector(".more");
+const moreBlockEl = moreEl.querySelector(".more-block");
+
+let moreScroll = 0; // vh scrolled since the panel started to come up, 0..MORE_PANEL_VH
+let moreScrollDamped = 0;
+let moreApplied = -1;
+function updateMorePanel() {
+  if (moreScrollDamped === moreApplied) return;
+  moreApplied = moreScrollDamped;
+  const rise = clamp(moreScrollDamped / MORE_PANEL_RISE_VH, 0, 1);
+  const settle = clamp((moreScrollDamped - MORE_PANEL_RISE_VH) / MORE_TEXT_SETTLE_VH, 0, 1);
+  moreEl.classList.toggle("is-on", rise > 0);
+  moreEl.style.transform = `translate3d(0, ${((1 - rise) * 100).toFixed(3)}%, 0)`;
+  // The block, in vh from its centered place (the panel is 100vh tall).
+  // Both terms only ever shrink as the scroll goes on: what is left of the
+  // drop (positive, below the center) and of the head start it has on the
+  // panel (negative). prefers-reduced-motion: it just rides the panel.
+  const drop = MORE_TEXT_SETTLE_DROP_VH * (1 - settle) ** 2;
+  const headStart = prefersReducedMotion ? 0 : (1 - rise) * (1 - MORE_TEXT_SPEED) * MORE_PANEL_RISE_VH;
+  moreBlockEl.style.transform = `translate3d(0, ${(drop - headStart).toFixed(3)}vh, 0)`;
+  // A reel nobody can see does not need to play.
+  if (reel.covered !== (rise === 1)) {
+    reel.covered = rise === 1;
+    syncReel();
+  }
+}
+
+function setupZoomParallax() {
+  const sticky = document.querySelector(".zp-sticky");
+  const videos = [];
+  const layers = ZOOM_PARALLAX_PROJECTS.map((project, index) => {
+    const layer = document.createElement("div");
+    layer.className = "zp-layer";
+    const link = document.createElement(project.href ? "a" : "div");
+    link.className = "zp-media";
+    if (project.href) {
+      link.href = project.href;
+      link.setAttribute("aria-label", project.title);
+    }
+    const url = encodeURI(project.src);
+    if (/\.(mp4|webm)$/i.test(project.src)) {
+      // No autoplay attribute on purpose: with it the browser starts loading
+      // every video right away; preload="metadata" + the observer below only
+      // fetch/play the ones actually on screen.
+      const video = document.createElement("video");
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      video.preload = "metadata";
+      video.setAttribute("muted", "");
+      video.setAttribute("playsinline", "");
+      video.setAttribute("aria-label", project.alt);
+      video.src = url;
+      link.appendChild(video);
+      // Layer 0's is the showreel's loop: the reel looks after it.
+      if (index === 0) setupReel(link, video);
+      else videos.push(video);
+    } else {
+      const image = document.createElement("img");
+      image.loading = "lazy";
+      image.alt = project.alt;
+      image.src = url;
+      link.appendChild(image);
+    }
+    layer.appendChild(link);
+    sticky.appendChild(layer);
+    return layer;
+  });
+
+  zoomCenterCover = layers[0].firstElementChild;
+  document.querySelector(".zp").style.setProperty("--zp-after", `${REEL_HOLD_VH + MORE_PANEL_VH}vh`);
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) entry.target.play().catch(() => {});
+      else entry.target.pause();
+    });
+  });
+  videos.forEach((video) => observer.observe(video));
+
+  // Final scale of layer 0: its media (measured at rest: computed size,
+  // which transforms do not change) covering the visible viewport — the
+  // one without scrollbars — on both axes, plus the margin.
+  const centerMedia = layers[0].firstElementChild;
+  const zoomCoverScale = () => {
+    const box = getComputedStyle(centerMedia);
+    const viewport = document.documentElement;
+    return Math.max(viewport.clientWidth / parseFloat(box.width), viewport.clientHeight / parseFloat(box.height)) * ZOOM_PARALLAX_COVER;
+  };
+  // The title grows with the center video, glued to it: on every update
+  // of this same timeline it is handed that layer's current scale.
+  const syncZoom = () => {
+    const scale = gsap.getProperty(layers[0], "scale");
+    const coverScale = zoomCoverScale();
+    setFeaturedScale(scale, coverScale);
+    const time = zoomTimeline ? zoomTimeline.time() : 0; // 1 = 100vh of scroll
+    // The center card turns into the whole reel at full size, and back.
+    const size = scale / coverScale;
+    if (size >= REEL_FULL_AT - 1e-3) setReelFull(true);
+    else if (size < REEL_FULL_AT - REEL_FULL_HYSTERESIS) setReelFull(false);
+    // The black panel: after the zoom's own 100vh and the showreel's hold.
+    moreScroll = clamp((time - 1 - REEL_HOLD_VH / 100) * 100, 0, MORE_PANEL_VH);
+    if (moreScroll !== moreScrollDamped) requestFrame();
+    updateNavContrast();
+    // The size the showreel's player is laid out for: the card's at the end.
+    zoomCenterCover.style.setProperty("--reel-res", coverScale.toFixed(3));
+  };
+  const zoomUnits = 1 - ZOOM_PARALLAX_HOLD;
+  zoomTimeline = gsap
+    .timeline({
+      scrollTrigger: { trigger: ".zp", start: "top top", end: "bottom bottom", scrub: 1, invalidateOnRefresh: true, onRefresh: syncZoom },
+      onUpdate: syncZoom,
+    })
+    .fromTo(
+      layers,
+      { scale: 1 },
+      { scale: (i) => (zoomCoverScale() * ZOOM_PARALLAX_SCALES[i]) / ZOOM_PARALLAX_SCALES[0], ease: "none", duration: zoomUnits },
+      0
+    )
+    .to({}, { duration: ZOOM_PARALLAX_HOLD }, zoomUnits)
+    .to({}, { duration: (REEL_HOLD_VH + MORE_PANEL_VH) / 100 }, 1);
+  updateMorePanel();
+}
+setupZoomParallax();
+
+// Created after the hero's pinning ScrollTrigger on purpose: triggers are
+// measured in creation order, and these sit below the pin on the page.
+// The section's progress runs from the moment it starts coming in to where
+// the zoom ends — not to its very end, which the showreel's hold and the
+// black panel's stretch come after — so everything that is a share of it
+// (AURA_PROJECTS_T, FEATURED_UP_GUARD) keeps its length in scroll whatever
+// REEL_HOLD_VH and MORE_PANEL_VH are.
+ScrollTrigger.create({
+  trigger: "#projects",
+  start: "top bottom",
+  end: () => `+=${document.querySelector("#projects").offsetHeight - ((REEL_HOLD_VH + MORE_PANEL_VH) / 100) * window.innerHeight}`,
+  onUpdate: (self) => {
+    projectsProgress = self.progress;
+    requestFrame();
+  },
+});
+// While the section is around, the nav's items change color with a
+// transition (style.css) as the showreel's card reaches behind them; not
+// before, where their color follows the scroll frame by frame
+// (updateNavInk).
+ScrollTrigger.create({
+  trigger: "#projects",
+  start: "top bottom",
+  end: "max",
+  onToggle: (self) => siteNavEl.classList.toggle("is-in-projects", self.isActive),
+  onUpdate: updateNavContrast,
+});
+// From the moment .zp-sticky sticks, the title rides in it instead of
+// being fixed (same place on screen while it is stuck), so it leaves with
+// the section instead of staying over whatever comes after.
+ScrollTrigger.create({
+  trigger: ".zp",
+  start: "top top",
+  end: "max",
+  onToggle: (self) => featuredTitleEl.classList.toggle("is-docked", self.isActive),
+});
+ScrollTrigger.create({
+  trigger: "#projects",
+  start: "bottom top",
+  end: "max",
+  onToggle: (self) => {
+    projectsScrolledPast = self.isActive;
+    requestFrame();
+  },
+});
 
 const clock = new THREE.Clock();
 
@@ -1373,13 +1980,9 @@ const WIGGLE_FREQUENCY = 0.5; // rate of the noise field, in cycles per second
 const WIGGLE_AMP_X = 0.03; // world units (~12px at 1080p)
 const WIGGLE_AMP_Y = 0.04; // world units (~17px at 1080p)
 const WIGGLE_SEED_Y = 37.1;
-const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Continuous slow spin around the sphere's own vertical axis — one full
-// turn every ~40s (halved from ~20s per client feedback). Position-
-// equivalent constants (wiggle) already respect reducedMotion, so this
-// does too: a static sphere is way less likely to trigger motion
-// sensitivity than one that's also drifting.
+// turn every ~40s. Respects prefersReducedMotion like the wiggle does.
 const ROTATION_SPEED = (Math.PI * 2) / 40; // radians/second
 
 function hash1(n) {
@@ -1397,18 +2000,17 @@ function gradientNoise1D(x) {
 }
 
 function animate() {
+  frameRequested = false;
   // Clamped: THREE.Clock's first getDelta() call returns the time elapsed
-  // since the clock was constructed (module load), which includes however
-  // long the page took to parse/compile/load assets before the first
-  // requestAnimationFrame fires — without this clamp that shows up as one
-  // large, visible jump in orangeGroup.rotation.y right at startup instead
-  // of a smooth, slow spin from 0.
+  // since the clock was constructed (and, after an idle pause, since the
+  // last frame) — without this clamp that shows up as one large, visible
+  // jump in the rotation.
   const rawDelta = clock.getDelta();
   const delta = Math.min(rawDelta, 1 / 30);
-  // The phrase's damping must follow real elapsed time even when frames are
-  // slow (the 1/30 clamp above would make it lag further behind the lower
-  // the frame rate gets); only capped against a long background-tab pause.
-  const phraseDelta = Math.min(rawDelta, 0.5);
+  // The dampings must follow real elapsed time even when frames are slow
+  // (the 1/30 clamp above would make them lag further behind the lower the
+  // frame rate gets); only capped against a long pause.
+  const dampDelta = Math.min(rawDelta, 0.5);
   const elapsed = clock.getElapsedTime();
 
   uniforms.uTime.value = elapsed;
@@ -1418,39 +2020,21 @@ function animate() {
   // leaves instead of snapping back.
   const lerpSpeed = cursorInfluenceTarget > cursorInfluenceCurrent ? CURSOR_LERP_SPEED_IN : CURSOR_LERP_SPEED_OUT;
   cursorInfluenceCurrent += (cursorInfluenceTarget - cursorInfluenceCurrent) * (1 - Math.exp(-lerpSpeed * delta));
-  uniforms.uCursorInfluence.value = cursorInfluenceCurrent;
 
-  // Rise/morph damping: inside the creativity phase the sphere/aura/camera
-  // follow a damped copy of scrollProgress (frame-rate independent), so an
-  // abrupt scroll never makes the orange or the aura jerk. Blended back to
-  // the raw value over PHRASE_PHASE_END -> P1 (continuous, no switch), so
-  // every later phase is driven exactly as before.
-  sphereProgressDamped += (scrollProgress - sphereProgressDamped) * (1 - Math.exp(-AURA_DAMPING * phraseDelta));
-  const dampWeight = 1 - smoothstep(PHRASE_PHASE_END, P1, scrollProgress);
-  const sphereProgress = THREE.MathUtils.lerp(scrollProgress, sphereProgressDamped, dampWeight);
-  const auraMorph = computeAuraMorph(sphereProgress);
-  // Camera: the hero's near-orthographic pair (sphere = clean circle)
-  // through the whole creativity phase, the normal pair from
-  // PHRASE_PHASE_END on — switched while the sphere is invisible (m = 1).
-  const heroCamera = sphereProgress <= PHRASE_PHASE_END;
-  camera.fov = heroCamera ? HERO_FOV : NORMAL_FOV;
-  camera.position.z = heroCamera ? HERO_CAM_Z : NORMAL_CAM_Z;
-  camera.updateProjectionMatrix();
-  // Ambient waves: 0 in the hero and through the morph (the aura tracks the
-  // silhouette, it must not ripple); ramps in once the sphere has fully
-  // re-formed at its peak (AURA_REVERSE_END -> P1), as every later phase.
-  uniforms.uAmbientAmount.value = smoothstep(AURA_REVERSE_END, P1, sphereProgress);
-  // Cursor dent: same reason — off while the orange is morphing.
+  sphereProgressDamped += (scrollProgress - sphereProgressDamped) * (1 - Math.exp(-AURA_DAMPING * dampDelta));
+  const auraMorph = computeAuraMorph(sphereProgressDamped);
+  // Cursor dent: off while the orange is morphing, so the silhouette the
+  // aura tracks stays a clean circle.
   uniforms.uCursorInfluence.value = cursorInfluenceCurrent * (1 - smoothstep(0, 0.03, auraMorph));
-  uniforms.uGrainScale.value = computeGrainScale(sphereProgress);
+  uniforms.uGrainScale.value = computeGrainScale(sphereProgressDamped);
 
-  const spherePhase = computeSpherePhase(sphereProgress);
+  const spherePhase = computeSpherePhase(sphereProgressDamped);
   orangeGroup.scale.setScalar(spherePhase.scale);
-  const wiggleWeight = reducedMotion ? 0 : 1 - clamp((scrollProgress - P10) / (P11 - P10), 0, 1);
+  const wiggleWeight = prefersReducedMotion ? 0 : 1;
   const wiggleT = elapsed * WIGGLE_FREQUENCY;
   orangeGroup.position.x = spherePhase.x + gradientNoise1D(wiggleT) * WIGGLE_AMP_X * wiggleWeight;
   orangeGroup.position.y = spherePhase.y + gradientNoise1D(wiggleT + WIGGLE_SEED_Y) * WIGGLE_AMP_Y * wiggleWeight;
-  if (!reducedMotion) {
+  if (!prefersReducedMotion) {
     orangeGroup.rotation.y += delta * ROTATION_SPEED;
   }
   // matrixWorld must reflect THIS frame's rotation before the normal
@@ -1459,14 +2043,33 @@ function animate() {
   // the uniform by one frame.
   orangeGroup.updateMatrixWorld(true);
   uniforms.uNormalMatrix.value.getNormalMatrix(sphere.matrixWorld);
-  updateFeaturedWorkScroll(scrollProgress);
-  updateOutroCta(scrollProgress);
-  updateContactCta(scrollProgress);
-  updateCreativityPhrase(scrollProgress, phraseDelta);
-  updateAura(auraMorph);
+  // GSAP's exit tween leaves the headline's opacity inline on .headline-word.
+  updateHeadlineFocus(dampDelta, parseFloat(headlineWordEl.style.opacity || "1") > 0.001);
+  updateCreativityPhrase(scrollProgress, dampDelta);
+  updateFeaturedGate(dampDelta);
+  projectsProgressDamped += (projectsProgress - projectsProgressDamped) * (1 - Math.exp(-AURA_DAMPING * dampDelta));
+  // Land exactly on the target, so a scroll position always shows the same
+  // picture whichever side it was reached from.
+  if (Math.abs(projectsProgress - projectsProgressDamped) < 1e-4) projectsProgressDamped = projectsProgress;
+  updateAura(auraMorph, computeAuraProjects(projectsProgressDamped), !projectsScrolledPast);
+  if (moreScrollDamped !== moreScroll) {
+    moreScrollDamped += (moreScroll - moreScrollDamped) * (1 - Math.exp(-AURA_DAMPING * dampDelta));
+    if (Math.abs(moreScroll - moreScrollDamped) < 1e-3) moreScrollDamped = moreScroll;
+    updateMorePanel();
+  }
 
   renderer.render(scene, camera);
-  requestAnimationFrame(animate);
+
+  // Past the hero nothing in the canvas changes by itself: once the damped
+  // values have caught up, the last frame (the aura where it is, or
+  // nothing) just stays on screen until a scroll or a resize asks again.
+  const settled =
+    Math.abs(sphereProgressDamped - scrollProgress) < 1e-4 &&
+    Math.abs(phraseProgress - scrollProgress) < 1e-4 &&
+    Math.abs(projectsProgressDamped - projectsProgress) < 1e-4 &&
+    moreScrollDamped === moreScroll;
+  const idle = scrollProgress >= 1 && settled && !featuredFading;
+  if (!idle) requestFrame();
 }
 
-requestAnimationFrame(animate);
+requestFrame();

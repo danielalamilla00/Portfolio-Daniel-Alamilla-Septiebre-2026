@@ -18,7 +18,7 @@ uniform vec3 uColorMidA;
 uniform vec3 uColorMidB;
 uniform vec3 uColorEdge;
 uniform vec3 uColorHalo;
-uniform vec3 uColorPage;   // current page background (same as html/body)
+uniform vec3 uColorPage;   // page background (same as html/body)
 
 float hash12(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);

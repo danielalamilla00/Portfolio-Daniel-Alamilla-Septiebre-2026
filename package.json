@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vimeo/player": "^2.30.4",
     "gsap": "^3.15.0",
     "three": "^0.169.0"
   },

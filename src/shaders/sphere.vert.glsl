@@ -1,22 +1,9 @@
 uniform float uTime;
 uniform float uCursorInfluence;
 uniform vec3 uCursorPoint;
-// Gates ONLY the ambient traveling-wave displacement below (not the cursor
-// dent) — 0 during the hero's resting state (scroll=0) so the silhouette
-// reads as a clean, undistorted sphere there, ramping to 1 over the 0->P1
-// transition so every later phase keeps the exact same always-on ambient
-// breathing it always had. Set from main.js.
-uniform float uAmbientAmount;
 
-// All of the constants below USED to be local `const`s here, each with an
-// identical copy hand-kept in sync in main.js (which needs the exact same
-// math to compute where the sprig's base should sit on this displaced
-// surface — see updateSprigFollow() there). Two copies of the same numbers
-// is exactly how things drift out of sync, so main.js is now the single
-// source of truth for all of them, passed in as uniforms — change a value
-// in ONE place (the constants block right above where `uniforms` is built
-// in main.js) and both the sphere's own displacement and the sprig's
-// tracking move together automatically.
+// main.js is the single source of truth for all of the values below,
+// passed in as uniforms (see the constants block above `uniforms` there).
 uniform float uFreq1;
 uniform float uFreq2;
 uniform float uFreq3;
@@ -26,9 +13,7 @@ uniform vec3 uFlowDir3;
 uniform float uWeight1;
 uniform float uWeight2;
 uniform float uWeight3;
-uniform float uAmbientAmplitude;
 uniform float uFlowSpeed;
-uniform float uEdgeBoostStrength;
 uniform float uCursorRadius;
 uniform float uCursorDepth;
 uniform float uDentEdgeFrequency;
@@ -43,8 +28,6 @@ varying vec3 vLocalPosition;
 varying float vNoise;
 
 // --- Simplex 3D noise (Ashima Arts / Ian McEwan) ---
-// Ported 1:1 to JS in main.js (updateSprigFollow's snoise3()) — if this
-// function's math ever changes, mirror the change there too.
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
@@ -111,9 +94,9 @@ float snoise(vec3 v) {
 }
 
 // Three low-frequency noise layers, each traveling across the sphere in its
-// own direction and at its own speed, so several wide lobes sweep the whole
-// silhouette at once instead of one bump breathing in place. Ported 1:1 to
-// JS in main.js as travelingWavesJS().
+// own direction and at its own speed. Only feeds vNoise, which the fragment
+// shader uses for its large, slowly drifting color patches (the silhouette
+// itself is never displaced by it — the hero keeps a clean circle).
 float travelingWaves(vec3 n, float flowTime) {
   vec3 c1 = n * uFreq1 + uFlowDir1 * flowTime;
   vec3 c2 = n * uFreq2 + uFlowDir2 * flowTime;
@@ -122,18 +105,11 @@ float travelingWaves(vec3 n, float flowTime) {
   return snoise(c1) * uWeight1 + snoise(c2) * uWeight2 + snoise(c3) * uWeight3;
 }
 
-// Displaces a point on the unit sphere outward along its own normal by an
-// amount driven by the flowing noise field, then presses it back inward
-// near the cursor point with an irregular, animated dent. Ported 1:1 to JS
-// in main.js as displaceJS() — see updateSprigFollow() there, which
-// evaluates this exact function at the +Y pole every frame so the sprig's
-// own anchor tracks this same displacement instead of floating over a
-// dead, fixed point.
-vec3 displace(vec3 localPosition, float flowTime, float ambientMultiplier) {
+// Presses a point on the unit sphere inward near the cursor point with an
+// irregular, animated dent.
+vec3 displace(vec3 localPosition) {
   vec3 n = normalize(localPosition);
-
-  float ambientNoise = travelingWaves(n, flowTime);
-  vec3 displaced = localPosition + n * ambientNoise * uAmbientAmplitude * ambientMultiplier * uAmbientAmount;
+  vec3 displaced = localPosition;
 
   float distToCursor = length(localPosition - uCursorPoint);
 
@@ -170,17 +146,9 @@ void main() {
 
   float epsilon = 0.02;
 
-  // Rough (undisplaced) world-space normal/view direction, just to derive
-  // how close this vertex is to the silhouette edge as seen by the camera.
-  vec3 worldNormalApprox = normalize(normalMatrix * n);
-  vec3 worldPositionApprox = (modelMatrix * vec4(position, 1.0)).xyz;
-  vec3 viewDirApprox = normalize(cameraPosition - worldPositionApprox);
-  float edgeFactor = 1.0 - abs(dot(worldNormalApprox, viewDirApprox));
-  float ambientMultiplier = 1.0 + edgeFactor * uEdgeBoostStrength;
-
-  vec3 p0 = displace(position, flowTime, ambientMultiplier);
-  vec3 p1 = displace(position + tangent * epsilon, flowTime, ambientMultiplier);
-  vec3 p2 = displace(position + bitangent * epsilon, flowTime, ambientMultiplier);
+  vec3 p0 = displace(position);
+  vec3 p1 = displace(position + tangent * epsilon);
+  vec3 p2 = displace(position + bitangent * epsilon);
 
   vec3 recalculatedNormal = normalize(cross(p1 - p0, p2 - p0));
   if (dot(recalculatedNormal, n) < 0.0) {
@@ -193,8 +161,7 @@ void main() {
   vec4 worldPosition = modelMatrix * vec4(p0, 1.0);
   vWorldPosition = worldPosition.xyz;
   // Raw, UNDISPLACED object-space position — unlike vWorldPosition (which
-  // moves every frame from the ambient wave/cursor-dent displacement
-  // above), this is fixed to the mesh's own geometry. The fragment
+  // moves with the cursor-dent displacement above), this is fixed to the mesh's own geometry. The fragment
   // shader's fine pore/bump noise samples this instead, so that texture
   // reads as baked into the material and holds still, rather than
   // swimming/shimmering as the surface breathes.

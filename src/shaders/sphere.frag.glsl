@@ -8,12 +8,12 @@ uniform float uCursorInfluence;
 // the two are combined.
 uniform mat3 uNormalMatrix;
 // Pore density of the peel grain below (pores per unit of the sphere's own
-// surface). Driven from main.js (computeGrainScale): 60 in every phase
-// except the creativity phase, where it grows with the sphere so the pores
-// keep the same on-screen size they have in the hero.
+// surface). Driven from main.js (computeGrainScale): it follows the
+// sphere's size during the rise into the aura, so the pores keep the
+// on-screen size they have in the hero.
 uniform float uGrainScale;
-// 1 except while the orange dissolves into the creativity phase's aura
-// (main.js updateAura); the material is transparent for this.
+// 1 in the hero; fades to 0 while the orange dissolves into the creativity
+// phase's aura (main.js updateAura). The material is transparent for this.
 uniform float uOpacity;
 
 varying vec3 vNormal;
@@ -112,9 +112,8 @@ void main() {
   // low-to-mid range and reads as the dominant color, with the lighter
   // tones reserved for a smaller portion near the top.
   vec3 skinColor = mix(burntOrange, vividOrange, smoothstep(0.22, 0.5, mixValue));
-  // Floored at 0.4 instead of a plain smoothstep: on tight close-ups (e.g.
-  // the final full-screen FILL phase in main.js) the visible patch of
-  // surface can be small enough that the noise never crosses the 0.5
+  // Floored at 0.4 instead of a plain smoothstep: on tight close-ups the
+  // visible patch of surface can be small enough that the noise never crosses the 0.5
   // threshold anywhere in view, making the darkest tone vanish entirely.
   // The floor guarantees goldOrange always contributes a clearly visible
   // amount, so it's always present in the gradient, while still letting it
@@ -139,7 +138,7 @@ void main() {
 
   // Sampled from vLocalPosition (the mesh's own static, undisplaced
   // geometry), NOT vWorldPosition — vWorldPosition shifts every frame with
-  // the ambient wave/cursor-dent animation (see displace() in
+  // the cursor-dent animation (see displace() in
   // sphere.vert.glsl), and at this frequency even that tiny per-frame
   // movement would read as the whole pore pattern swimming/shimmering.
   // vLocalPosition never changes (the sphere doesn't rotate), so the grain

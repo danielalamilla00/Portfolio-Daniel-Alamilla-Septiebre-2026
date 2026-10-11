@@ -1,13 +1,14 @@
 @font-face {
-  font-family: 'Microgramma';
-  src: url('/Microgramma D Extended Bold.otf') format('opentype');
+  font-family: 'Catavalo';
+  src: url('/Catavalo/Catavalo-Light.otf') format('opentype');
+  font-weight: 300;
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Catavalo';
-  src: url('/Catavalo/Catavalo-Light.otf') format('opentype');
-  font-weight: 300;
+  src: url('/Catavalo/Catavalo-SemiBold.otf') format('opentype');
+  font-weight: 600;
   font-display: swap;
 }
 
@@ -15,10 +16,9 @@
   --font-sans: 'Inter Tight', sans-serif;
   --font-display: 'Catavalo', serif;
   --tracking-sans: -0.05em;
-  /* Lowered from 7vw per client feedback ("el margin izquierdo y derecho
-     de la web tiene que ser menor") — this is the site-wide gutter used
-     by the nav, hero subtext/headings, and the experience list, so the
-     reduction applies everywhere at once. */
+  /* Site-wide left/right gutter (nav, headline). Lowered from 7vw per
+     client feedback ("el margin izquierdo y derecho de la web tiene que ser
+     menor"). */
   --margin-x: 4vw;
 }
 @media (max-width: 768px) {
@@ -37,41 +37,31 @@ html,
 body {
   width: 100%;
   background-color: #141414;
+  /* Safety net against a horizontal scrollbar. clip, not hidden: hidden
+     would make these scroll containers and break position:sticky and
+     ScrollTrigger's pin. */
+  overflow-x: clip;
 }
 
-/* Pinned by GSAP ScrollTrigger (see main.js) during the scroll storytelling
-   transition — position:relative so it's a stable containing block for its
-   absolutely-positioned children both before the pin engages (scrollY = 0,
-   where this section already exactly fills the viewport) and while GSAP
-   switches it to position:fixed internally during the pin itself. Its
-   children used to be position:fixed to the viewport directly; now that
-   this whole section can be released back into normal flow after the pin,
-   they're position:absolute within it instead, so they keep moving/pinning
-   together as one coherent unit. */
+/* Pinned by GSAP ScrollTrigger (see main.js) for the hero + creativity
+   phase, then released into normal flow, with #projects right after it.
+   position:relative so it's a stable containing block for its absolutely
+   positioned children both before the pin engages and while GSAP switches
+   it to position:fixed during the pin. */
 #hero-section {
   position: relative;
-  width: 100vw;
+  /* Above #sphere-canvas (fixed, z-index 0), which shows through: this
+     section has no background of its own — the page color is html/body's. */
+  z-index: 1;
+  /* 100%, not 100vw: vw includes the vertical scrollbar, which made the
+     page (and the pin spacer GSAP sizes after this) wider than the
+     viewport. */
+  width: 100%;
   height: 100vh;
   overflow: hidden;
-  /* GSAP's pin applies its own inline `transform` to this element (even
-     while at rest it's `translate(0px, 0px)`, not `none`) — per spec, any
-     non-none transform creates a new stacking context. isolation:isolate
-     makes that boundary explicit and spec-clean instead of relying on it
-     as a side effect, which is what was making mix-blend-mode below
-     compute incorrectly. */
+  /* GSAP's pin puts an inline transform on this element (a stacking
+     context either way); isolation makes that boundary explicit. */
   isolation: isolate;
-  /* GSAP's pin switches this to position:fixed while scrolling through it,
-     which (per spec) makes it its own stacking context — mix-blend-mode on
-     the text inside can then no longer "see" the body's background color
-     through that boundary to blend against. Giving this element the same
-     background itself puts that backdrop back inside the same context the
-     text blends within.
-     NOTE: this must be an explicit color, not `inherit` — GSAP's pin
-     wraps this element in its own ".pin-spacer" div, which becomes its new
-     immediate DOM parent, so `inherit` would pull that (transparent)
-     spacer's background instead of body's. Keep this in sync with the
-     html/body background above if that ever changes. */
-  background-color: #141414;
 }
 
 /* Paused for this pass (see RINGS_ENABLED in main.js) — rings.js itself is
@@ -87,83 +77,108 @@ body {
   display: none;
 }
 
+/* Fixed to the viewport, behind every section: the orange under the
+   hero's text, then the aura, which carries on behind #projects once the
+   hero has scrolled away. Never takes pointer events (the orange's cursor
+   dent is hit-tested from window in main.js). */
 #sphere-canvas {
   display: block;
-  width: 100%;
-  height: 100%;
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  z-index: 1;
+  width: 100%; /* the visible viewport, without the scrollbar (main.js sizes it the same: viewportWidth) */
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
 }
-
-/* Leaf and stem are now real 3D Three.js meshes (children of orangeGroup,
-   see main.js) instead of DOM elements — this is why there's no .leaf-left/
-   .stem/.leaf-left-wrap/.leaf-right-wrap here anymore (both were removed
-   entirely, so #sphere-canvas is just the plain sphere mesh now — see
-   .headline-word/--blend's z-index below for why that stopped mattering
-   for stacking order). */
 
 /* .headline-word wraps both lines as ONE rigid block so GSAP's exit tween
    (see main.js) scales/blurs them together around their own shared
-   center. NO transform/opacity of its own beyond this absolute placement
-   (historically for the soft-light .headline-word--blend copy, now
-   removed — the text is plain white, see .hw-sans/.hw-display below).
-   Pinned to the BOTTOM of the hero, in plain vw/vh — deliberately NOT
-   part of the 1920x1080 composition-scaled system the orange/nav use (see
+   center. Pinned to the BOTTOM of the hero, in plain vw/vh — deliberately
+   NOT part of the 1920x1080 composition-scaled system the orange uses (see
    computeCompositionScale in main.js), since that system is "cover"-style
-   and only lines up exactly at a 16:9-ish ratio, which can't hit an exact
-   pixel alignment against the nav at any aspect ratio (checked at
-   1280x580 and 1920x1080, which are very different shapes) the way plain
-   viewport-relative units can.
-   left/right use var(--margin-x), the same gutter the nav itself sits in
-   — but that alone only aligns this BOX's edge with the nav's own box,
-   not the actual glyph ink (fonts have side bearings: empty space baked
-   into "Motion AI"'s M and "Designer"'s final r beyond their visible
-   strokes). The exact ink-to-logo/ink-to-clock alignment the client asked
-   for is measured and corrected in JS (updateHeadlineAlignment in
-   main.js, via Range.getBoundingClientRect() on each word's text node —
-   re-run on resize and once webfonts finish loading, since metrics can
-   shift until then) — it overrides .hw-sans's `left` and .hw-display's
-   `right` with an exact px correction, and this rule's values are just
-   the pre-JS fallback/starting point.
-   Same story vertically: `bottom` here is a reasonable starting value,
-   corrected in JS so "Designer"'s own ink-bottom sits exactly as far from
-   the viewport's bottom edge as the nav logo sits from its top edge.
-   NOTE on the "g" descender getting clipped (client feedback, twice: "la
-   g no puede salir cortada" / "termina en una línea recta"): an earlier
-   pass put padding-bottom + a compensating negative margin-bottom HERE,
-   on this wrapper — which did nothing, and debugging with outlines on
-   every ancestor up to #hero-section confirmed why: #hero-section's
-   overflow:hidden was never the culprit (there was already plenty of
-   clearance below this wrapper), and this wrapper doesn't itself clip
-   its children either way (no overflow set). The actual cause was on
-   .hw-display ITSELF: background-clip:text only paints within that
-   span's own content-box, and with line-height:1 the "g"'s loop in
-   Catavalo extends below it — pixel-scanned confirmation: with the
-   gradient's exact mechanism intact (only the orange hidden, for a flat
-   background to scan against), every column through the "g" cut off at
-   EXACTLY y = .hw-display's own content-bottom, a dead flat line, while
-   neighboring non-descending columns ended at their own natural (higher,
-   varying) ink height — a flat line at one exact y is a clipped box
-   edge, not a glyph's own curve. So the fix lives on .hw-display's own
-   rule below (padding-bottom there, verified the same way), not here. */
+   and can't hit an exact pixel alignment against the nav at every aspect
+   ratio the way plain viewport-relative units can.
+   left/right use var(--margin-x), the same gutter the nav sits in — but
+   that only aligns the BOXES. The exact ink-to-logo/ink-to-clock alignment
+   and the bottom gap under the "g" are measured and corrected in JS
+   (updateHeadlineAlignment in main.js, re-run on resize and once webfonts
+   load): it overrides .hw-sans's `left`, .hw-display's `right` and this
+   rule's `bottom`, so the values here are just the pre-JS starting point. */
 .headline-word {
   position: absolute;
   left: var(--margin-x);
-  right: var(--margin-x);
+  /* Same width as .hw-layer-content below, in vw like everything else in
+     the headline (its ink is aligned by JS, see above). */
+  width: calc(100vw - 2 * var(--margin-x));
   bottom: 3vh;
   height: 26.04vw; /* tight to "Designer"'s own nominal box-bottom (13.54vw + 12.5vw) — just a bounding reference for GSAP's scale-from-center pivot, not a clip boundary */
-  /* ABOVE #sphere-canvas (z-index 1) — both words sit ON the orange (see
-     reference/layout-titular.png), with the gradient fill's own
-     translucency doing the blending against it ("que se funde con la
-     naranja") instead of the sphere occluding the text outright. An
-     opaque WebGL canvas painted on top would hide the text completely
-     wherever they overlap regardless of any CSS alpha on the text
-     itself, since z-order (not alpha) decides what's even visible — so
-     the headline has to be the one drawn on top. */
+  /* Above the orange (#sphere-canvas, behind this whole section): both
+     words sit ON it. */
   z-index: 2;
   pointer-events: none;
+  /* The focus copies below blend additively with each other only. */
+  isolation: isolate;
+  /* How far each layer's box reaches beyond this one, so its mask doesn't
+     cut the "g" descender or the blur's spread. */
+  --hw-bleed: 6vw;
+}
+/* Focus (main.js, setupHeadlineFocus): stacked copies of the headline —
+   one sharp, the rest blurred — each masked along x so that together they
+   always add up to exactly one headline, sharp inside the focus bands.
+   plus-lighter adds the copies instead of stacking them, so cross-fading
+   two blur levels never dims or doubles the text. Without JS (and with
+   prefers-reduced-motion) there is just the one sharp, unmasked copy.
+   A .hw-layer is a strip 220vw wide carrying that copy's mask (--hw-mask):
+   one sharp band per --hw-period, with a band centered 110vw from the
+   strip's left edge (= HEADLINE_STRIP_WINDOW_VW in main.js). The strip is
+   slid and stretched with a transform (compositor only, no repaint) and
+   .hw-layer-content takes the inverse, so the text doesn't move. The
+   variables are set from JS on .headline-word.
+   The strip is also taller than the headline (the mask clips to its box,
+   and the "g" descender and the blur reach past the headline's);
+   .hw-layer-inner brings the box back to the headline's own, so
+   .hw-sans/.hw-display are positioned exactly as before. */
+.hw-layer {
+  position: absolute;
+  left: 0;
+  top: calc(-1 * var(--hw-bleed));
+  bottom: calc(-1 * var(--hw-bleed));
+  width: 220vw;
+  mix-blend-mode: plus-lighter;
+  -webkit-mask-image: var(--hw-mask, none);
+  mask-image: var(--hw-mask, none);
+  -webkit-mask-repeat: repeat no-repeat;
+  mask-repeat: repeat no-repeat;
+  -webkit-mask-size: var(--hw-period, 100vw) 100%;
+  mask-size: var(--hw-period, 100vw) 100%;
+  /* a tile's band is at its own middle: put a tile's middle at 110vw */
+  -webkit-mask-position: calc(110vw - var(--hw-period, 100vw) / 2) 0;
+  mask-position: calc(110vw - var(--hw-period, 100vw) / 2) 0;
+  transform-origin: 0 0;
+  transform: translateX(var(--hw-strip-x, 0px)) scaleX(var(--hw-strip-scale, 1));
+  will-change: transform;
+}
+.hw-layer-content {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: calc(100vw - 2 * var(--margin-x));
+  transform-origin: 0 0;
+  transform: translateX(var(--hw-content-x, 0px)) scaleX(var(--hw-content-scale, 1));
+  will-change: transform;
+}
+.hw-layer-inner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--hw-bleed);
+  bottom: var(--hw-bleed);
+}
+/* Headline scrolled away: stop rendering the blurred copies. */
+.headline-word.is-focus-paused .hw-layer[aria-hidden="true"] {
+  visibility: hidden;
 }
 .hw-sans {
   position: absolute;
@@ -176,101 +191,123 @@ body {
   font-weight: 500;
   letter-spacing: var(--tracking-sans);
 }
+/* Both lines letter by letter (main.js splits them for the thickening-
+   by-proximity effect and sets each letter's weight/outline inline from a
+   variable). inline-block costs the font's kerning, which main.js measures
+   and puts back as --kern, so at rest every letter sits exactly where the
+   plain text did. --grow is the extra room a "Designer" letter takes on
+   each side while its outline is on (0 at rest, and always for
+   "Motion AI", whose letters widen by themselves). */
+.vf-char {
+  display: inline-block;
+  margin-left: calc(var(--kern, 0em) + var(--grow, 0em));
+  margin-right: var(--grow, 0em);
+  paint-order: stroke fill;
+}
 .hw-display {
   position: absolute;
-  right: 0; /* JS-corrected, see .headline-word's own comment — right instead of left now that "Designer" anchors to the right margin independently of "Motion AI" */
+  right: 0; /* JS-corrected, see .headline-word's own comment */
   top: 13.54vw;
   font-size: 12.5vw;
   line-height: 1;
   white-space: nowrap;
   font-family: var(--font-display);
   font-weight: 300;
-  /* Originally gave the (now removed) background-clip:text gradient room
+  /* Originally gave a (since removed) background-clip:text gradient room
      to paint Catavalo's "g" descender, which extends past a line-height:1
-     box. No longer needed with a plain white fill; kept on purpose — it's
-     harmless —
-     see .headline-word's own comment for how this was pixel-confirmed as
-     the actual clipping cause (not an ancestor's overflow). em-based so
-     it scales with this span's own font-size automatically. Safe to grow
-     downward with no compensating negative margin: this span is
-     position:absolute and top-anchored (not bottom-anchored), so adding
-     padding-bottom only extends the box further down — it doesn't shift
-     where the top/baseline sit, and nothing below it in normal flow
-     needs protecting from the growth. */
+     box. Not needed with a plain white fill; kept on purpose — it's
+     harmless: this span is top-anchored, so it only extends the box down. */
   padding-bottom: 0.35em;
 }
-/* Solid white (client feedback: the earlier background-clip:text
-   gradient + grain finish, and the soft-light --blend copy that sat on
-   top of it, were removed — the copy is gone from index.html too). No
-   glow/text-shadow; GSAP's exit `filter: blur()` on .headline-word (see
-   main.js) is unaffected. */
 .hw-sans,
 .hw-display {
   color: #ffffff;
 }
 
-/* Second, smaller tagline that replaces the headline as the hero section
-   scrolls/pins (see the GSAP timeline in main.js), which animates the
-   .tagline-line spans directly — not this wrapper. Centering is done with
-   flexbox (not a transform: translate(-50%,-50%)), and — just as important
-   — this wrapper has NO z-index. position:absolute + an explicit z-index
-   together (not just transform/opacity) also create a stacking context,
-   which would isolate .tagline-line's mix-blend-mode from the page
-   background the exact same way documented on #hero-headline above.
-   z-index instead lives on .tagline-line itself (see below), same as
-   .headline-word does — a stacking context from the blend element's own
-   z-index doesn't isolate IT, only descendants, which it has none of. */
-#hero-headline-2 {
+/* Hero introductions: two short paragraphs over the orange, in the same
+   gutter as the nav. The left one sits under the nav, above "Motion AI";
+   the right one, right-aligned, beside "AI" and above "Designer".
+     --hero-intro-size        font size
+     --hero-intro-weight      font weight (300: as thin as the nav)
+     --hero-intro-width       widest a block gets
+     --hero-intro-left-top    where the left block starts, down the viewport
+     --hero-intro-right-top   same for the right one
+   The headline hangs from the BOTTOM of the viewport and is sized in vw, so
+   on a wide, short window it climbs: each `top` is also kept from going
+   lower than the room the headline leaves (its height above the bottom
+   edge in vw, plus the block's own in em), so the blocks move up with it
+   instead of running into it.
+   Like the headline, these sit on #sphere-canvas (behind the whole
+   section) with z-index 2, inside #hero-section's own stacking context.
+   The scroll's exit (opacity + y, main.js) goes on the outer box, the
+   entrance on load on the <p> inside: never two things on one transform. */
+.hero-intro {
+  --hero-intro-size: clamp(0.85rem, 1.05vw, 1.2rem);
+  --hero-intro-weight: 300;
+  --hero-intro-width: 30ch;
+  --hero-intro-left-top: 23vh;
+  --hero-intro-right-top: 50vh;
   position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding: 13vh 10% 0 var(--margin-x);
+  z-index: 2;
+  max-width: var(--hero-intro-width);
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: var(--hero-intro-size);
+  font-weight: var(--hero-intro-weight);
+  letter-spacing: var(--tracking-sans);
+  line-height: 1.3;
   pointer-events: none;
 }
-.tagline-line {
-  position: relative;
-  z-index: 2;
-  font-family: var(--font-display);
-  font-size: clamp(1.8rem, 4.2vw, 3.4rem);
-  line-height: 1.15;
-  font-weight: 300;
-  text-transform: uppercase;
-  color: #ffffff;
-  mix-blend-mode: difference;
-  white-space: nowrap;
-  opacity: 0; /* initial state; the scroll timeline animates this per-line */
+.hero-intro-left {
+  left: var(--margin-x);
+  /* "Motion AI"'s top is ~27.5vw above the bottom edge */
+  top: min(var(--hero-intro-left-top), 100vh - 27.5vw - 7.5em);
 }
-/* Same sentence-case treatment as the other titles (only the phrase's own
-   first letter capitalized, the rest typed lowercase in the HTML) — scoped
-   to just these 4 lines rather than removing text-transform from the
-   shared .tagline-line rule above, since .subtext-paragraph reuses that
-   same class and still depends on it to force its own naturally-cased
-   source text to uppercase. */
-#hero-headline-2 .tagline-line {
-  text-transform: none;
+.hero-intro-right {
+  right: var(--margin-x);
+  /* "Designer"'s top is ~13.5vw above the bottom edge */
+  top: min(var(--hero-intro-right-top), 100vh - 13.5vw - 7.5em);
+  text-align: right;
+}
+.hero-intro p {
+  text-wrap: pretty; /* no last line of a single word */
+  animation: hero-intro-in 0.8s cubic-bezier(0.215, 0.61, 0.355, 1) 0.3s both; /* = power2.out */
+}
+.hero-intro-right p {
+  animation-delay: 0.45s;
+}
+@keyframes hero-intro-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-intro p {
+    animation-name: hero-intro-fade;
+  }
+}
+@keyframes hero-intro-fade {
+  from {
+    opacity: 0;
+  }
 }
 
 /* "Where creativity / meets technology" phase (right after the hero, see
    PHRASE_PHASE_UNITS in main.js; reference: Diseño/reference-frase-
-   creativity.png). The background is the sphere itself, risen to cover the
-   whole screen — no overlay/gradient layer. */
-
-/* Same stacking rules as #hero-headline-2: this wrapper has no z-index,
-   transform or opacity of its own (main.js animates each .cp-line
-   directly), and z-index lives on the animated element itself. Flat white,
-   no gradient/blend. Each line's `top` is the position of its BASELINE:
-   main.js measures where the baseline falls inside the line box and pulls
-   the line up by exactly that much (margin-top), so --cp-line*-baseline
-   means what it says regardless of the fonts' ascent metrics. */
+   creativity.png). This wrapper has no z-index, transform or opacity of
+   its own (main.js animates each .cp-line directly), and z-index lives on
+   the animated element itself. Flat white. Each line's `top` is the
+   position of its BASELINE: main.js measures where the baseline falls
+   inside the line box and pulls the line up by exactly that much
+   (margin-top), so --cp-line*-baseline means what it says regardless of
+   the fonts' ascent metrics. */
 #creativity-phrase {
   --cp-size: clamp(1.75rem, 5vw, 7rem);
-  --cp-line1-x: 22vw;
+  --cp-line1-x: 16vw;
   --cp-line2-x: 43vw;
-  --cp-line1-baseline: 52vh;
-  --cp-line2-baseline: 63vh;
+  --cp-line1-baseline: 44vh;
+  --cp-line2-baseline: 55vh;
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -300,289 +337,401 @@ body {
   font-weight: 300;
   letter-spacing: normal;
 }
+/* Each word animates on its own in the entrance (main.js,
+   updateCreativityPhrase): inline-block so it can take a transform. */
+.cp-line .word {
+  display: inline-block;
+  opacity: 0; /* initial state; updateCreativityPhrase() drives it */
+}
 @media (max-width: 768px) {
   #creativity-phrase {
     --cp-size: 9vw;
     --cp-line1-x: var(--margin-x);
     --cp-line2-x: calc(var(--margin-x) + 12vw);
-    --cp-line2-baseline: calc(52vh + 10.5vw);
+    --cp-line2-baseline: calc(44vh + 10.5vw);
   }
 }
 
-#hero-subtext {
-  position: absolute;
-  left: var(--margin-x);
-  right: var(--margin-x);
-  top: 58%;
-  z-index: 2;
-  display: flex;
-  gap: 6vw;
+/* Projects: zoom parallax (port of the reference ZoomParallax component to
+   GSAP, see setupZoomParallax in main.js). .zp is the scroll distance
+   (one viewport to bring .zp-sticky in + one for the zoom itself + --zp-after);
+   .zp-sticky keeps one viewport on screen while it's scrolled through; each .zp-layer is a full-viewport, centered box that main.js
+   scales from 1 to its own factor, so every .zp-media inside zooms out
+   from the screen center. Layer 0 (25vw x 25vh, scale 4) ends up exactly
+   filling the screen. Sizes/offsets are the reference's, verbatim. */
+#projects {
+  position: relative;
+  z-index: 1; /* above #sphere-canvas: the aura is this section's background */
+  /* Empty scroll before the covers: they come in this much later after
+     the hero lets go, and the title has the screen to itself meanwhile. */
+  --zp-delay: 50vh;
+  padding-top: var(--zp-delay);
+}
+/* "Freshly Squeezed": the section's title, between the aura and the
+   videos. Two centered, stacked lines in white: Catavalo over Inter Tight.
+     --ft-display-size / --ft-sans-size   the two font sizes (what makes
+                         "Freshly" ~32vw and "Squeezed" ~42vw of ink wide;
+                         the same two sizes "Featured Projects" had)
+     --ft-gap            from "Freshly"'s baseline to the top of
+                         "Squeezed"'s ink. The "y" hangs below that
+                         baseline, over the "ze" (measured: 20px clear of
+                         them at 1920 wide).
+     --ft-center-y       where the middle of the block's ink goes
+   Those mean what they say because main.js (layoutFeaturedTitle) measures
+   the ink and sets the --ft-*-fix corrections: font metrics alone put
+   neither the baseline nor the ink's middle anywhere predictable.
+   The title lives in .zp-sticky, whose stacking context puts it under the
+   .zp-layer videos, but it starts out position:fixed: the sticky box only
+   sticks halfway through the section's scroll (until then it is still
+   coming up from below) and the title has to be in place in the viewport
+   before that. overflow:hidden on .zp-sticky does not clip it (a fixed
+   box's containing block is the viewport). Once the sticky box is stuck —
+   it then IS the viewport — main.js docks the title in it (.is-docked) so
+   it scrolls away with the section.
+   .ft-scale and .ft-raster are the two viewport-sized boxes that scale it
+   with the zoom (origin: their center = the screen's), apart from the
+   letters, which carry the flip's own transforms. .ft-scale is a
+   compositor layer (will-change): scaling it costs nothing, but the
+   browser does not redraw the text inside sharper as it grows — that is
+   .ft-raster's job (main.js, setFeaturedScale). The title's own opacity
+   is main.js's too (updateFeaturedGate), and so are each line's opacity
+   and blur while it forms (renderFeaturedLine). */
+.featured-title {
+  --ft-display-size: 10.62vw;
+  --ft-sans-size: 10.51vw;
+  --ft-gap: 1vw;
+  --ft-center-y: 47vh;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  margin: 0;
+  /* Scaled up with the center video, it must not widen the page. */
+  overflow: hidden;
+  overflow: clip;
   pointer-events: none;
-}
-.subtext-col-left {
-  flex: 0 0 26%;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-.subtext-col-right {
-  flex: 1;
-  max-width: 34ch;
-}
-.subtext-headline,
-.subtext-link,
-.subtext-paragraph {
-  font-family: var(--font-sans);
   color: #ffffff;
-  white-space: normal; /* sobreescribe el nowrap que .tagline-line trae por defecto */
-  opacity: 0; /* GSAP lo anima igual que a .tagline-line */
+  font-weight: inherit;
+  opacity: 0; /* initial state; updateFeaturedGate() drives it */
+}
+.featured-title.is-docked {
+  position: absolute;
+}
+.ft-scale,
+.ft-raster {
+  position: absolute;
+  inset: 0;
+}
+.ft-scale {
+  will-change: transform;
+}
+.ft-block {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--ft-center-y);
+  transform: translateY(calc(-50% + var(--ft-dy-fix, 0px)));
+  text-align: center;
+}
+.ft-line {
+  display: block;
+  position: relative;
+  left: var(--ft-dx-fix, 0em); /* centers the line's ink, not its box */
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0; /* initial state; renderFeaturedLine() drives it */
+}
+/* Liquid text: while the title forms (.is-liquid, main.js) the block is
+   put through the alpha threshold of #liquid-threshold (index.html), so
+   the blurred lines inside read as blobs joining up instead of as a soft
+   fade; the small blur after it smooths the threshold's hard edge. */
+.featured-title.is-liquid .ft-block {
+  filter: url(#liquid-threshold) blur(0.6px);
+}
+.ft-display {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: var(--ft-display-size);
+}
+.ft-sans {
+  margin-top: calc(var(--ft-gap) + var(--ft-lead-fix, 0px));
+  font-family: var(--font-sans);
   font-weight: 500;
+  font-size: var(--ft-sans-size);
   letter-spacing: var(--tracking-sans);
 }
-.subtext-headline,
-.subtext-link {
-  font-size: clamp(0.7rem, 0.95vw, 0.9rem);
+/* --zp-after (main.js: REEL_HOLD_VH + MORE_PANEL_VH) is the extra scroll
+   after the zoom: the showreel on its own, then the black panel coming up
+   over it. */
+.zp {
+  position: relative;
+  height: calc(200vh + var(--zp-after, 0vh));
+}
+.zp-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  /* clip, not just hidden: a hidden box can still be scrolled — by the
+     browser itself, to bring a focused link of the black panel into view
+     while the panel is still below the fold — and would stay scrolled. */
+  overflow: hidden;
+  overflow: clip;
+}
+.zp-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  will-change: transform;
+  z-index: 1; /* above .featured-title */
+}
+.zp-media {
+  position: relative;
+  display: block;
+  width: 25vw;
+  height: 25vh;
+  overflow: hidden;
+  pointer-events: auto;
+}
+.zp-layer:nth-of-type(2) .zp-media {
+  top: -30vh;
+  left: 5vw;
+  width: 35vw;
+  height: 30vh;
+}
+.zp-layer:nth-of-type(3) .zp-media {
+  top: -10vh;
+  left: -25vw;
+  width: 20vw;
+  height: 45vh;
+}
+.zp-layer:nth-of-type(4) .zp-media {
+  left: 27.5vw;
+  width: 25vw;
+  height: 25vh;
+}
+.zp-layer:nth-of-type(5) .zp-media {
+  top: 27.5vh;
+  left: 5vw;
+  width: 20vw;
+  height: 25vh;
+}
+.zp-layer:nth-of-type(6) .zp-media {
+  top: 27.5vh;
+  left: -22.5vw;
+  width: 30vw;
+  height: 25vh;
+}
+.zp-layer:nth-of-type(7) .zp-media {
+  top: 22.5vh;
+  left: 25vw;
+  width: 15vw;
+  height: 15vh;
+}
+/* "Still thirsty for more?": the black panel that comes up over the
+   showreel after the zoom (main.js, updateMorePanel, which moves the panel
+   and, inside it, its .more-block: centered here, a little off that on
+   the way). Opaque: once it is up, nothing of the reel shows.
+     --more-size           font size of the title's Inter Tight lines
+     --more-display-scale  size of its Catavalo line ("Thirsty") relative
+                           to that: what makes its capital as tall as the
+                           capitals of the other two
+     --more-leading        the title's line height, relative to --more-size
+     --more-width          the title's width: fixed, so the place of every
+                           line depends on nothing but the window's width
+                           (not on a font arriving late, or on the lines'
+                           own widths)
+     --more-shift-1/-3     how far right of the second line the first and
+                           the third start: the staircase. -3 also puts
+                           the gap between "FOR" and "MORE" right under
+                           the tail of the "y" above, which reaches down
+                           to their height (measured: 0.85em leaves it
+                           11px clear; 0.7em or 1em, 3-4px)
+     --more-gap            space between the title and the text under it
+     --more-black          the panel's color
+     --more-angle          direction of the gradient that fills the title
+     --more-gradient       that gradient: the aura's own colors (--c-*,
+                           written on :root by main.js from palette.js),
+                           light yellow-orange at the top left to deep
+                           orange and coral at the bottom right
+     --more-grain          fine static grain over it, like the aura's: an
+                           SVG of noise, each pixel a touch of white or of
+                           black (the two numbers in its feFuncA are its
+                           strength) */
+.more {
+  --more-size: 9vw;
+  --more-display-scale: 1.03;
+  --more-leading: 0.95;
+  --more-width: 5.85em;
+  --more-shift-1: 1.55em;
+  --more-shift-3: 0.85em;
+  --more-gap: 2.6vw;
+  --more-black: #0a0a0a;
+  --more-angle: 120deg;
+  --more-gradient: linear-gradient(
+    var(--more-angle),
+    var(--c-yellow-orange-light) 0%,
+    var(--c-yellow-orange) 25%,
+    var(--c-orange) 50%,
+    var(--c-orange-deep) 78%,
+    var(--c-coral) 100%
+  );
+  --more-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='discrete' tableValues='0 1'/%3E%3CfeFuncG type='discrete' tableValues='0 1'/%3E%3CfeFuncB type='discrete' tableValues='0 1'/%3E%3CfeFuncA type='table' tableValues='0.28 0 0.28'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  position: absolute;
+  inset: 0;
+  z-index: 3; /* over the covers (.zp-layer) */
+  overflow: hidden;
+  overflow: clip; /* see .zp-sticky */
+  background-color: var(--more-black);
+  color: #ffffff;
+  font-family: var(--font-sans);
+  transform: translate3d(0, 100%, 0); /* initial state; updateMorePanel() drives it */
+  will-change: transform;
+  visibility: hidden; /* until the panel starts to come up (.is-on) */
+}
+.more.is-on {
+  visibility: visible;
+}
+.more-block {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--more-gap);
+  will-change: transform;
+}
+/* Three lines in a staircase — the first pushed right, the second flush
+   left, the third in between — filled, as one block, with the gradient
+   (and the grain over it), both clipped to the letters. The padding only
+   gives the letters that reach past their line (Catavalo's strokes) some
+   background to be painted with. Where background-clip: text is not
+   supported the title is plain orange. */
+.more-title {
+  box-sizing: border-box;
+  width: var(--more-width);
+  padding: 0.15em 0.1em;
+  font-size: var(--more-size);
+  font-weight: 400;
+  letter-spacing: var(--tracking-sans);
+  white-space: nowrap;
+  color: var(--c-orange);
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .more-title {
+    background-image: var(--more-grain), var(--more-gradient);
+    background-size: 200px 200px, 100% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+/* Every line as tall as the next, whatever its font. */
+.more-line {
+  display: block;
+  line-height: calc(var(--more-size) * var(--more-leading));
+}
+.more-line-1,
+.more-line-3 {
+  text-transform: uppercase;
+}
+.more-line-1 {
+  margin-left: var(--more-shift-1);
+}
+.more-line-2 {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: calc(var(--more-size) * var(--more-display-scale));
+  letter-spacing: normal;
+}
+.more-line-3 {
+  margin-left: var(--more-shift-3);
+}
+.more-info {
+  max-width: 22ch;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.8);
+}
+.more-link {
+  display: inline-block;
+  margin-top: 1.4em;
+  color: #ffffff;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: var(--tracking-sans);
-  line-height: 1.4;
+  text-decoration: underline 1px transparent;
+  text-underline-offset: 0.35em;
+  transition: text-decoration-color 0.2s ease;
 }
-.subtext-link {
-  pointer-events: auto;
+.more-link:hover {
+  text-decoration-color: currentColor;
 }
-.subtext-paragraph {
-  font-size: clamp(0.7rem, 0.95vw, 0.9rem);
-  font-weight: 500;
-  letter-spacing: var(--tracking-sans);
-  line-height: 1.6;
-}
-
-/* No nesting this inside #featured-work on purpose: that element already
-   has its own position+z-index (a stacking context) with no background of
-   its own, which would isolate a mix-blend-mode child from the real page
-   background behind it — the same bug documented on #hero-headline-2/
-   #site-nav above. Sibling to #featured-work instead, with z-index (and
-   the blend-mode) living directly on itself, same pattern as
-   .headline-word. */
-#featured-work-heading {
+/* Small label in the panel's top left corner, under the nav. */
+.more-label {
   position: absolute;
-  z-index: 2;
-  top: 42%;
   left: var(--margin-x);
-  /* Self-transform is fine here (unlike a transform on an ANCESTOR of a
-     blend element): it only isolates further-nested descendants from the
-     real backdrop, not the element's own blending against it, and this
-     element has no descendants. Used to vertically center against the
-     sphere, which sits near mid-screen through this phase. */
-  transform: translateY(-50%);
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 4.5vw, 3.2rem);
-  font-weight: 300;
-  line-height: 1.05;
-  color: #ffffff;
-  opacity: 0;
-  pointer-events: none;
+  top: 6.5rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.7rem;
+  font-weight: 400;
+  text-transform: uppercase;
+}
+.more-link:focus-visible {
+  outline: 1px solid #ffffff;
+  outline-offset: 4px;
 }
 
-#featured-work {
+/* The showreel's card: over its local loop (the <video>), the Vimeo player
+   with the whole reel (main.js, "Showreel"), covering the card like
+   object-fit: cover — a 16:9 box, centered, big enough on both axes. It is
+   laid out --reel-res times bigger and scaled back down by the same: that
+   is the size the card reaches at the end of the zoom, which is when it is
+   shown, so the player picks a stream for the full screen instead of for a
+   quarter of it. Invisible until the card fills the screen and the reel is
+   playing (.is-live on the card); it fades in and out over the loop, which
+   stays opaque underneath, so nothing else ever shows through.
+   --reel-fade is main.js's REEL_CROSSFADE_S. */
+.zp-media.has-reel {
+  container-type: size;
+}
+.zp-reel {
+  --reel-width: max(100cqw, 100cqh * 16 / 9);
+  --reel-height: max(100cqh, 100cqw * 9 / 16);
   position: absolute;
-  inset: 0;
-  z-index: 2;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--reel-width) * var(--reel-res, 1));
+  height: calc(var(--reel-height) * var(--reel-res, 1));
+  border: 0;
   pointer-events: none;
-}
-.featured-work-grid {
-  position: absolute;
-  top: 15%;
-  left: 42%;
-  right: var(--margin-x);
-  display: flex;
-  gap: 1.5rem;
-  /* no "bottom" here: height now comes from the content (square cards +
-     gap), not a fixed-row grid. */
-}
-.featured-work-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-.featured-work-col-a {
-  margin-top: 15%; /* offsets the left column lower than the right one — tune by eye */
-}
-.featured-work-item {
-  position: relative;
-  aspect-ratio: 1 / 1;
-  border-radius: 0;
-  overflow: hidden;
+  transform: translate(-50%, -50%) scale(calc(1 / var(--reel-res, 1)));
   opacity: 0;
-  pointer-events: auto;
+  transition: opacity var(--reel-fade, 0.4s) ease;
 }
-a.featured-work-item {
+.zp-media.is-live .zp-reel {
+  opacity: 1;
+}
+.zp-media video,
+.zp-media img {
   display: block;
-  text-decoration: none;
-  color: inherit;
-}
-.featured-work-item-title {
-  display: inline-block;
-  width: fit-content;
-  font-family: var(--font-display);
-  font-size: clamp(1.1rem, 2.2vw, 1.6rem);
-  font-weight: 300;
-  line-height: 1.0;
-  color: #ffffff;
-}
-.featured-work-item-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(to top, rgba(6, 35, 56, 0.8) 0%, rgba(6, 35, 56, 0.2) 45%, transparent 70%);
-  pointer-events: none;
-}
-.featured-work-item-meta {
-  position: absolute;
-  left: 1rem;
-  right: 1rem;
-  bottom: 1rem;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  pointer-events: none;
-}
-.featured-work-item-desc {
-  font-family: var(--font-sans);
-  font-weight: 500;
-  font-size: 0.8rem;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.65);
-  letter-spacing: var(--tracking-sans);
-}
-.featured-work-item img,
-.featured-work-item-media {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
-  transform: scale(1);
-  transition: transform 0.3s ease;
-}
-a.featured-work-item:hover .featured-work-item-media,
-a.featured-work-item:active .featured-work-item-media {
-  /* Escalado en el vídeo, no en la tarjeta (.featured-work-item ya recibe
-     un transform inline de GSAP para su animación de entrada/scroll, que
-     pisaría cualquier transform de :hover puesto en ese mismo elemento —
-     ver updateFloatingCards/heroScrollTimeline en main.js). Recortado por
-     el overflow:hidden de .featured-work-item. */
-  will-change: transform;
-  transform: scale(1.08);
 }
 
-/* Work-experience phase: small sphere parked lower-left (see
-   EXPERIENCE_X_SHIFT/EXPERIENCE_Y in main.js), heading near it, list of
-   entries to its right — mirrors .featured-work-heading/.featured-work-grid's
-   own layout and stacking-context handling one section down the scroll.
-   #experience-heading is a sibling of #experience-list/#featured-work for
-   the same reason #featured-work-heading is a sibling of #featured-work:
-   it needs z-index (to sit above the sphere canvas) alongside its own
-   mix-blend-mode, and nesting it inside a position+z-index container with
-   no background of its own would isolate that blend from the real page
-   background — see the comment on #featured-work-heading above. */
-#experience-heading {
-  position: absolute;
-  z-index: 2;
-  top: 68.76%; /* tune by eye — alinea el borde inferior con #experience-list */
-  left: var(--margin-x);
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 4.5vw, 3.2rem);
-  font-weight: 300;
-  line-height: 1.05;
-  color: #ffffff;
-  opacity: 0;
-  pointer-events: none;
-}
-#experience-list {
-  position: absolute;
-  z-index: 2;
-  top: 52%;
-  left: 52%;
-  right: var(--margin-x);
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 1.75rem;
-  pointer-events: none;
-}
-.experience-item {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 1.5rem;
-  opacity: 0;
-}
-/* Left column: company name as a bold white label. Right column
-   (.experience-item-body): role+dates heading (bold) + description
-   (regular, lower alpha) below it. Flat white, no mix-blend-mode — this
-   list sits over the dark page background (see fondo-5.png), so plain
-   white reads reliably instead of depending on a blend that was already
-   effectively inert here anyway (its ancestor #hero-subtext/#experience-list
-   isolation, documented elsewhere in this file). */
-.experience-item-company {
-  flex: 0 0 30%;
-  /* Misma tipografía que #experience-heading (el título de la sección),
-     en Inter Tight/Catavalo según la regla global — y más grande que antes. */
-  font-family: var(--font-display);
-  font-weight: 300;
-  font-size: clamp(1.1rem, 1.9vw, 1.5rem);
-  line-height: 1.15;
-  text-transform: uppercase;
-  color: #ffffff;
-}
-.experience-item-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-.experience-item-role {
-  font-family: var(--font-sans);
-  font-weight: 500;
-  font-size: clamp(0.95rem, 1.5vw, 1.15rem);
-  line-height: 1.3;
-  text-transform: uppercase;
-  color: #ffffff;
-  letter-spacing: var(--tracking-sans);
-}
-.experience-item-desc {
-  font-family: var(--font-sans);
-  font-weight: 500;
-  font-size: 0.8rem;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.7);
-  max-width: 440px;
-  letter-spacing: var(--tracking-sans);
-}
-@media (max-width: 768px) {
-  #experience-list {
-    left: var(--margin-x);
-    right: var(--margin-x);
-  }
-  .experience-item {
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-  .experience-item-company {
-    flex-basis: auto;
-  }
-}
-
-/* Nav: z-index lives directly on the logo and each link (not on this
-   wrapper) so no ancestor stacking context is created here. Links pinned
-   to the right via space-between (an earlier pass tried pulling them
-   next to the logo instead — reverted per client feedback: the links
-   stay right, it's the page's own left/right gutter (--margin-x) that
-   needed to shrink, not the logo-to-links gap). */
+/* Nav: fixed to the viewport (outside #hero-section) so it stays on screen
+   over the projects section too. position:fixed always makes the nav its
+   own stacking context, so the z-index has to be on this wrapper: the
+   children's own z-index only orders them inside it, and without this the
+   later-in-the-DOM #hero-section (and its canvas) paints over the whole
+   nav and swallows its clicks. Links pinned to the right via
+   space-between. */
 #site-nav {
-  position: absolute;
+  position: fixed;
+  z-index: 50;
   top: 0;
   left: 0;
   right: 0;
@@ -593,20 +742,16 @@ a.featured-work-item:active .featured-work-item-media {
   pointer-events: none;
 }
 #site-nav .nav-logo {
-  position: relative;
-  z-index: 50;
   height: 2.2rem;
   pointer-events: auto;
   /* The SVG is loaded via <img>, so its own fill can't be reached from CSS.
      brightness(0) flattens it to black, invert(1) flips that to white.
      --nav-logo-invert / --nav-ink / --nav-clock-ink are set from main.js
-     (updatePageColors) only during the creativity phase, to fade the nav
-     to #141414 over its off-white background; unset = the values here. */
+     (updateNavInk) from the creativity phase on, to fade the nav to
+     #141414 over the aura; unset = the values here. */
   filter: brightness(0) invert(var(--nav-logo-invert, 1));
 }
 #site-nav .nav-links {
-  position: relative;
-  z-index: 50;
   display: flex;
   gap: clamp(1.25rem, 2.6vw, 3rem);
   list-style: none;
@@ -625,21 +770,38 @@ a.featured-work-item:active .featured-work-item-media {
 #site-nav .nav-links a:hover {
   opacity: 0.6;
 }
-/* Live Valencia time next to "contact", same typography as the links
-   (see shared selector above) — not a link itself so no hover/cursor
+/* Live Valencia time next to "contact", same size as the links (see
+   shared selector above) — not a link itself so no hover/cursor
    affordance, just displayed text. Tabular figures keep the minutes from
    jittering the layout by a px or two every time the digits change.
-   color overrides the shared white above with the most-present orange in
-   the headline's own gradient (client ask) — --hl-b (rgb(255,165,105)) is
-   the stop that dominates the most of the gradient's length (it's both
-   the end of the 0-40% run from --hl-a and the start of the 40-75% run
-   to --hl-c) and reads as a clear, saturated orange rather than --hl-c/
-   --hl-d's paler cream — used here solid/opaque since nav text isn't a
-   translucent fill like the headline's. */
+   Orange on the dark hero (client ask), #141414 over the aura. */
 #site-nav .nav-clock {
+  /* Catavalo SemiBold, unlike the Inter Tight links (client ask). No
+     negative tracking: that value is tuned for the sans. */
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: normal;
   font-variant-numeric: tabular-nums;
   color: var(--nav-clock-ink, rgb(255, 165, 105));
   opacity: 0.85;
+}
+/* White (main.js, updateNavContrast): over the center project's cover as
+   it fills the screen (and so over the black panel that then comes up over
+   it), whatever the nav's ink is at that point. The transition only exists
+   while the projects section is around (.is-in-projects). */
+#site-nav .nav-links a.is-white,
+#site-nav .nav-clock.is-white {
+  color: #ffffff;
+}
+#site-nav .nav-logo.is-white {
+  filter: brightness(0) invert(1);
+}
+#site-nav.is-in-projects .nav-links a,
+#site-nav.is-in-projects .nav-clock {
+  transition: opacity 0.2s ease, color 0.3s ease;
+}
+#site-nav.is-in-projects .nav-logo {
+  transition: filter 0.3s ease;
 }
 @media (max-width: 768px) {
   #site-nav {
@@ -655,126 +817,4 @@ a.featured-work-item:active .featured-work-item-media {
   #site-nav .nav-clock {
     font-size: 0.75rem;
   }
-}
-
-/* Contenedor sin opacity/transform propios a propósito — cualquier
-   transform (incluido translate(-50%,-50%), probado y confirmado roto)
-   crea un stacking context que aísla el mix-blend-mode de sus hijos del
-   fondo de la página, el mismo bug ya documentado en #hero-headline-2 y
-   #site-nav. Centrado en su lugar con left/right:0 + margin-inline:auto
-   (horizontal) y top calculado en vez de translateY (vertical) — ninguno
-   de los dos necesita transform. El valor de `top` aquí ancla el borde
-   SUPERIOR del bloque (no su centro, a diferencia de translate(-50%,-50%)),
-   así que no es literalmente "42%" — se ajustó a ojo para que quede en la
-   misma posición visual pedida, justo debajo de la esfera ya subida.
-   .outro-cta-link ya no usa mix-blend-mode (tiene fondo propio), así que
-   ese hijo en concreto no dependía de esto — pero .outro-cta-question sí. */
-#outro-cta {
-  position: absolute;
-  left: 0;
-  right: 0;
-  margin-inline: auto;
-  width: fit-content;
-  max-width: 90vw; /* lets the title wrap instead of overflowing the viewport at this font-size */
-  top: calc(38% + 5px); /* tune by eye — subido respecto al centro exacto */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.9rem;
-  text-align: center;
-  pointer-events: none;
-}
-.outro-cta-question {
-  position: relative;
-  z-index: 2;
-  font-family: var(--font-display);
-  font-size: clamp(1.4rem, 2.9vw, 2.3rem);
-  font-weight: 300;
-  color: #ffffff;
-  opacity: 0;
-}
-.outro-cta-link {
-  position: relative;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-sans);
-  font-size: clamp(0.85rem, 1.1vw, 1rem);
-  font-weight: 500;
-  text-transform: uppercase;
-  color: #ffffff;
-  text-decoration: none;
-  pointer-events: auto;
-  opacity: 0;
-  padding: 1rem 2.3rem;
-  border-radius: 999px;
-  background: none;
-  border: 1.5px solid #ffffff;
-  box-shadow:
-    0 0 8px 1px rgba(255, 255, 255, 0.6),
-    0 0 16px 4px rgba(255, 255, 255, 0.4),
-    0 0 26px 8px rgba(255, 255, 255, 0.25);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  letter-spacing: var(--tracking-sans);
-}
-
-.outro-cta-link:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 0 10px 2px rgba(255, 255, 255, 0.75),
-    0 0 20px 6px rgba(255, 255, 255, 0.5),
-    0 0 32px 10px rgba(255, 255, 255, 0.3);
-}
-
-/* Final phase: shown once the sphere has grown to fill the whole screen
-   (see FILL_SPHERE_SCALE/updateContactCta in main.js). Plain flat white,
-   no mix-blend-mode — unlike the other section titles, this text is
-   meant to stay pure white regardless of what's behind it, so none of
-   the blend-mode stacking-context precautions used elsewhere in this
-   file apply here. */
-#contact-cta {
-  position: absolute;
-  left: 0;
-  right: 0;
-  margin-inline: auto;
-  width: fit-content;
-  max-width: 90vw;
-  top: 40%;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.3rem;
-  text-align: center;
-  pointer-events: none;
-}
-.contact-cta-heading {
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 4.5vw, 3.2rem);
-  font-weight: 300;
-  color: #ffffff;
-  opacity: 0;
-}
-.contact-cta-details {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-}
-/* Plain text, not a button — same treatment as .contact-cta-heading: flat
-   white Catavalo, uppercase, no border/background/padding/box-shadow. */
-.contact-cta-link {
-  font-family: var(--font-display);
-  font-size: clamp(1rem, 1.8vw, 1.4rem);
-  font-weight: 300;
-  text-transform: uppercase;
-  color: #ffffff;
-  text-decoration: none;
-  pointer-events: auto;
-  opacity: 0;
-}
-
-.contact-cta-link:hover {
-  text-decoration: underline;
 }
