@@ -1,0 +1,114 @@
+/* ---- The web's type, for every page -------------------------------------------------
+   Two fonts and no other: Inter Tight (a variable font, from Google Fonts:
+   each page's <head>) for everything that is read, and Catavalo (public/
+   Catavalo) for the titles. Here: Catavalo's two weights, the variables every
+   stylesheet sets its type with, the page's side margin (what everything is
+   lined up on), the gradient the titles are filled with and the class that
+   fills one — and the grain of the dark backgrounds (.grain), which is every
+   page's too. */
+@font-face {
+  font-family: 'Catavalo';
+  src: url('/Catavalo/Catavalo-Light.otf') format('opentype');
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Catavalo';
+  src: url('/Catavalo/Catavalo-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-display: swap;
+}
+
+:root {
+  --font-sans: 'Inter Tight', sans-serif;
+  --font-display: 'Catavalo', serif;
+  --tracking-sans: -0.05em;
+  /* Site-wide left/right gutter (nav, headline). Lowered from 7vw per
+     client feedback ("el margin izquierdo y derecho de la web tiene que ser
+     menor"). */
+  --margin-x: 4vw;
+  /* What the big titles of the black panel are filled with ("Still thirsty
+     for more?", "Experience", and the points of its timeline):
+       --more-angle      direction of the gradient
+       --more-gradient   the gradient: the aura's own colors (--c-*, written
+                         on :root by main.js from palette.js), light
+                         yellow-orange at the top left to deep orange and
+                         coral at the bottom right
+       --more-grain      fine static grain over it, like the aura's: an SVG
+                         of noise, each pixel a touch of white or of black
+                         (the two numbers in its feFuncA are its strength) */
+  --more-angle: 120deg;
+  --more-gradient: linear-gradient(
+    var(--more-angle),
+    var(--c-yellow-orange-light) 0%,
+    var(--c-yellow-orange) 25%,
+    var(--c-orange) 50%,
+    var(--c-orange-deep) 78%,
+    var(--c-coral) 100%
+  );
+  --more-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='discrete' tableValues='0 1'/%3E%3CfeFuncG type='discrete' tableValues='0 1'/%3E%3CfeFuncB type='discrete' tableValues='0 1'/%3E%3CfeFuncA type='table' tableValues='0.28 0 0.28'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+@media (max-width: 768px) {
+  :root {
+    --margin-x: 1.25rem;
+  }
+}
+
+/* The grain of every dark background: that of the home's "Still thirsty for
+   more?" panel. A flat background has it by having this class: grain.js
+   (applyGrain) lays on it a tile of its own color with the noise in it.
+     --grain-opacity   how strong: the noise's amplitude, peak-to-peak, as a
+                       share of the whole range (0.06: a pixel is up to 7.65
+                       of 255 lighter or darker)
+     --grain-size      the side of that tile, in device px
+     --grain-blend     how the tile is laid on the background
+   (--grain-tile-size is grain.js's: the tile's side in CSS px on this
+   screen.) The auras' canvases paint the same grain themselves, with the
+   same --grain-opacity. */
+:root {
+  --grain-opacity: 0.06;
+  --grain-size: 256px;
+  --grain-blend: normal;
+}
+.grain {
+  background-repeat: repeat;
+  background-size: var(--grain-tile-size, var(--grain-size));
+  background-blend-mode: var(--grain-blend);
+}
+
+/* "(c) 2026 Daniel Alamilla": the same line at the foot of every page (the
+   home's Contact, Works, a project). In --credit-ink where a page sets one. */
+.site-credit {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 300;
+  letter-spacing: var(--tracking-sans);
+  color: var(--credit-ink, rgba(255, 255, 255, 0.7));
+}
+
+/* A title: Catavalo 300, filled with the web's gradient and its grain (the
+   --c-* colors are palette.js's, written on :root by each page's script).
+   Plain orange where background-clip: text is not supported. Its box is
+   --title-room bigger than its letters all round, so no stroke of theirs is
+   cut, and takes that back with its margins: it sits where it would without.
+   (An element that needs a margin of its own adds it to that one.) */
+.title-gradient {
+  --title-room: 0.25em;
+  margin: calc(var(--title-room) * -1);
+  padding: var(--title-room);
+  font-family: var(--font-display);
+  font-weight: 300;
+  letter-spacing: normal;
+  color: var(--c-orange);
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .title-gradient {
+    background-image: var(--more-grain), var(--more-gradient);
+    background-size: 200px 200px, 100% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}

@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ALAMILLA | Motion & AI Designer</title>
+    <title>alamilla | Motion AI Designer</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/src/style.css" />
   </head>
-  <body>
+  <body class="grain">
     <!-- The Three.js canvas (orange, then aura): fixed to the viewport
          behind all content (see #sphere-canvas in style.css), so the aura
          can carry on from the pinned hero into #projects. -->
@@ -20,10 +20,10 @@
     <nav id="site-nav">
       <img class="nav-logo" src="/logo-alamilla-new.svg" alt="Alamilla" />
       <ul class="nav-links">
-        <li><a href="work.html" data-section="projects">projects</a></li>
+        <li><a href="works.html" data-section="projects">projects</a></li>
         <li><a href="#showreel" data-section="showreel">showreel</a></li>
-        <li><a href="#about" data-section="about">about me</a></li>
         <li><a href="#experience" data-section="experience">experience</a></li>
+        <li><a href="#about" data-section="about">about me</a></li>
         <li><a href="#contact" data-section="contact">contact</a></li>
       </ul>
       <p class="nav-clock"><span>valencia</span> <time id="nav-clock-time"></time></p>
@@ -81,6 +81,14 @@
              which the center card has just filled the screen and the reel
              starts (style.css, .zp-anchor). -->
         <span class="zp-anchor" id="showreel"></span>
+        <!-- ...and its "experience" link: where the Experience section has
+             just filled the screen (placed by main.js). -->
+        <span class="zp-anchor" id="experience"></span>
+        <!-- ...and its "about me" link: where the About me section has just
+             filled the screen. -->
+        <span class="zp-anchor" id="about"></span>
+        <!-- ...and its "contact" link: where all of Contact is shown. -->
+        <span class="zp-anchor" id="contact"></span>
         <div class="zp-sticky">
           <!-- .ft-scale and .ft-raster make it grow with the center video
                (main.js, setFeaturedScale); .ft-block takes the liquid
@@ -95,21 +103,126 @@
               </span>
             </span>
           </h2>
-          <!-- "Still thirsty for more?": a black panel that comes up over
-               the showreel after the zoom (main.js, updateMorePanel). -->
-          <section class="more" aria-label="More projects">
-            <p class="more-label">(More projects)</p>
-            <div class="more-block">
-              <h2 class="more-title" aria-label="Still thirsty for more?">
-                <span class="more-line more-line-1" aria-hidden="true">Still</span>
-                <span class="more-line more-line-2" aria-hidden="true">Thirsty</span>
-                <span class="more-line more-line-3" aria-hidden="true">For more?</span>
-              </h2>
-              <div class="more-info">
-                <p>If the reel wasn't enough, dive into every project in full.</p>
-                <a class="more-link" href="work.html">Click here &rarr;</a>
-              </div>
+          <!-- The section's label, as on the black panel's screens: over the
+               showreel while its card fills the screen (main.js). -->
+          <p class="more-label zp-label">(Showreel)</p>
+          <!-- The black panel that comes up over the showreel after the zoom
+               (main.js, updateMorePanel). Once it is up, the scroll moves
+               its content sideways: .more-track holds the "Still thirsty
+               for more?" screen and then the Experience section, and is
+               slid left under the panel (src/experience.js). The paper
+               plane's canvas (.xp-plane) lies over that track or under it,
+               whichever side of the timeline the plane is on. A <section>,
+               not a <div>: the covers that main.js appends after it are
+               styled by :nth-of-type. -->
+          <section class="more grain">
+            <div class="more-track">
+              <section class="more-screen" aria-label="More projects">
+                <p class="more-label">(Projects)</p>
+                <div class="more-block">
+                  <h2 class="more-title" aria-label="Still thirsty for more?">
+                    <span class="more-line more-line-1" aria-hidden="true">Still</span>
+                    <span class="more-line more-line-2" aria-hidden="true">Thirsty</span>
+                    <span class="more-line more-line-3" aria-hidden="true">for more?</span>
+                  </h2>
+                  <div class="more-info">
+                    <p>If the reel wasn't enough, dive into every project in full.</p>
+                    <a class="more-link" href="works.html">Click here &rarr;</a>
+                  </div>
+                </div>
+              </section>
+              <!-- The jobs (.xp-items) are built by src/experience.js from
+                   XP_ITEMS. -->
+              <section class="xp" aria-label="Experience">
+                <p class="more-label">(Experience)</p>
+                <h2 class="xp-title"><span class="xp-title-display">Where</span> <span class="xp-title-sans">I&rsquo;ve been...</span></h2>
+                <div class="xp-line"></div>
+                <ol class="xp-items"></ol>
+              </section>
             </div>
+            <canvas class="xp-plane" aria-hidden="true"></canvas>
+            <!-- About me: what the plane opens the screen onto when it comes
+                 back (src/experience.js clips it to a wedge that fans out
+                 from the plane's tail), and the section that then scrolls
+                 inside the panel (src/about.js, which also sets the picture
+                 and repeats the title's .ab-marquee-item across it). -->
+            <section class="ab" aria-label="About me">
+              <div class="ab-photo">
+                <img alt="Daniel Alamilla sitting on a stool in front of a concrete wall" loading="lazy" decoding="async" />
+              </div>
+              <div class="ab-shade"></div>
+              <div class="ab-fade grain"></div>
+              <p class="more-label">(About me)</p>
+              <div class="ab-content">
+                <h2 class="ab-title" aria-label="About me">
+                  <span class="ab-marquee" aria-hidden="true">
+                    <span class="ab-marquee-item">About <span class="ab-display">me</span></span>
+                  </span>
+                </h2>
+                <!-- The texts: one grid of twelve columns inside the page's
+                     margins, at the end of the section (style.css, .ab-grid).
+                     Each .ab-line is a line of a big text, which about.js
+                     puts with its ink on the margin. -->
+                <div class="ab-grid">
+                  <p class="ab-block ab-big ab-block-1">
+                    <span class="ab-line">Motion &amp; AI</span>
+                    <span class="ab-line"><span class="ab-display">Designer</span></span>
+                  </p>
+                  <p class="ab-block ab-text">
+                    I started in graphic design and grew into motion, building a profile that blends visual storytelling with a strong
+                    technical side. Today I combine design, animation and generative AI to create visuals for screens, streets and
+                    physical spaces.
+                  </p>
+                  <p class="ab-block ab-big ab-block-2">
+                    <span class="ab-line"><span class="ab-display">born</span> in Valencia,</span>
+                    <span class="ab-line">now <span class="ab-display">based</span> in <span class="ab-display">Barcelona</span></span>
+                  </p>
+                  <p class="ab-block ab-text ab-text-group">
+                    I take projects from concept to final delivery &mdash; art direction, consistency and technical precision
+                    included. I&rsquo;ve worked with marketing, content and dev teams on pieces for Real Betis, Valencia Basket,
+                    Hummel, Caprabo and TMM.
+                  </p>
+                  <p class="ab-block ab-text ab-text-group ab-text-right ab-late">
+                    Off the clock, I&rsquo;m still designing &mdash; personal projects and new experiments. The rest of the time
+                    you&rsquo;ll find me travelling, discovering new cultures and sharing good moments with friends.
+                  </p>
+                </div>
+              </div>
+            </section>
+            <!-- Contact: the last screen, which comes up over About me when
+                 it ends (src/contact.js): black, the aura upside down, and
+                 on it the title and the ways to get in touch. -->
+            <section class="ct" aria-label="Contact">
+              <canvas class="ct-aura" aria-hidden="true"></canvas>
+              <p class="more-label">(Contact)</p>
+              <!-- The hero's composition, with the hero's own classes: two
+                   blocks over a headline of two lines, which main.js sets
+                   against the logo and the clock and brings to life as it
+                   does the hero's. -->
+              <div class="hero-intro hero-intro-left">
+                <p>Have a project in mind, a question, or just fancy a coffee? Don&rsquo;t hesitate to get in touch &mdash; I&rsquo;m always up for a good conversation.</p>
+              </div>
+              <div class="hero-intro hero-intro-right">
+                <p>
+                  <button class="ct-copy" type="button" aria-label="Copy the e-mail address">copy</button><a class="ct-link ct-email" href="mailto:hola@dalamilla.com">hola@dalamilla.com</a><br />
+                  <a class="ct-link" href="tel:+34684373077">+34 684 37 30 77</a>
+                </p>
+              </div>
+              <h2 class="headline-word">
+                <span class="hw-layer">
+                  <span class="hw-layer-content">
+                    <span class="hw-layer-inner">
+                      <span class="hw-sans">Let&rsquo;s create</span>
+                      <span class="hw-display">together</span>
+                    </span>
+                  </span>
+                </span>
+              </h2>
+              <p class="ct-foot">
+                <span class="site-credit">&copy; 2026 Daniel Alamilla</span>
+                <button class="ct-link ct-top" type="button">Back to top &uarr;</button>
+              </p>
+            </section>
           </section>
         </div>
       </div>

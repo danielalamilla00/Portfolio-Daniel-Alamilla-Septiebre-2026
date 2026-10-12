@@ -1,7 +1,7 @@
-// Aura background of the creativity phase (see updateAura() in main.js):
-// a radial gradient circle whose soft rim fades through a peach halo into
-// the page color, plus static fine grain over everything. All geometry is
-// in CSS px, top-left origin.
+// The aura (src/aura.js; the creativity phase's background, see updateAura()
+// in main.js): a radial gradient circle whose soft rim fades through a peach
+// halo into the page color, plus static fine grain over everything. All
+// geometry is in CSS px, top-left origin.
 uniform vec2 uViewport;    // CSS px
 uniform float uPixelRatio;
 uniform vec2 uCenter;      // CSS px

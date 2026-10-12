@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>alamilla | Works</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@100..900&display=swap" rel="stylesheet">
+    <!-- The home's stylesheet (the nav, the fonts, the page's variables), then
+         this page's own. -->
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/works.css" />
+  </head>
+  <body class="works">
+    <!-- The home's nav; its links go back to the home's sections. -->
+    <nav id="site-nav">
+      <a class="nav-home" href="index.html"><img class="nav-logo" src="/logo-alamilla-new.svg" alt="Alamilla" /></a>
+      <ul class="nav-links">
+        <li><a href="works.html" aria-current="page">projects</a></li>
+        <li><a href="index.html#showreel">showreel</a></li>
+        <li><a href="index.html#experience">experience</a></li>
+        <li><a href="index.html#about">about me</a></li>
+        <li><a href="index.html#contact">contact</a></li>
+      </ul>
+      <p class="nav-clock"><span>valencia</span> <time id="nav-clock-time"></time></p>
+    </nav>
+    <!-- Every project, one row each, across the page: src/works.js builds
+         the rows from src/data/projects.js and moves them, over the aura
+         (its canvas: still, behind them). -->
+    <main class="wk" aria-label="Works">
+      <h1 class="wk-heading">Works</h1>
+      <canvas class="wk-aura" aria-hidden="true"></canvas>
+      <div class="wk-rows"></div>
+      <p class="site-credit wk-credit">&copy; 2026 Daniel Alamilla</p>
+    </main>
+    <script type="module" src="/src/works.js"></script>
+  </body>
+</html>

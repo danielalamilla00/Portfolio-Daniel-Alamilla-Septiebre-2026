@@ -1,29 +1,15 @@
-@font-face {
-  font-family: 'Catavalo';
-  src: url('/Catavalo/Catavalo-Light.otf') format('opentype');
-  font-weight: 300;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Catavalo';
-  src: url('/Catavalo/Catavalo-SemiBold.otf') format('opentype');
-  font-weight: 600;
-  font-display: swap;
-}
+/* The web's type — its two fonts, their variables, the titles' gradient —
+   is every page's: type.css. */
+@import "./type.css";
 
 :root {
-  --font-sans: 'Inter Tight', sans-serif;
-  --font-display: 'Catavalo', serif;
-  --tracking-sans: -0.05em;
-  /* Site-wide left/right gutter (nav, headline). Lowered from 7vw per
-     client feedback ("el margin izquierdo y derecho de la web tiene que ser
-     menor"). */
-  --margin-x: 4vw;
+  /* The page's grid: twelve columns inside those gutters, this far apart
+     (About me's texts are set on it; ?grid in the address draws it). */
+  --grid-gutter: 24px;
 }
 @media (max-width: 768px) {
   :root {
-    --margin-x: 1.25rem;
+    --grid-gutter: 12px;
   }
 }
 
@@ -240,7 +226,9 @@ body {
    Like the headline, these sit on #sphere-canvas (behind the whole
    section) with z-index 2, inside #hero-section's own stacking context.
    The scroll's exit (opacity + y, main.js) goes on the outer box, the
-   entrance on load on the <p> inside: never two things on one transform. */
+   entrance on load on the <p> inside: never two things on one transform.
+   Contact (.ct) has the same two blocks over the same headline; there they
+   come in when the section gets to its place (.is-entered, contact.js). */
 .hero-intro {
   --hero-intro-size: clamp(0.85rem, 1.05vw, 1.2rem);
   --hero-intro-weight: 300;
@@ -271,9 +259,13 @@ body {
 }
 .hero-intro p {
   text-wrap: pretty; /* no last line of a single word */
+}
+#hero-section .hero-intro p,
+.ct.is-entered .hero-intro p {
   animation: hero-intro-in 0.8s cubic-bezier(0.215, 0.61, 0.355, 1) 0.3s both; /* = power2.out */
 }
-.hero-intro-right p {
+#hero-section .hero-intro-right p,
+.ct.is-entered .hero-intro-right p {
   animation-delay: 0.45s;
 }
 @keyframes hero-intro-in {
@@ -283,7 +275,8 @@ body {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero-intro p {
+  #hero-section .hero-intro p,
+  .ct.is-entered .hero-intro p {
     animation-name: hero-intro-fade;
   }
 }
@@ -459,16 +452,18 @@ body {
   font-size: var(--ft-sans-size);
   letter-spacing: var(--tracking-sans);
 }
-/* --zp-after (main.js: REEL_HOLD_VH + MORE_PANEL_VH) is the extra scroll
-   after the zoom: the showreel on its own, then the black panel coming up
-   over it. */
+/* --zp-after (main.js: ZP_AFTER_VH) is the extra scroll after the zoom: the
+   showreel on its own, the black panel coming up over it, and then that
+   panel's content moving sideways through the Experience section. */
 .zp {
   position: relative;
   height: calc(200vh + var(--zp-after, 0vh));
 }
-/* The zoom's own scroll is the first 100vh that .zp-sticky is stuck (main.js,
-   setupZoomParallax): an anchor that far down .zp puts the page right
-   where the zoom has ended. */
+/* Where the nav's links land inside .zp: scrolling an anchor to the top of
+   the window puts the page that far into the section's own scroll. The
+   zoom's is the first 100vh that .zp-sticky is stuck (main.js,
+   setupZoomParallax), so 100vh down is right where the zoom has ended: the
+   showreel. (#experience is placed by main.js.) */
 .zp-anchor {
   position: absolute;
   top: 100vh;
@@ -559,36 +554,20 @@ body {
      --more-lower          how far below the middle of the panel the block
                            of text sits (0 = centered): room for the nav
                            above it on wide, short windows
-     --more-black          the panel's color
-     --more-angle          direction of the gradient that fills the title
-     --more-gradient       that gradient: the aura's own colors (--c-*,
-                           written on :root by main.js from palette.js),
-                           light yellow-orange at the top left to deep
-                           orange and coral at the bottom right
-     --more-grain          fine static grain over it, like the aura's: an
-                           SVG of noise, each pixel a touch of white or of
-                           black (the two numbers in its feFuncA are its
-                           strength) */
+     --more-black          the panel's color (main.js lays the aura's fine
+                           grain over it, as a background image)
+   (What fills the title, --more-gradient and --more-grain, is on :root.) */
 .more {
+  container-type: inline-size; /* cqw below = 1% of the panel's width: the unit of its track */
   --more-size: 9vw;
   --more-display-scale: 1.03;
   --more-leading: 0.95;
-  --more-width: 5.85em;
+  --more-width: 4.7em;
   --more-shift-1: 1.55em;
   --more-shift-3: 0.85em;
   --more-gap: 2.6vw;
   --more-lower: 4vh;
   --more-black: #0a0a0a;
-  --more-angle: 120deg;
-  --more-gradient: linear-gradient(
-    var(--more-angle),
-    var(--c-yellow-orange-light) 0%,
-    var(--c-yellow-orange) 25%,
-    var(--c-orange) 50%,
-    var(--c-orange-deep) 78%,
-    var(--c-coral) 100%
-  );
-  --more-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='discrete' tableValues='0 1'/%3E%3CfeFuncG type='discrete' tableValues='0 1'/%3E%3CfeFuncB type='discrete' tableValues='0 1'/%3E%3CfeFuncA type='table' tableValues='0.28 0 0.28'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   position: absolute;
   inset: 0;
   z-index: 3; /* over the covers (.zp-layer) */
@@ -603,6 +582,26 @@ body {
 }
 .more.is-on {
   visibility: visible;
+}
+/* What the panel shows, side by side: its own screen ("Still thirsty for
+   more?"), exactly as wide as the panel, then the Experience section. Once
+   the panel is up the scroll slides this left (src/experience.js). Nothing
+   in it has a background: the black is the panel's, one and the same
+   behind both. */
+.more-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  height: 100%;
+  will-change: transform;
+}
+.more-screen {
+  position: relative;
+  flex: none;
+  width: 100cqw;
+  height: 100%;
 }
 .more-block {
   position: absolute;
@@ -644,10 +643,6 @@ body {
   display: block;
   line-height: calc(var(--more-size) * var(--more-leading));
 }
-.more-line-1,
-.more-line-3 {
-  text-transform: uppercase;
-}
 .more-line-1 {
   margin-left: var(--more-shift-1);
 }
@@ -680,7 +675,10 @@ body {
 .more-link:hover {
   text-decoration-color: currentColor;
 }
-/* Small label in the panel's top left corner, under the nav. */
+/* Small label in the top left corner of each section from the showreel on,
+   under the nav: on the panel's screens, on About me and on Contact (where
+   it is part of the section and moves with it) and over the showreel
+   (.zp-label). */
 .more-label {
   position: absolute;
   left: var(--margin-x);
@@ -690,9 +688,721 @@ body {
   font-weight: 400;
   text-transform: uppercase;
 }
+.ab .more-label {
+  z-index: 1; /* over the texts that go up past it */
+}
+/* The showreel's: outside the panel, so it is given the panel's type; over
+   the covers and under the panel; there only while the showreel's card fills
+   the screen (main.js, setReelFull). */
+.zp-label {
+  z-index: 2;
+  opacity: 0;
+  font-family: var(--font-sans);
+  transition: opacity 0.4s ease;
+}
+.zp-label.is-on {
+  opacity: 1;
+}
 .more-link:focus-visible {
   outline: 1px solid #ffffff;
   outline-offset: 4px;
+}
+/* Experience: the section after the "Still thirsty" screen on the panel's
+   track (src/experience.js, which builds the points from XP_ITEMS and
+   moves everything). A title, and lower down a line, drawn as the paper
+   plane flies along it, with one point per job and its text above; both
+   start at the page's left margin, under the logo. From experience.js:
+   --xp-width and --xp-x (positions along the track, in cqw) and --xp-line-y
+   (the line's height).
+     --xp-title-y       height, on the screen, of the middle of the title's
+                        capitals
+     --xp-title-inset   the "W"'s own blank space on its left (measured:
+                        its ink starts a little before its box), which the
+                        title is moved back by: its ink starts at the margin
+     --xp-title-size    the title ("Where I've been"), its sans part
+     --xp-title-display-scale   size of its Catavalo word relative to that.
+                        Measured, per unit of font size: Catavalo's capitals
+                        are 0.703 tall and its x-height 0.578; Inter Tight's,
+                        0.734 and 0.547. Matching the capitals would take
+                        1.044 and matching the x-heights 0.946; at 1 each is
+                        off by about as little the other way, and the two
+                        read as one size
+     --xp-role-size     first line of each text
+     --xp-detail-size   the other two
+     --xp-text-width    widest a text gets
+     --xp-text-lift     from the line up to the bottom of a text, and down
+                        to the top of the description under it
+     --xp-desc-width    widest a description gets
+     --xp-dot           diameter of a point */
+.xp {
+  --xp-title-size: clamp(2.75rem, 6.8vw, 9.5rem);
+  --xp-title-display-scale: 1;
+  --xp-title-y: 34%;
+  --xp-title-inset: -0.014em;
+  --xp-role-size: clamp(0.95rem, 1.5vw, 1.7rem);
+  --xp-detail-size: clamp(0.8rem, 1.05vw, 1.2rem);
+  --xp-text-width: 24cqw;
+  --xp-text-lift: clamp(30px, 3.4vh, 40px);
+  --xp-desc-width: 30ch;
+  --xp-dot: 14px;
+  position: relative;
+  flex: none;
+  width: var(--xp-width);
+  height: 100%;
+  color: #ffffff;
+}
+/* One line above the timeline, clear of the texts: a word in Catavalo and
+   the rest in Inter Tight, on one baseline. Filled like "Still thirsty for
+   more?" (.more-title): the gradient and the grain over it, as one piece
+   across both, clipped to the letters. The padding only gives the strokes
+   that reach past the line some background to be painted with; the margin
+   takes it back, so the words start where the box would. Plain orange where
+   background-clip: text is not supported. */
+.xp-title {
+  position: absolute;
+  left: var(--margin-x);
+  bottom: calc(100% - var(--xp-title-y) - 0.757em); /* its capitals' middle is 0.757em above its box's bottom */
+  margin-left: calc(-0.12em - var(--xp-title-inset));
+  padding: 0.25em 0.12em;
+  font-family: var(--font-sans);
+  font-size: var(--xp-title-size);
+  font-weight: 400;
+  letter-spacing: var(--tracking-sans);
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--c-orange);
+}
+.xp-title-display {
+  font-family: var(--font-display);
+  font-size: calc(1em * var(--xp-title-display-scale));
+  font-weight: 300;
+  letter-spacing: normal;
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .xp-title {
+    background-image: var(--more-grain), var(--more-gradient);
+    background-size: 200px 200px, 100% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+.xp-line {
+  position: absolute;
+  left: var(--margin-x);
+  right: 0;
+  top: calc(var(--xp-line-y) - 0.75px);
+  height: 1.5px;
+  background-color: #ffffff;
+  transform-origin: 0 50%;
+  transform: scaleX(0); /* initial state; experience.js draws it */
+  will-change: transform;
+}
+.xp-items {
+  list-style: none;
+}
+.xp-item {
+  position: absolute;
+  left: var(--xp-x);
+  top: var(--xp-line-y);
+}
+/* A white ring (::after), empty while the plane has not got to it; when it
+   goes through, the ring fills with the titles' gradient (::before, faded
+   in: a gradient cannot be), with a small pulse. */
+.xp-dot {
+  position: absolute;
+  left: calc(var(--xp-dot) / -2);
+  top: calc(var(--xp-dot) / -2);
+  width: var(--xp-dot);
+  height: var(--xp-dot);
+  border-radius: 50%;
+}
+.xp-dot::before,
+.xp-dot::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+}
+.xp-dot::before {
+  inset: 0.75px; /* its edge under the ring */
+  background-image: var(--more-gradient);
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+.xp-dot::after {
+  inset: 0;
+  box-shadow: inset 0 0 0 1.5px #ffffff;
+}
+.xp-item.is-on .xp-dot {
+  animation: xp-dot-on 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.xp-item.is-on .xp-dot::before {
+  opacity: 1;
+}
+@keyframes xp-dot-on {
+  40% {
+    transform: scale(1.7);
+  }
+}
+.xp-text {
+  position: absolute;
+  left: 0;
+  bottom: var(--xp-text-lift);
+  width: max-content;
+  max-width: var(--xp-text-width);
+  transform: translateX(-50%);
+  font-family: var(--font-sans);
+  letter-spacing: var(--tracking-sans);
+  text-align: center;
+}
+.xp-role,
+.xp-place,
+.xp-dates {
+  display: block;
+}
+.xp-role {
+  margin-bottom: 0.35em;
+  font-size: var(--xp-role-size);
+  font-weight: 500;
+  line-height: 1.1;
+}
+.xp-place,
+.xp-dates {
+  font-size: var(--xp-detail-size);
+  font-weight: 300;
+  line-height: 1.3;
+}
+/* Under the line, the mirror of that text: a few words about the job,
+   centered under the point. experience.js fades it in with the text above. */
+.xp-desc {
+  position: absolute;
+  left: 0;
+  top: var(--xp-text-lift);
+  width: max-content;
+  max-width: var(--xp-desc-wide, var(--xp-desc-width)); /* (--xp-desc-wide: one of them, from experience.js) */
+  transform: translateX(-50%);
+  opacity: 0; /* initial state; experience.js drives it */
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.5;
+  letter-spacing: var(--tracking-sans);
+  color: rgba(246, 236, 221, 0.75);
+  text-align: center;
+  text-wrap: balance;
+}
+/* Letter by letter: experience.js brings each one in along a wave. */
+.xp-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+.xp-char {
+  display: inline-block;
+  opacity: 0; /* initial state; experience.js drives it */
+}
+/* About me: what the plane opens the screen onto at the end (experience.js
+   clips this whole section to a wedge from the plane's tail), and then a
+   section of its own that scrolls inside the panel (src/about.js): over the
+   track and under the plane. A full-bleed picture that goes up more slowly
+   than everything on it, a giant title running across it and texts coming
+   in over the picture. Type as everywhere on the site: Inter Tight in
+   lower case or capitalized with the web's tracking, and the words that
+   stand out in Catavalo 300 (.ab-display), filled with the titles' gradient.
+   From about.js: --ab-photo-height, --ab-content-height (both taller than
+   the screen) and --ab-grain.
+     --ab-title-size      the title's font size (its capitals are 0.734 of it)
+     --ab-title-top       from the top of the section to the top of those
+                          capitals
+     --ab-title-gap       space between one "About me" and the next: about
+                          the width of an "o"
+   The texts are in one grid (.ab-grid): twelve columns inside the page's
+   margins (--margin-x, the nav's: the logo's left edge and the clock's right
+   one), --ab-gutter (the page's, --grid-gutter) between them. What is on the left starts on the first
+   column, what is on the right ends on the last; every paragraph is
+   --ab-text-cols columns wide.
+     --ab-text-size       the two big texts
+     --ab-block-gap       between one group of texts and the next
+     --ab-text-gap        from a title to the paragraph under it
+     --ab-flow-bottom     from the bottom of the last text to the end of the
+                          section: what is left under it on screen
+     --ab-fade            how much of the end of the picture goes to black
+     --ab-dim             how much the whole picture is darkened (0..1), so
+                          that cream and the gradient read on its light wall;
+                          towards the edges and the bottom it gets more: one
+                          vignette over all of it, nothing behind any one
+                          text */
+.ab {
+  --ab-title-size: min(57vh, 42vw);
+  --ab-title-top: 23.4vh;
+  --ab-title-gap: 0.56em;
+  --ab-text-size: clamp(2.6rem, 7.9vw, 11rem);
+  --ab-gutter: var(--grid-gutter);
+  --ab-text-cols: 4;
+  --ab-block-gap: 18vh;
+  --ab-text-gap: 3vh;
+  --ab-flow-bottom: 12vh;
+  --ab-fade: 40vh;
+  --ab-dim: 0.34;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  overflow: clip;
+  visibility: hidden;
+  color: var(--c-cream);
+  font-family: var(--font-sans);
+}
+.ab.is-on {
+  visibility: visible;
+}
+.ab.is-on.is-gone {
+  visibility: hidden; /* gone off the top of the screen (about.js) */
+}
+/* The picture: the full width of the screen and taller than it; at 16:9 that
+   is its own shape, on anything else it is cropped to fill, around the
+   person. experience.js lets the <img> settle from a little too big to its
+   size as the section opens; about.js moves the box. */
+.ab-photo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: var(--ab-photo-height);
+  will-change: transform;
+}
+.ab-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 51% 0;
+  will-change: transform;
+}
+/* Over the picture and still: the web's grain and one soft vignette — the
+   whole picture dimmed, more and more towards the edges (the sides, where
+   the texts are; the top, behind the nav, which is orange here) and the
+   bottom. No shapes: every layer is a gradient across the whole screen. */
+.ab-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    var(--ab-grain),
+    linear-gradient(to bottom, rgba(10, 10, 10, 0.55), rgba(10, 10, 10, 0.5) 7vh, rgba(10, 10, 10, 0) 17vh),
+    linear-gradient(to top, rgba(10, 10, 10, 0.62), rgba(10, 10, 10, 0) 48%),
+    linear-gradient(to bottom, rgba(10, 10, 10, 0.55), rgba(10, 10, 10, 0) 62%),
+    radial-gradient(ellipse 50% 170% at 52% 44%, rgba(10, 10, 10, 0) 18%, rgba(10, 10, 10, 0.34) 42%, rgba(10, 10, 10, 0.55) 70%, rgba(10, 10, 10, 0.68) 100%),
+    rgba(10, 10, 10, var(--ab-dim));
+}
+/* The end of the picture: over its last --ab-fade (and over the vignette and
+   its grain) the panel's own black, with its grain (main.js), comes in along
+   a soft curve and is solid at the picture's edge — so when the section is
+   let go and goes up, what follows it is that same black, with no edge. It
+   is as big as that end of the picture, plus a few px past its edge (so not
+   a hair of the picture shows under it, wherever a fraction of a pixel puts
+   the two), and moves with it (about.js). */
+.ab-fade {
+  --ab-fade-curve: transparent, rgba(0, 0, 0, 0.04) 12.5%, rgba(0, 0, 0, 0.15) 25%, rgba(0, 0, 0, 0.31) 37.5%, rgba(0, 0, 0, 0.5) 50%, rgba(0, 0, 0, 0.69) 62.5%,
+    rgba(0, 0, 0, 0.85) 75%, rgba(0, 0, 0, 0.96) 87.5%, #000 calc(100% - 6px);
+  position: absolute;
+  left: 0;
+  top: calc(var(--ab-photo-height) - var(--ab-fade));
+  width: 100%;
+  height: calc(var(--ab-fade) + 4px);
+  background-color: #0a0a0a;
+  -webkit-mask-image: linear-gradient(to bottom, var(--ab-fade-curve));
+  mask-image: linear-gradient(to bottom, var(--ab-fade-curve));
+  pointer-events: none;
+  will-change: transform;
+}
+.ab-content {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: var(--ab-content-height);
+  will-change: transform;
+}
+/* The words that stand out: Catavalo, at the same size as the Inter Tight
+   around them (they read as one size: see .xp-title). The padding gives
+   their strokes room to be painted when they are filled; the margin takes it
+   back. */
+.ab-display {
+  margin: 0 -0.06em;
+  padding: 0.12em 0.06em;
+  font-family: var(--font-display);
+  font-weight: 300;
+  letter-spacing: normal;
+}
+/* What is filled with the titles' gradient and grain (as "Where I've been"
+   and "Still thirsty for more?"): the Catavalo words of the two big texts.
+   Plain orange where background-clip: text is not supported. (The title is
+   plain cream.) */
+.ab-big .ab-display {
+  color: var(--c-orange);
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .ab-big .ab-display {
+    background-image: var(--more-grain), var(--more-gradient);
+    background-size: 200px 200px, 100% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+/* The title: one line much wider than the screen, the same thing several
+   times over (about.js) with only a space between them, which about.js keeps
+   drifting to the left. The line box starts 0.143em above the capitals. */
+.ab-title {
+  position: absolute;
+  left: 0;
+  top: calc(var(--ab-title-top) - var(--ab-title-size) * 0.143);
+  font-size: var(--ab-title-size);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: var(--tracking-sans);
+  white-space: nowrap;
+}
+.ab-marquee {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+}
+.ab-marquee-item {
+  flex: none;
+  padding-right: var(--ab-title-gap);
+}
+/* The texts over the picture: one grid at the end of the section's content,
+   in the page's margins. about.js fades each of its items in (.ab-block). In
+   order: the first big text and its paragraph, on the left; the second big
+   text, on the right; two paragraphs side by side, one on each margin. */
+.ab-grid {
+  position: absolute;
+  left: var(--margin-x);
+  right: var(--margin-x);
+  bottom: var(--ab-flow-bottom);
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--ab-gutter);
+  align-items: start;
+}
+.ab-block {
+  opacity: 0; /* initial state; about.js drives it */
+  will-change: transform, opacity;
+}
+.ab-big {
+  grid-column: 1 / -1;
+  font-size: var(--ab-text-size);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: var(--tracking-sans);
+}
+/* A line of a title. --ab-ink-left / -right (about.js): what it takes to put
+   its ink, not its box, on the grid's edge. */
+.ab-line {
+  display: block;
+  margin-left: var(--ab-ink-left, 0px);
+  margin-right: var(--ab-ink-right, 0px);
+}
+.ab-block-2 {
+  justify-self: end;
+  margin-top: var(--ab-block-gap);
+  text-align: right;
+}
+.ab-text {
+  grid-column: 1 / span var(--ab-text-cols);
+  margin-top: var(--ab-text-gap);
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 1.5;
+  color: rgba(246, 236, 221, 0.85);
+}
+.ab-text-group {
+  margin-top: var(--ab-block-gap); /* not under a title: a group of its own */
+}
+.ab-text-right {
+  grid-column: span var(--ab-text-cols) / -1;
+}
+/* ?grid in the address (main.js): the page's grid, drawn over everything — a
+   line on each margin (the logo's left edge, the clock's right one) and the
+   twelve columns. */
+html.is-grid body::after {
+  --grid-col: calc((100% - 11 * var(--grid-gutter)) / 12);
+  content: "";
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: var(--margin-x);
+  right: var(--margin-x);
+  z-index: 60;
+  background: repeating-linear-gradient(to right, rgba(0, 229, 255, 0.1) 0, rgba(0, 229, 255, 0.1) var(--grid-col), transparent var(--grid-col), transparent calc(var(--grid-col) + var(--grid-gutter)));
+  box-shadow: inset 1px 0 #00e5ff, inset -1px 0 #00e5ff;
+  pointer-events: none;
+}
+/* One column: everything from the left margin, the paragraphs as wide as
+   the screen lets them. */
+@media (max-width: 768px) {
+  .ab {
+    --ab-title-top: 14vh;
+    --ab-text-size: 7.6vw; /* the first text stays left of the face */
+  }
+  .ab-grid > * {
+    grid-column: 1 / -1;
+  }
+  .ab-block-2 {
+    justify-self: start;
+    text-align: left;
+  }
+  .ab-text-right {
+    margin-top: var(--ab-text-gap); /* under the other one */
+  }
+}
+/* prefers-reduced-motion: a plain block of the page after the timeline, as
+   tall as its content, the picture filling it; nothing moves. */
+.ab.is-static {
+  position: relative;
+  height: var(--ab-content-height);
+  visibility: visible;
+}
+.ab.is-static .ab-photo {
+  height: 100%;
+}
+.ab.is-static .ab-fade {
+  top: auto;
+  bottom: 0;
+}
+/* Contact: the last screen, which comes up from under the panel's screen
+   after About me has gone (src/contact.js). Its canvas is the panel's black
+   with the aura of the creativity phase upside down on it; over it, the
+   hero's composition, with the hero's own rules (.headline-word, .hw-*,
+   .hero-intro above: the same sizes, margins and distance to the bottom
+   edge, set by the same code): a headline of two lines at the bottom, a few
+   words on the left and, on the right, the e-mail and the phone. What is
+   only this section's is below. */
+.ct {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  visibility: hidden; /* (no overflow: its canvas may start above it) */
+  color: #ffffff;
+  font-family: var(--font-sans);
+  will-change: transform;
+}
+.ct.is-on {
+  visibility: visible;
+}
+/* As wide as the section and at least as tall: contact.js makes it start
+   above the section when the aura's circle is taller than it, so that the
+   glow has gone to black before the canvas ends. .is-cut: where even that
+   cannot be (contact.js), its top fades out into the black behind it. */
+.ct-aura {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+.ct-aura.is-cut {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 30%);
+  mask-image: linear-gradient(to bottom, transparent, #000 30%);
+}
+/* The two blocks wait, out of sight, for the section to be in its place
+   (.is-entered: the hero's entrance, above); the one on the right has links
+   in it. */
+.ct .hero-intro {
+  pointer-events: auto;
+}
+/* The e-mail and the phone: a little bigger than the hero's text, which the
+   rest of the section is set as (--ct-contact-scale). */
+.ct .hero-intro-right {
+  --ct-contact-scale: 1.25;
+  font-size: calc(var(--hero-intro-size) * var(--ct-contact-scale));
+}
+.ct .hero-intro p {
+  opacity: 0;
+}
+.ct.is-entered .hero-intro p {
+  opacity: 1;
+}
+/* A link: a fine line under it that draws itself from the left on hover. */
+.ct-link {
+  padding: 0 0 0.08em;
+  border: 0;
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 100% / 0 1px;
+  color: inherit;
+  font: inherit;
+  font-weight: 300;
+  letter-spacing: var(--tracking-sans);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-size 0.35s ease;
+}
+.ct-link:hover,
+.ct-link:focus-visible {
+  background-size: 100% 1px;
+}
+/* Before the e-mail, on its left. Its text is in the middle of the pill by
+   its ink, not by its line: Inter Tight's lowercase sits low in its line
+   (and "copy" hangs two strokes under it), so the pill has 0.1em less over
+   the text than under it — its middle is then on the middle of the lowercase
+   letters, the strokes under them hanging out of it — and what the
+   tracking takes off after the last letter is given back on the right.
+   (vertical-align: where the pill is against the e-mail; the text going up
+   in it by 0.1em, it is that much more than the 0.12em it was.) */
+.ct-copy {
+  margin-right: 1em;
+  padding: 0.2em calc(0.9em - var(--tracking-sans)) 0.4em 0.9em;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  background: none;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 0.72em;
+  font-weight: 300;
+  letter-spacing: var(--tracking-sans);
+  vertical-align: 0.22em;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.ct-copy:hover,
+.ct-copy:focus-visible {
+  background-color: #ffffff;
+  color: #141414;
+}
+/* The foot: in line with the logo on the left and with the clock on the
+   right, under the headline's ends. */
+.ct-foot {
+  position: absolute;
+  left: var(--margin-x);
+  right: var(--margin-x);
+  bottom: 2.6vh;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  font-weight: 300;
+  letter-spacing: var(--tracking-sans);
+  color: rgba(255, 255, 255, 0.7);
+}
+/* On a narrow window the headline (sized in vw) is too low for the foot to
+   fit under its last letters: the foot goes just above the headline (26.04vw
+   tall, a little over the bottom edge). */
+@media (max-width: 1100px) {
+  .ct-foot {
+    bottom: calc(26.04vw + 4.5vh);
+  }
+}
+/* prefers-reduced-motion: a plain screen of the page after About me, all of
+   it shown. */
+.ct.is-static {
+  position: relative;
+  z-index: 1; /* above #sphere-canvas */
+  height: 100vh;
+  overflow: hidden;
+  overflow: clip;
+  visibility: visible;
+}
+.ct.is-static .hero-intro p {
+  opacity: 1;
+}
+/* The paper plane's own canvas, as big as the panel. It flies in three
+   dimensions around the timeline: over the track (the line, the points and
+   the texts) while it is on the viewer's side of it, under the track while
+   it is on the far side (experience.js sets .is-behind in the same frame it
+   draws the plane, and only where the plane is over nothing). */
+.xp-plane {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.xp-plane.is-behind {
+  z-index: 0;
+}
+@media (max-width: 768px) {
+  .xp {
+    --xp-title-size: 9vw;
+    --xp-role-size: 0.85rem;
+    --xp-detail-size: 0.7rem;
+    --xp-text-width: 40cqw;
+    --xp-desc-width: 42cqw;
+    --xp-dot: 11px;
+  }
+  .xp-desc {
+    max-width: var(--xp-desc-width);
+    font-size: 13px;
+  }
+}
+/* prefers-reduced-motion (experience.js moves the section out of the panel
+   and adds .is-static): a plain block after the projects — the title, the
+   plane beside it, and the jobs one under another along a vertical line. */
+.xp.is-static {
+  container-type: inline-size;
+  z-index: 1; /* above #sphere-canvas */
+  width: 100%;
+  height: auto;
+  min-height: 100vh;
+  padding: 16vh var(--margin-x) 14vh;
+  overflow: hidden;
+  overflow: clip;
+  background-color: #0a0a0a;
+}
+.xp.is-static .xp-title {
+  position: relative;
+  left: 0;
+  bottom: auto;
+  margin-bottom: 6vh;
+  white-space: normal;
+}
+.xp.is-static .xp-line {
+  display: none;
+}
+.xp.is-static .xp-items {
+  position: relative;
+  margin-left: calc(var(--xp-dot) / 2);
+  border-left: 1.5px solid #ffffff;
+}
+.xp.is-static .xp-item {
+  position: relative;
+  left: 0;
+  top: 0;
+  padding: 0 0 3.2rem 2.2rem;
+}
+.xp.is-static .xp-item:last-child {
+  padding-bottom: 0;
+}
+.xp.is-static .xp-dot {
+  left: calc(var(--xp-dot) / -2 - 0.75px);
+  top: 0.3em;
+}
+.xp.is-static .xp-item.is-on .xp-dot {
+  animation: none;
+}
+.xp.is-static .xp-text {
+  position: static;
+  max-width: 60ch;
+  transform: none;
+  text-align: left;
+}
+.xp.is-static .xp-desc {
+  position: static;
+  max-width: 60ch;
+  margin-top: 0.9em;
+  transform: none;
+  opacity: 1;
+  text-align: left;
+}
+.xp.is-static .xp-char {
+  opacity: 1;
+}
+.xp.is-static .xp-plane {
+  inset: 12vh var(--margin-x) auto auto;
+  width: min(34vw, 360px);
+  height: auto;
+  aspect-ratio: 16 / 10;
 }
 
 /* The showreel's card: over its local loop (the <video>), the Vimeo player
@@ -789,7 +1499,7 @@ body {
    shared selector above) — not a link itself so no hover/cursor
    affordance, just displayed text. Tabular figures keep the minutes from
    jittering the layout by a px or two every time the digits change.
-   Orange on the dark hero (client ask), #141414 over the aura. */
+   White, as the links (it was orange once), #141414 over the aura. */
 #site-nav .nav-clock {
   justify-self: end;
   /* Catavalo SemiBold, unlike the Inter Tight links (client ask). No
@@ -798,7 +1508,7 @@ body {
   font-weight: 600;
   letter-spacing: normal;
   font-variant-numeric: tabular-nums;
-  color: var(--nav-clock-ink, rgb(255, 165, 105));
+  color: var(--nav-clock-ink, #ffffff);
   opacity: 0.85;
 }
 /* White (main.js, updateNavContrast): over the center project's cover as
@@ -818,6 +1528,28 @@ body {
 }
 #site-nav.is-in-projects .nav-logo {
   transition: filter 0.3s ease;
+}
+/* ...and the palette's orange while About me has the screen (.is-in-about,
+   main.js), coming in softly. The logo is a white image: this chain of
+   filters, which starts like the white one so the two blend, lands on
+   #ff8a2a. */
+#site-nav.is-in-about .nav-links a,
+#site-nav.is-in-about .nav-clock {
+  color: var(--c-orange);
+}
+#site-nav.is-in-about .nav-logo {
+  filter: brightness(0) invert(0.681) sepia(0.77) saturate(47.98) hue-rotate(-16.7deg) brightness(1.265) contrast(1.083);
+}
+/* (.is-leaving-about: for as long as the way back takes, main.js) */
+#site-nav.is-in-about .nav-links a,
+#site-nav.is-in-about .nav-clock,
+#site-nav.is-leaving-about .nav-links a,
+#site-nav.is-leaving-about .nav-clock {
+  transition: opacity 0.2s ease, color 0.4s ease;
+}
+#site-nav.is-in-about .nav-logo,
+#site-nav.is-leaving-about .nav-logo {
+  transition: filter 0.4s ease;
 }
 @media (max-width: 768px) {
   #site-nav {

@@ -3,13 +3,19 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import vertexShader from "./shaders/sphere.vert.glsl?raw";
 import fragmentShader from "./shaders/sphere.frag.glsl?raw";
-import auraVertexShader from "./shaders/aura.vert.glsl?raw";
-import auraFragmentShader from "./shaders/aura.frag.glsl?raw";
+import { createAura, auraFinalShape, AURA_FEATHER } from "./aura.js";
+import { applyGrain } from "./grain.js";
+import { startNavClock } from "./clock.js";
+import { rasterInk, coverageEdges, clearInkCache } from "./ink.js";
 import Player from "@vimeo/player";
 import { ORANGE_PALETTE, applyPalette, hexToRgb } from "./palette.js";
+import { createExperience, XP_SCROLL_VH, XP_OUT_VH, XP_ARRIVE_VH } from "./experience.js";
+import { createAbout, ABOUT_SCROLL_VH } from "./about.js";
+import { createContact, CONTACT_SCROLL_VH, CONTACT_SHOWN_VH } from "./contact.js";
 
 gsap.registerPlugin(ScrollTrigger);
 applyPalette(); // the palette as --c-* variables, for style.css
+if (new URLSearchParams(window.location.search).has("grid")) document.documentElement.classList.add("is-grid"); // the page's grid, drawn (style.css)
 
 // Webfonts and video metadata can still change layout after the first
 // ScrollTrigger measurement; re-measure once everything has loaded so the
@@ -176,29 +182,17 @@ orangeGroup.add(sphere);
 // Creativity-phase background (Diseño/reference-aura-fondo.png): the orange
 // rises and dissolves into a blurred half-circle of light hanging from the
 // top edge, over the same dark page as the hero. A full-screen quad in this
-// same scene with its own shader (src/shaders/aura.frag.glsl), drawn FIRST
-// (renderOrder -1, no depth) so the sphere always renders on top of it.
-// Outside the circle it paints the page's background color (PAGE_COLOR),
-// so there's never a seam between canvas and page.
-// Colors are sRGB 0..1 (ShaderMaterial output is not color-managed here,
-// same as the sphere's shader).
-const hexToVec3 = (hex) => new THREE.Vector3(...hexToRgb(hex).map((channel) => channel / 255));
-// Aura palette, inside -> out. The colors themselves live in palette.js.
-const AURA_COLOR_CENTER_A = ORANGE_PALETTE.yellowOrangeLight; // warm, very bright yellow-orange at the top center
-const AURA_COLOR_CENTER_B = ORANGE_PALETTE.yellowOrange;
-const AURA_COLOR_MID_A = ORANGE_PALETTE.orange; // vivid orange ring
-const AURA_COLOR_MID_B = ORANGE_PALETTE.orangeWarm;
-const AURA_COLOR_EDGE = ORANGE_PALETTE.coral; // rim
-const AURA_COLOR_HALO = ORANGE_PALETTE.peach; // soft halo between the rim and the page
-const AURA_COLOR_SPHERE = ORANGE_PALETTE.orangeDeep; // flat stand-in for the orange's own tone, where the morph starts
+// same scene with the aura's shader (src/aura.js, which also holds its
+// colors, rim softness and grain), drawn FIRST (renderOrder -1, no depth) so
+// the sphere always renders on top of it. Outside the circle it paints the
+// page's background color (PAGE_COLOR), so there's never a seam between
+// canvas and page.
 // Page background, the same all the way down (the hero and #projects have
 // none of their own). Also the nav's ink while it sits over the aura.
 const PAGE_COLOR = ORANGE_PALETTE.dark; // = html/body background in style.css
-// Rim softness: from the orange's crisp silhouette to the final blur
-// (fraction of the radius over which the rim fades into the page).
+// Rim softness: from the orange's crisp silhouette (this) to the final blur
+// (AURA_FEATHER), as a fraction of the radius.
 const AURA_FEATHER_START = 0.004;
-const AURA_FEATHER = 0.25;
-const AURA_GRAIN = 0.06; // static grain amplitude over everything (peak-to-peak, 0..1)
 // Aura circle vs the orange's real silhouette at the start of the morph.
 // 1 = exactly the silhouette: its soft edge fades INWARD from that circle
 // (aura.frag.glsl), so it never peeks outside the orange. Measured: at
@@ -227,37 +221,8 @@ const AURA_PROJECTS_CENTER_Y = 0.5;
 const AURA_PROJECTS_RADIUS_DIAG = 0.75;
 const AURA_PROJECTS_FEATHER = 0.55;
 
-const auraUniforms = {
-  uViewport: { value: new THREE.Vector2(viewportWidth, window.innerHeight) },
-  uPixelRatio: { value: renderer.getPixelRatio() },
-  uCenter: { value: new THREE.Vector2() },
-  uRadius: { value: 1 },
-  uFeather: { value: AURA_FEATHER },
-  uBlur: { value: 1 },
-  uAlpha: { value: 1 },
-  uColorMix: { value: 1 },
-  uGrain: { value: AURA_GRAIN },
-  uColorSphere: { value: hexToVec3(AURA_COLOR_SPHERE) },
-  uColorCenterA: { value: hexToVec3(AURA_COLOR_CENTER_A) },
-  uColorCenterB: { value: hexToVec3(AURA_COLOR_CENTER_B) },
-  uColorMidA: { value: hexToVec3(AURA_COLOR_MID_A) },
-  uColorMidB: { value: hexToVec3(AURA_COLOR_MID_B) },
-  uColorEdge: { value: hexToVec3(AURA_COLOR_EDGE) },
-  uColorHalo: { value: hexToVec3(AURA_COLOR_HALO) },
-  uColorPage: { value: hexToVec3(PAGE_COLOR) },
-};
-const auraMesh = new THREE.Mesh(
-  new THREE.PlaneGeometry(2, 2),
-  new THREE.ShaderMaterial({
-    vertexShader: auraVertexShader,
-    fragmentShader: auraFragmentShader,
-    uniforms: auraUniforms,
-    depthTest: false,
-    depthWrite: false,
-  })
-);
+const { mesh: auraMesh, uniforms: auraUniforms } = createAura(hexToRgb(PAGE_COLOR));
 auraMesh.renderOrder = -1;
-auraMesh.frustumCulled = false; // positioned in clip space by its vertex shader
 auraMesh.visible = false;
 scene.add(auraMesh);
 
@@ -340,7 +305,7 @@ const win = (range, m) => smoothstep(range[0], range[1], m);
 // Nav ink, driven by the morph: white over the dark hero, #141414 once the
 // aura is behind it. Only written when the value changes.
 const siteNavEl = document.querySelector("#site-nav");
-const NAV_CLOCK_COLOR = [255, 165, 105]; // #site-nav .nav-clock's own color in style.css
+const NAV_CLOCK_COLOR = [255, 255, 255]; // #site-nav .nav-clock's own color in style.css
 const mixRgb = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 let lastNavT = -1;
 function updateNavInk(m) {
@@ -403,7 +368,6 @@ function updateAura(m, projects, onScreen) {
   const alpha = win(AURA_ALPHA, m);
   auraUniforms.uAlpha.value = alpha;
   auraUniforms.uColorMix.value = win(AURA_PALETTE, m);
-  auraUniforms.uGrain.value = AURA_GRAIN * alpha;
   auraUniforms.uViewport.value.set(W, H);
   auraUniforms.uPixelRatio.value = renderer.getPixelRatio();
 }
@@ -502,27 +466,8 @@ const PHRASE_ENTER_END = PHRASE_ENTER_START + PHRASE_ENTER_UNITS / TIMELINE_UNIT
 const PHRASE_HOLD_END = PHRASE_ENTER_END + PHRASE_HOLD_UNITS / TIMELINE_UNITS;
 const PHRASE_PHASE_END = 1;
 
-// Final shape of the aura, in CSS px: a circle centered horizontally at
-// AURA_CENTER_X (fraction of the width), its center AURA_CENTER_Y (fraction
-// of the height; negative = just above the top edge). Its radius is the
-// LARGER of two measures, so it reads the same size on any screen shape:
-//   - AURA_RADIUS_W of the width (the size knob: raise it for a bigger
-//     aura). On wide windows this is the one that applies, and the bottom
-//     of the circle then runs past the bottom edge, softly cut by its rim;
-//   - whatever makes its bottom reach AURA_BOTTOM_Y of the height, which
-//     takes over on narrow/tall screens (where a % of the width alone
-//     would leave a small disc at the top).
-// At 16:9 both give about the same circle.
-const AURA_CENTER_X = 0.5;
-const AURA_CENTER_Y = -0.04;
-const AURA_RADIUS_W = 0.55;
-const AURA_BOTTOM_Y = 0.95;
-function computeAuraFinalShape() {
-  const W = viewportWidth;
-  const H = window.innerHeight;
-  const cy = H * AURA_CENTER_Y;
-  return { cx: W * AURA_CENTER_X, cy, r: Math.max(W * AURA_RADIUS_W, H * AURA_BOTTOM_Y - cy) };
-}
+// Final shape of the aura on this screen (aura.js).
+const computeAuraFinalShape = () => auraFinalShape(viewportWidth, window.innerHeight);
 
 // Sphere params (hero camera) whose silhouette matches the aura's final
 // shape — where the orange is heading as it rises and dissolves. The
@@ -579,26 +524,15 @@ function computeSpherePhase(progress) {
 // time regardless of the visitor's own timezone — Intl.DateTimeFormat
 // with an explicit timeZone does that conversion natively, no manual UTC
 // offset math (which would also miss DST transitions).
-const navClockTime = document.querySelector("#nav-clock-time");
-const navClockFormatter = new Intl.DateTimeFormat("es-ES", {
-  timeZone: "Europe/Madrid",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-});
-// The headline's right edge is aligned to this text's ink (see
-// updateHeadlineAlignment), and the last digit's ink moves a little with
-// each minute — so it re-aligns whenever the text actually changes. Set
-// once the alignment code below exists (null during the very first call).
+// The nav's clock (clock.js). The headline's right edge is aligned to its
+// text's ink (see updateHeadlineAlignment), and the last digit's ink moves a
+// little with each minute — so it re-aligns whenever the text actually
+// changes. Set once the alignment code below exists (null during the very
+// first call).
 let onNavClockChange = null;
-function updateNavClock() {
-  const text = navClockFormatter.format(new Date());
-  if (text === navClockTime.textContent) return;
-  navClockTime.textContent = text;
+startNavClock(() => {
   if (onNavClockChange) onNavClockChange();
-}
-updateNavClock();
-setInterval(updateNavClock, 1000);
+});
 
 // Pixel-exact headline alignment against the nav (client ask: "Motion
 // AI"'s visible ink flush with the logo's left edge, "Designer"'s visible
@@ -613,66 +547,11 @@ setInterval(updateNavClock, 1000);
 // the bounds of a different weight instance (M left bearing 14.07px vs
 // 17.95px actually painted at 300px), and canvas can't apply the clock's
 // font-variant-numeric: tabular-nums at all.
-// What IS faithful is the rasterized glyph itself: each extreme glyph is
-// drawn with fillText into an offscreen canvas and its ink edges are read
-// from the pixels (50%-coverage edge, sub-pixel), then placed on screen
+// What IS faithful is the rasterized glyph itself (ink.js): each extreme
+// glyph is drawn with fillText into an offscreen canvas and its ink edges
+// are read from the pixels (50%-coverage edge, sub-pixel), then placed on screen
 // with a Range on that single character (its origin) and the baseline
 // from a zero-size inline-block marker (its bottom sits on the baseline).
-const inkCanvas = document.createElement("canvas");
-const inkCtx = inkCanvas.getContext("2d", { willReadFrequently: true });
-const rasterInkCache = new Map();
-
-// 50%-coverage edges from per-column / per-row max alpha (0..1), sub-pixel.
-function coverageEdges(cov) {
-  let first = -1;
-  let last = -1;
-  for (let i = 0; i < cov.length; i++) {
-    if (cov[i] >= 0.5) {
-      if (first < 0) first = i;
-      last = i;
-    }
-  }
-  if (first < 0) return null;
-  const at = (i) => cov[i] || 0;
-  return { start: first + 1 - at(first) - at(first - 1), end: last + at(last) + at(last + 1) };
-}
-
-// Ink box of `text` relative to its origin/baseline, in px, plus its
-// advance width. Cached per font + text (fonts/sizes only change on resize).
-function rasterInk(font, text, fontSizePx) {
-  const key = `${font}|${text}`;
-  const cached = rasterInkCache.get(key);
-  if (cached) return cached;
-  inkCtx.font = font;
-  const advance = inkCtx.measureText(text).width;
-  const pad = Math.ceil(fontSizePx);
-  inkCanvas.width = Math.ceil(advance + pad * 2);
-  inkCanvas.height = Math.ceil(fontSizePx * 3);
-  const originX = pad;
-  const originY = Math.ceil(fontSizePx * 2);
-  inkCtx.font = font; // resizing the canvas resets its state
-  inkCtx.textBaseline = "alphabetic";
-  inkCtx.fillStyle = "#fff";
-  inkCtx.fillText(text, originX, originY);
-  const { data, width, height } = inkCtx.getImageData(0, 0, inkCanvas.width, inkCanvas.height);
-  const colCov = new Float32Array(width);
-  const rowCov = new Float32Array(height);
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const alpha = data[(y * width + x) * 4 + 3] / 255;
-      if (alpha > colCov[x]) colCov[x] = alpha;
-      if (alpha > rowCov[y]) rowCov[y] = alpha;
-    }
-  }
-  const h = coverageEdges(colCov);
-  const v = coverageEdges(rowCov);
-  const ink = h && v
-    ? { left: h.start - originX, right: h.end - originX, top: v.start - originY, bottom: v.end - originY, advance }
-    : { left: 0, right: advance, top: 0, bottom: 0, advance };
-  rasterInkCache.set(key, ink);
-  return ink;
-}
-
 function measureTextInk(el) {
   // The text may be a single text node or split into per-letter spans
   // ("Motion AI"): walk every text node under el, one entry per character.
@@ -842,15 +721,21 @@ const HEADLINE_VF_MAX = 850; // weight right under the cursor
 const HEADLINE_STROKE_MAX_EM = 0.035; // "Designer" outline right under the cursor, in its own em
 const HEADLINE_PROXIMITY_RADIUS_EM = 1.1; // radius of influence, in font sizes of each line
 const HEADLINE_PROXIMITY_FOLLOW = 10; // each letter eases with 1 - exp(-HEADLINE_PROXIMITY_FOLLOW * delta) per frame
+// false: every headline plain and sharp — no moving focus, no thickening
+// (the hero's and Contact's alike).
+const HEADLINE_FOCUS = true;
 
-const headlineWordEl = document.querySelector(".headline-word");
-let updateHeadlineFocus = () => {};
-let prepareHeadlineForMeasure = () => {};
-let measureHeadlineHitbox = () => {};
-
-function setupHeadlineFocus() {
-  // prefers-reduced-motion: one sharp, static headline — no copies, no masks.
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+// One headline's focus. `headlineWordEl`: its .headline-word; `sectionEl`:
+// the section it is at the bottom of (the cursor is tested against where
+// the headline is when that section fills the screen); `id`: tells its
+// filters from another headline's. Returns what the rest calls: update()
+// every frame, prepare() before the headline is measured at rest and
+// measureHitbox() after.
+function setupHeadlineFocus(headlineWordEl, sectionEl, id) {
+  const focus = { update() {}, prepare() {}, measureHitbox() {} };
+  // Switched off, or prefers-reduced-motion: one sharp, static headline — no
+  // copies, no masks.
+  if (!HEADLINE_FOCUS || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return focus;
 
   const autoOnly = window.matchMedia("(hover: none)").matches;
   const sharpLayer = headlineWordEl.querySelector(".hw-layer");
@@ -912,7 +797,7 @@ function setupHeadlineFocus() {
   for (let i = 1; i < HEADLINE_BLUR_LAYERS; i++) {
     // An SVG filter instead of CSS blur(): it can blur more along x than y.
     const filter = document.createElementNS(svgNS, "filter");
-    filter.setAttribute("id", `hw-blur-${i}`);
+    filter.setAttribute("id", `hw-blur-${id}-${i}`);
     filter.setAttribute("x", "-10%");
     filter.setAttribute("y", "-30%");
     filter.setAttribute("width", "120%");
@@ -930,7 +815,7 @@ function setupHeadlineFocus() {
     // automatic focus went from ~30 to ~54fps just by moving it.
     const copy = sharpLayer.cloneNode(true);
     copy.setAttribute("aria-hidden", "true");
-    copy.querySelector(".hw-layer-inner").style.filter = `url(#hw-blur-${i})`;
+    copy.querySelector(".hw-layer-inner").style.filter = `url(#hw-blur-${id}-${i})`;
     headlineWordEl.appendChild(copy);
     layers.push(copy);
   }
@@ -1019,23 +904,26 @@ function setupHeadlineFocus() {
 
   // Pointer: .headline-word is pointer-events:none, so the cursor is
   // hit-tested by hand against its box (measured in its resting state by
-  // updateHeadlineAlignment, grown by HEADLINE_HIT_PAD_PX).
+  // updateHeadlineAlignment, grown by HEADLINE_HIT_PAD_PX). Heights are
+  // taken from the top of its section, wherever that is when it is measured:
+  // the section fills the screen when the cursor can be on the headline.
   let hitbox = { left: 0, top: 0, right: 0, bottom: 0 };
   let stripLeft = 0; // the strips' own left edge on screen (= the headline's)
-  measureHeadlineHitbox = () => {
+  focus.measureHitbox = () => {
     const rect = headlineWordEl.getBoundingClientRect();
+    const sectionTop = sectionEl.getBoundingClientRect().top;
     hitbox = {
       left: rect.left - HEADLINE_HIT_PAD_PX,
-      top: rect.top - HEADLINE_HIT_PAD_PX,
+      top: rect.top - sectionTop - HEADLINE_HIT_PAD_PX,
       right: rect.right + HEADLINE_HIT_PAD_PX,
-      bottom: rect.bottom + HEADLINE_HIT_PAD_PX,
+      bottom: rect.bottom - sectionTop + HEADLINE_HIT_PAD_PX,
     };
     stripLeft = rect.left;
     // Letter centers and radii, once, at rest — never per pointermove.
     lines.forEach((line) => {
       line.centers = line.sets[0].map((char) => {
         const box = char.getBoundingClientRect();
-        return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+        return { x: box.left + box.width / 2, y: box.top - sectionTop + box.height / 2 };
       });
       line.radius = HEADLINE_PROXIMITY_RADIUS_EM * parseFloat(getComputedStyle(line.sets[0][0]).fontSize);
     });
@@ -1077,7 +965,7 @@ function setupHeadlineFocus() {
   // rest: drop the per-letter variables (the letters fall back to their
   // resting value) and forget they were written, so the next frame puts
   // the live ones back. Then restore the kerning for the current font size.
-  prepareHeadlineForMeasure = () => {
+  focus.prepare = () => {
     lines.forEach((line) => {
       line.values.forEach((_, i) => {
         headlineWordEl.style.removeProperty(`${line.prefix}${i}`);
@@ -1090,7 +978,7 @@ function setupHeadlineFocus() {
   // Called from animate() every frame. `visible` is false once the scroll
   // exit has faded the headline out: the focus stops (automatic motion
   // included) and the blurred copies are not rendered until it comes back.
-  updateHeadlineFocus = (delta, visible) => {
+  focus.update = (delta, visible) => {
     if (visible !== wasVisible) {
       wasVisible = visible;
       headlineWordEl.classList.toggle("is-focus-paused", !visible);
@@ -1168,77 +1056,80 @@ function setupHeadlineFocus() {
     write("--hw-content-scale", (1 / scale).toFixed(6));
     write("--hw-period", `${periodVw.toFixed(2)}vw`);
   };
+  return focus;
 }
-setupHeadlineFocus();
 
-const headlineWords = Array.from(document.querySelectorAll(".headline-word"));
-const hwSansEls = Array.from(document.querySelectorAll(".hw-sans"));
-const hwDisplayEls = Array.from(document.querySelectorAll(".hw-display"));
+// Every headline set that way (index.html): the hero's and Contact's, each
+// at the bottom of its own section, with its focus.
+const headlines = Array.from(document.querySelectorAll(".headline-word")).map((el, index) => {
+  const section = el.closest("section");
+  const focus = setupHeadlineFocus(el, section, index);
+  // (once the focus has made its copies: the two lines of every copy)
+  return { el, section, focus, sans: Array.from(el.querySelectorAll(".hw-sans")), display: Array.from(el.querySelectorAll(".hw-display")) };
+});
+const heroHeadline = headlines.find((headline) => headline.section === heroSectionEl);
+const contactHeadline = headlines.find((headline) => headline.section !== heroSectionEl);
 const navLogoEl = document.querySelector(".nav-logo");
 const navClockTimeEl = document.querySelector("#nav-clock-time");
 const HEADLINE_BOTTOM_GAP_VH = 1.5;
 
 function updateHeadlineAlignment() {
-  // Measure in the resting state: GSAP's exit tween puts y/scale/blur on
-  // .headline-word, which getBoundingClientRect would include. Clear it for
-  // the measurement and put it back afterwards.
-  const savedTransforms = headlineWords.map((el) => el.style.transform);
-  headlineWords.forEach((el) => (el.style.transform = "none"));
-  // ...and with "Motion AI" at its resting weight (the widening while the
-  // letters fatten under the cursor is part of that effect, not something
-  // to re-align against).
-  prepareHeadlineForMeasure();
-
-  // Reset to the CSS starting point so repeated calls never compound.
-  hwSansEls.forEach((el) => (el.style.left = "0px"));
-  hwDisplayEls.forEach((el) => (el.style.right = "0px"));
-  headlineWords.forEach((el) => (el.style.bottom = "3vh"));
-
   const logoRect = navLogoEl.getBoundingClientRect();
-  const clockInk = measureTextInk(navClockTimeEl);
-
-  // Left: M ink → logo left edge.
-  const sansInk = measureTextInk(hwSansEls[0]);
   const logoInkLeft = logoRect.left + logoInkLeftRatio * logoRect.width;
-  const leftDelta = logoInkLeft - sansInk.left;
-  hwSansEls.forEach((el) => (el.style.left = `${leftDelta}px`));
+  const clockInk = measureTextInk(navClockTimeEl);
+  headlines.forEach(({ el, section, focus, sans, display }) => {
+    // Measure in the resting state: GSAP's exit tween puts y/scale/blur on
+    // .headline-word, which getBoundingClientRect would include. Clear it for
+    // the measurement and put it back afterwards.
+    const savedTransform = el.style.transform;
+    el.style.transform = "none";
+    // ...and with the first line at its resting weight (the widening while
+    // the letters fatten under the cursor is part of that effect, not
+    // something to re-align against).
+    focus.prepare();
 
-  // Right: final "r" ink → clock ink right edge. (style.right grows leftward)
-  const displayInk = measureTextInk(hwDisplayEls[0]);
-  const rightDelta = displayInk.right - clockInk.right;
-  hwDisplayEls.forEach((el) => (el.style.right = `${rightDelta}px`));
+    // Reset to the CSS starting point so repeated calls never compound.
+    sans.forEach((line) => (line.style.left = "0px"));
+    display.forEach((line) => (line.style.right = "0px"));
+    el.style.bottom = "3vh";
 
-  // Bottom: se ancla el punto MÁS BAJO de la tinta de "Designer" (el final
-  // del descendente de la g, measureTextInk().bottom) a
-  // HEADLINE_BOTTOM_GAP_VH del borde inferior del hero, así la g se ve
-  // entera. Medido contra el propio #hero-section (no contra la ventana)
-  // para que siga siendo correcto aunque el redimensionado ocurra con el
-  // hero ya fuera de pantalla. Se mueve el bloque .headline-word completo,
-  // así que "Motion AI" sube con "Designer" y conserva la misma separación.
-  const heroBottom = heroSectionEl.getBoundingClientRect().bottom;
-  const displayInkAfter = measureTextInk(hwDisplayEls[0]);
-  const targetBottomGap = (HEADLINE_BOTTOM_GAP_VH * window.innerHeight) / 100;
-  const currentBottomGap = heroBottom - displayInkAfter.bottom;
-  const baseBottomPx = (3 * window.innerHeight) / 100;
-  const bottomPx = baseBottomPx + (targetBottomGap - currentBottomGap);
-  headlineWords.forEach((el) => (el.style.bottom = `${bottomPx}px`));
+    // Left: the first line's first letter's ink → logo left edge.
+    const leftDelta = logoInkLeft - measureTextInk(sans[0]).left;
+    sans.forEach((line) => (line.style.left = `${leftDelta}px`));
 
-  measureHeadlineHitbox(); // still in the resting state: no exit transform on it
-  headlineWords.forEach((el, i) => (el.style.transform = savedTransforms[i]));
+    // Right: the second line's last letter's ink → clock ink right edge.
+    // (style.right grows leftward)
+    const rightDelta = measureTextInk(display[0]).right - clockInk.right;
+    display.forEach((line) => (line.style.right = `${rightDelta}px`));
 
-  if (window.__debugHeadline) {
-    const s = measureTextInk(hwSansEls[0]);
-    const d = measureTextInk(hwDisplayEls[0]);
-    console.log("[headline] M-logo dx:", (s.left - logoInkLeft).toFixed(2),
-      "| r-clock dx:", (d.right - clockInk.right).toFixed(2),
-      "| g-bottom gap:", (heroBottom - d.bottom).toFixed(2));
-  }
+    // Bottom: se ancla el punto MÁS BAJO de la tinta de la segunda línea (el
+    // final del descendente de la g, measureTextInk().bottom) a
+    // HEADLINE_BOTTOM_GAP_VH del borde inferior de su sección, así la g se
+    // ve entera. Medido contra la propia sección (no contra la ventana) para
+    // que siga siendo correcto esté donde esté en ese momento. Se mueve el
+    // bloque .headline-word completo, así que la primera línea sube con la
+    // segunda y conserva la misma separación.
+    const sectionBottom = section.getBoundingClientRect().bottom;
+    const targetBottomGap = (HEADLINE_BOTTOM_GAP_VH * window.innerHeight) / 100;
+    const currentBottomGap = sectionBottom - measureTextInk(display[0]).bottom;
+    const baseBottomPx = (3 * window.innerHeight) / 100;
+    el.style.bottom = `${baseBottomPx + (targetBottomGap - currentBottomGap)}px`;
+
+    focus.measureHitbox(); // still in the resting state: no exit transform on it
+    el.style.transform = savedTransform;
+
+    if (window.__debugHeadline) {
+      console.log(`[headline ${section.id || section.className}] first letter-logo dx:`, (measureTextInk(sans[0]).left - logoInkLeft).toFixed(2),
+        "| last letter-clock dx:", (measureTextInk(display[0]).right - clockInk.right).toFixed(2),
+        "| g-bottom gap:", (sectionBottom - measureTextInk(display[0]).bottom).toFixed(2));
+    }
+  });
 }
 updateHeadlineAlignment();
 // Anything rasterized before a webfont arrived used a fallback font — drop
 // the cache and re-align once they're in (and again if one loads later).
 function onFontsChanged() {
-  rasterInkCache.clear();
+  clearInkCache();
   updateHeadlineAlignment();
 }
 document.fonts.ready.then(onFontsChanged);
@@ -1586,14 +1477,14 @@ heroScrollTimeline
   // "Glow horizon" exit: the headline fades, lifts, blurs and scales out
   // slightly, as if dissolving into a glow.
   .fromTo(
-    ".headline-word",
+    "#hero-section .headline-word",
     { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
     { opacity: 0, y: -60, scale: 1.15, filter: "blur(14px)", duration: 1, ease: "none" },
     0
   )
   // The two introductions leave with it, over the same stretch: a fade and
   // a small lift.
-  .fromTo(".hero-intro", { opacity: 1, y: 0 }, { opacity: 0, y: -40, duration: 1, ease: "none" }, 0)
+  .fromTo("#hero-section .hero-intro", { opacity: 1, y: 0 }, { opacity: 0, y: -40, duration: 1, ease: "none" }, 0)
   // Sphere rise, aura and phrase are all per-frame (computeSpherePhase /
   // updateAura / updateCreativityPhrase); this only reserves the scroll.
   .to({}, { duration: TIMELINE_UNITS }, 0);
@@ -1610,10 +1501,13 @@ heroScrollTimeline
 // proportion to it (ZOOM_PARALLAX_SCALES[i] / ZOOM_PARALLAX_SCALES[0]).
 // The zoom's own scroll is 100vh; it ends ZOOM_PARALLAX_HOLD before the
 // end of that, at full scale. Then .zp goes on: REEL_HOLD_VH more with the
-// showreel filling the screen, on its own ("Showreel" below), and
+// showreel filling the screen, on its own ("Showreel" below),
 // MORE_PANEL_VH in which the black panel comes up over it ("Still
-// thirsty" below). All of it is one timeline, 1 unit of time = 100vh of
-// scroll.
+// thirsty" below), MORE_HOLD_VH with it still, and then what the Experience
+// section takes (src/experience.js): XP_SCROLL_VH in which that panel's
+// content moves sideways through it and XP_OUT_VH for how it ends, opening
+// onto About me, which takes ABOUT_SCROLL_VH (src/about.js). All of it
+// is one timeline, 1 unit of time = 100vh of scroll.
 //
 // EDIT HERE to change the covers: one entry per layer, in layer order.
 //   0 center (fills the screen at the end)   1 top (wide)
@@ -1647,15 +1541,22 @@ let zoomTimeline = null; // set by setupZoomParallax
 // white (.is-white in style.css) once the card that grows to fill the
 // screen has reached behind it — and stays white from there on, over the
 // showreel and over the black panel that comes up over it. Checked
-// whenever that card moves.
+// whenever that card moves. (With prefers-reduced-motion the sections that
+// follow the projects are plain dark blocks of the page, not in that panel:
+// the items are white over them too.)
 const navItems = Array.from(siteNavEl.querySelectorAll(".nav-logo, .nav-links a, .nav-clock"));
+let navWhiteOver = null; // what the items are white over
 function updateNavContrast() {
-  const cover = zoomCenterCover.getBoundingClientRect();
+  navWhiteOver ||= [zoomCenterCover, ...document.querySelectorAll(".xp.is-static, .ab.is-static, .ct.is-static")];
+  const areas = navWhiteOver.map((area) => area.getBoundingClientRect());
   navItems.forEach((item) => {
     const box = item.getBoundingClientRect();
     const x = (box.left + box.right) / 2;
     const y = (box.top + box.bottom) / 2;
-    item.classList.toggle("is-white", x >= cover.left && x <= cover.right && y >= cover.top && y <= cover.bottom);
+    item.classList.toggle(
+      "is-white",
+      areas.some((area) => x >= area.left && x <= area.right && y >= area.top && y <= area.bottom)
+    );
   });
 }
 
@@ -1717,9 +1618,11 @@ function showReel() {
   clearTimeout(reel.timer);
   reel.timer = setTimeout(() => reel.preview.pause(), REEL_CROSSFADE_S * 1000);
 }
+const reelLabelEl = document.querySelector(".zp-label"); // the section's label, there while the card fills the screen
 function setReelFull(full) {
   if (full === reel.full) return;
   reel.full = full;
+  reelLabelEl.classList.toggle("is-on", full);
   clearTimeout(reel.timer);
   const rewind = () => {
     if (!reel.player) return;
@@ -1788,6 +1691,9 @@ function setupReel(card, preview) {
 //     from the other two, so its pace does not change where the panel
 //     stops: with the ease used there (quadratic out) the stretch starts
 //     at 2 * drop / length vh per vh of scroll.
+// After that stretch the same scroll goes on as the sideways move through
+// the Experience section (src/experience.js), which is handed its share of
+// it here.
 // This function is the only thing that positions the panel and the block,
 // from one number: the scroll since the panel started (syncZoom sets
 // moreScroll from the zoom's own timeline), followed per frame by an
@@ -1801,14 +1707,38 @@ function setupReel(card, preview) {
 //   MORE_TEXT_SETTLE_VH   scroll, after the rise, in which the text goes on
 //                         up to the middle of the screen
 const MORE_PANEL_VH = 150;
+// ...and then it all stays as it is — the panel, its text, the reel under
+// it — for this much more scroll before the panel's content starts to move
+// sideways towards Experience.
+const MORE_HOLD_VH = 120;
 const MORE_PANEL_RISE_VH = 100;
 const MORE_TEXT_SPEED = 0.94;
 const MORE_TEXT_SETTLE_VH = 30;
 const MORE_TEXT_SETTLE_DROP_VH = (MORE_TEXT_SPEED * MORE_TEXT_SETTLE_VH) / 2;
 const moreEl = document.querySelector(".more");
 const moreBlockEl = moreEl.querySelector(".more-block");
+// The Experience section, on the panel's track after this screen. With
+// prefers-reduced-motion it is a static block after the projects instead,
+// and takes no scroll of its own.
+const experience = createExperience(moreEl, prefersReducedMotion);
+// The web's grain on every flat dark background (.grain, grain.js): the page
+// itself (what is around the orange in the hero; the aura's quad, which
+// covers it from the moment it shows, has the same grain of its own); the
+// panel's black, behind this screen and the Experience section; the static
+// Experience block; what the end of About me's picture goes to.
+applyGrain();
+// ...and About me, which the Experience section ends by opening onto and
+// which then scrolls inside the panel (src/about.js). Likewise.
+const about = createAbout(prefersReducedMotion);
+// ...and Contact, which comes up after About me when that goes away
+// (src/contact.js).
+const contact = createContact(prefersReducedMotion);
+const XP_VH = XP_SCROLL_VH + XP_OUT_VH; // all of Experience's scroll
+const XP_STRETCH_VH = prefersReducedMotion ? 0 : XP_VH + ABOUT_SCROLL_VH + CONTACT_SCROLL_VH;
+// Scroll that .zp adds after the zoom's own 100vh.
+const ZP_AFTER_VH = REEL_HOLD_VH + MORE_PANEL_VH + MORE_HOLD_VH + XP_STRETCH_VH;
 
-let moreScroll = 0; // vh scrolled since the panel started to come up, 0..MORE_PANEL_VH
+let moreScroll = 0; // vh scrolled since the panel started to come up, 0..MORE_PANEL_VH + MORE_HOLD_VH + XP_STRETCH_VH
 let moreScrollDamped = 0;
 let moreApplied = -1;
 function updateMorePanel() {
@@ -1830,6 +1760,39 @@ function updateMorePanel() {
     reel.covered = rise === 1;
     syncReel();
   }
+  if (XP_STRETCH_VH) {
+    const moved = clamp(moreScrollDamped - MORE_PANEL_VH - MORE_HOLD_VH, 0, XP_STRETCH_VH);
+    experience.update(Math.min(moved, XP_VH));
+    about.update(Math.max(moved - XP_VH, 0));
+    const leaving = moved - XP_VH - ABOUT_SCROLL_VH; // vh since About me started to go away upwards
+    contact.update(Math.max(leaving, 0));
+    // The nav is orange while About me is behind it: from half way through
+    // the plane's opening of it, until its picture has gone up past the nav.
+    setNavInAbout(moved >= XP_VH - XP_OUT_VH / 2 && leaving < NAV_ABOUT_UNTIL_VH);
+  }
+}
+// .is-in-about on the nav (orange, style.css), and for a moment after it
+// .is-leaving-about: the same transition on the way out.
+const NAV_ABOUT_FADE_MS = 400; // as in style.css
+const NAV_ABOUT_UNTIL_VH = 95; // how far up About me has to have gone for its picture to be past the nav
+let navInAbout = false;
+let navLeftAbout = 0; // timer
+function setNavInAbout(inside) {
+  if (inside === navInAbout) return;
+  navInAbout = inside;
+  clearTimeout(navLeftAbout);
+  siteNavEl.classList.toggle("is-in-about", inside);
+  siteNavEl.classList.toggle("is-leaving-about", !inside);
+  if (!inside) navLeftAbout = setTimeout(() => siteNavEl.classList.remove("is-leaving-about"), NAV_ABOUT_FADE_MS);
+}
+// (prefers-reduced-motion: the section is a block of the page.)
+if (prefersReducedMotion) {
+  ScrollTrigger.create({
+    trigger: ".ab.is-static",
+    start: () => `top ${siteNavEl.offsetHeight / 2}px`,
+    end: "bottom top",
+    onToggle: (self) => setNavInAbout(self.isActive),
+  });
 }
 
 function setupZoomParallax() {
@@ -1875,7 +1838,19 @@ function setupZoomParallax() {
   });
 
   zoomCenterCover = layers[0].firstElementChild;
-  document.querySelector(".zp").style.setProperty("--zp-after", `${REEL_HOLD_VH + MORE_PANEL_VH}vh`);
+  document.querySelector(".zp").style.setProperty("--zp-after", `${ZP_AFTER_VH}vh`);
+  // The nav's "experience" link: the scroll at which the camera has moved one
+  // screen, so the section fills it; its "about me" link: the scroll at
+  // which About me has just been opened (1vh into it, clear of the plane's
+  // last frame); and its "contact" link: the scroll at which all of Contact
+  // is shown. (Reduced motion: the three sections are their own anchors, see
+  // experience.js and contact.js.)
+  if (XP_STRETCH_VH) {
+    const trackStart = 100 + REEL_HOLD_VH + MORE_PANEL_VH + MORE_HOLD_VH;
+    document.querySelector("#experience").style.top = `${trackStart + XP_ARRIVE_VH}vh`;
+    document.querySelector("#about").style.top = `${trackStart + XP_VH + 1}vh`;
+    document.querySelector("#contact").style.top = `${trackStart + XP_VH + ABOUT_SCROLL_VH + CONTACT_SHOWN_VH}vh`;
+  }
 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
@@ -1906,7 +1881,7 @@ function setupZoomParallax() {
     if (size >= REEL_FULL_AT - 1e-3) setReelFull(true);
     else if (size < REEL_FULL_AT - REEL_FULL_HYSTERESIS) setReelFull(false);
     // The black panel: after the zoom's own 100vh and the showreel's hold.
-    moreScroll = clamp((time - 1 - REEL_HOLD_VH / 100) * 100, 0, MORE_PANEL_VH);
+    moreScroll = clamp((time - 1 - REEL_HOLD_VH / 100) * 100, 0, MORE_PANEL_VH + MORE_HOLD_VH + XP_STRETCH_VH);
     if (moreScroll !== moreScrollDamped) requestFrame();
     updateNavContrast();
     // The size the showreel's player is laid out for: the card's at the end.
@@ -1925,7 +1900,7 @@ function setupZoomParallax() {
       0
     )
     .to({}, { duration: ZOOM_PARALLAX_HOLD }, zoomUnits)
-    .to({}, { duration: (REEL_HOLD_VH + MORE_PANEL_VH) / 100 }, 1);
+    .to({}, { duration: ZP_AFTER_VH / 100 }, 1);
   updateMorePanel();
 }
 setupZoomParallax();
@@ -1933,14 +1908,14 @@ setupZoomParallax();
 // Created after the hero's pinning ScrollTrigger on purpose: triggers are
 // measured in creation order, and these sit below the pin on the page.
 // The section's progress runs from the moment it starts coming in to where
-// the zoom ends — not to its very end, which the showreel's hold and the
-// black panel's stretch come after — so everything that is a share of it
-// (AURA_PROJECTS_T, FEATURED_UP_GUARD) keeps its length in scroll whatever
-// REEL_HOLD_VH and MORE_PANEL_VH are.
+// the zoom ends — not to its very end, which the showreel's hold, the black
+// panel and the Experience section come after — so everything that is a
+// share of it (AURA_PROJECTS_T, FEATURED_UP_GUARD) keeps its length in
+// scroll whatever ZP_AFTER_VH is.
 ScrollTrigger.create({
   trigger: "#projects",
   start: "top bottom",
-  end: () => `+=${document.querySelector("#projects").offsetHeight - ((REEL_HOLD_VH + MORE_PANEL_VH) / 100) * window.innerHeight}`,
+  end: () => `+=${document.querySelector("#projects").offsetHeight - (ZP_AFTER_VH / 100) * window.innerHeight}`,
   onUpdate: (self) => {
     projectsProgress = self.progress;
     requestFrame();
@@ -2050,7 +2025,8 @@ function animate() {
   orangeGroup.updateMatrixWorld(true);
   uniforms.uNormalMatrix.value.getNormalMatrix(sphere.matrixWorld);
   // GSAP's exit tween leaves the headline's opacity inline on .headline-word.
-  updateHeadlineFocus(dampDelta, parseFloat(headlineWordEl.style.opacity || "1") > 0.001);
+  heroHeadline.focus.update(dampDelta, parseFloat(heroHeadline.el.style.opacity || "1") > 0.001);
+  contactHeadline.focus.update(dampDelta, contact.showing());
   updateCreativityPhrase(scrollProgress, dampDelta);
   updateFeaturedGate(dampDelta);
   projectsProgressDamped += (projectsProgress - projectsProgressDamped) * (1 - Math.exp(-AURA_DAMPING * dampDelta));
@@ -2074,7 +2050,7 @@ function animate() {
     Math.abs(phraseProgress - scrollProgress) < 1e-4 &&
     Math.abs(projectsProgressDamped - projectsProgress) < 1e-4 &&
     moreScrollDamped === moreScroll;
-  const idle = scrollProgress >= 1 && settled && !featuredFading;
+  const idle = scrollProgress >= 1 && settled && !featuredFading && !contact.showing(); // (Contact's headline moves by itself, like the hero's)
   if (!idle) requestFrame();
 }
 

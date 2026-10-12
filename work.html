@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ALAMILLA | Motion & AI Designer</title>
+<title>alamilla | Motion AI Designer</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@100..900&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@100..900&display=swap" rel="stylesheet">
+<!-- The web's type: its fonts, their variables, the titles' gradient. -->
+<link rel="stylesheet" href="/src/type.css">
 <style>
   #page-transition-overlay {
     position: fixed;
@@ -25,11 +27,14 @@
     background: rgba(0,0,0,0);
   }
   /* --page: the site's dark gray, the same as index.html's background. */
-  :root { --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --page: #141414; }
+  /* --ink: every text that is not a title, in the web's cream (and dimmer:
+     what is secondary). */
+  :root { --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --page: #141414; --ink: #f6ecdd; --ink-soft: rgba(246, 236, 221, 0.8); --ink-dim: rgba(246, 236, 221, 0.7); }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
     background-color: var(--page);
-    color: #fff; min-height: 100vh; overflow-x: clip;
+    color: var(--ink); min-height: 100vh; overflow-x: clip;
+    font-family: var(--font-sans); letter-spacing: var(--tracking-sans);
   }
 
   /* ── Nav ────────────────────────────────────────────────────────────────── */
@@ -47,32 +52,60 @@
   }
   #wk-nav .wk-logo { height: 2.2rem; }
   #wk-nav a {
-    font-family: 'Montserrat', sans-serif; font-size: 0.85rem;
-    color: #ffffff; text-decoration: none;
-    letter-spacing: 0.1em; text-transform: uppercase;
+    font-family: var(--font-sans); font-weight: 300; font-size: 0.85rem;
+    color: var(--ink); text-decoration: none;
+    letter-spacing: var(--tracking-sans);
   }
 
   /* ── Body ───────────────────────────────────────────────────────────────── */
   #wk-body { padding: 11.5rem 4rem 0; }
 
   /* ── SELECTED PROJECTS letter-reveal heading ────────────────────────────── */
-  .ex-section-heading {
-    display: flex; flex-direction: column; align-items: flex-start;
-    overflow: hidden; margin: 0 0 1.5rem; width: fit-content;
+  /* A section's title, the same in every project and section: one line,
+     centered on the screen's vertical axis like every text of a project's
+     sections (what is on its cover stays on the left) (it
+     is wider than the text's column, which is centered too, and sticks out of
+     it by the same on both sides) — the first word in Catavalo with the web's
+     gradient (.title-gradient, type.css), the second in Inter Tight, in
+     cream, on one baseline, a space apart (a real one: where they do not fit
+     on a line, the second goes under the first). The two are set to read the
+     same size: their lowercase letters as tall (Catavalo's are 0.577 of its
+     size, Inter Tight's 0.547: measured), hence --section-title-sans-scale.
+     layoutSectionTitles() (the module script) hands it two things:
+       --section-title-fit   what the size is brought down by so that the
+                             longest of the page's titles fits between the
+                             page's two margins (1: it fits as it is); the
+                             same for all of them
+       --section-title-ink   what puts the middle of its INK, not of its box,
+                             on the axis
+     Each word comes up from under the line (.section-title-line, with room
+     around it for the strokes that go past it): buildHeading(). On a narrow
+     screen the words are let onto two lines instead of being made smaller. */
+  .section-title {
+    --section-title-size: clamp(64px, 8vw, 160px);
+    --section-title-sans-scale: 1.055;
+    position: relative; left: 50%;
+    width: max-content;
+    margin: 0 0 1.5rem;
+    transform: translateX(calc(-50% + var(--section-title-ink, 0px)));
+    font-size: calc(var(--section-title-size) * var(--section-title-fit, 1));
+    font-weight: 400;
   }
-  .ex-marquee-row {
-    display: flex; flex-wrap: nowrap; align-items: flex-end;
-    overflow: hidden; line-height: 0.9; margin-bottom: -1.25rem;
+  .section-title-line {
+    display: inline-block; vertical-align: top; overflow: hidden;
+    line-height: 1.05; white-space: nowrap;
+    padding: 0.2em 0.12em 0.28em; margin: -0.2em -0.12em -0.28em;
   }
-  .ex-marquee-row:last-child { margin-bottom: 0; }
-  .ex-letter-wrap { display: inline-block; overflow: hidden; line-height: 1.0; }
-  .ex-letter {
-    display: inline-block; font-family: 'Inter Tight', sans-serif; font-size: 5.5rem;
-    color: rgba(255,255,255,0.9); text-transform: uppercase;
-    letter-spacing: -0.02em; line-height: 1.05; white-space: pre;
-    transform: translateY(110%);
+  .section-title-word { display: inline-block; transform: translateY(130%); }
+  .section-title-sans {
+    font-family: var(--font-sans); font-weight: 400;
+    font-size: calc(1em * var(--section-title-sans-scale));
+    letter-spacing: var(--tracking-sans); color: var(--ink);
   }
-  .ex-section-heading .ex-letter { font-size: 6rem; }
+  @media (max-width: 768px) {
+    .section-title { left: 0; width: auto; transform: none; text-align: center; }
+    .section-title-line { white-space: normal; }
+  }
   .ex-section-divider {
     position: relative; left: 50%;
     width: calc(100vw - 10rem); height: 2px;
@@ -113,37 +146,8 @@
     display: flex; align-items: center; justify-content: center;
   }
   .wk-media-empty span {
-    font-family: 'Montserrat', sans-serif; font-weight: 400;
-    font-size: 0.7rem; color: #333; text-transform: uppercase; letter-spacing: 0.2em;
-  }
-  .wk-media-wrap::before {
-    content: "";
-    position: absolute; inset: 0; z-index: 1;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
-    opacity: 0.15; mix-blend-mode: overlay; pointer-events: none;
-  }
-  .c-noise {
-    position: absolute;
-    top: -50%; left: -50%; right: -50%; bottom: -50%;
-    width: 200%; height: 200%;
-    border-radius: 18px; pointer-events: none; z-index: 1; opacity: 0.18;
-    background: transparent url('data:image/png;base64,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') repeat 0 0;
-    background-repeat: repeat;
-    animation: bg-animation 0.2s infinite;
-    mix-blend-mode: multiply;
-  }
-  @keyframes bg-animation {
-    0%   { transform: translate(0,0); }
-    10%  { transform: translate(-5%,-5%); }
-    20%  { transform: translate(-10%,5%); }
-    30%  { transform: translate(5%,-10%); }
-    40%  { transform: translate(-5%,15%); }
-    50%  { transform: translate(-10%,5%); }
-    60%  { transform: translate(15%,0); }
-    70%  { transform: translate(0,10%); }
-    80%  { transform: translate(-15%,0); }
-    90%  { transform: translate(10%,5%); }
-    100% { transform: translate(5%,0); }
+    font-family: var(--font-sans); font-weight: 400;
+    font-size: 0.7rem; color: var(--ink-dim); letter-spacing: var(--tracking-sans);
   }
   .c-gradient {
     position: absolute; inset: 0; pointer-events: none; z-index: 2;
@@ -160,24 +164,26 @@
     display: flex; flex-direction: column; align-items: flex-start;
     pointer-events: none;
   }
+  /* A project's name, on its card and on its cover: Catavalo, in cream (it
+     is over a picture, where the titles' gradient would not read). */
   .c-title {
-    font-family: 'Inter Tight', sans-serif;
+    font-family: var(--font-display); font-weight: 300; letter-spacing: normal;
     font-size: clamp(1.8rem, 4.5vw, 3.8rem);
-    font-weight: 400; color: #ffffff; line-height: 1.0;
+    color: var(--ink); line-height: 1.0;
     display: block; margin-bottom: 0.55rem;
   }
   .c-desc {
-    font-family: 'Montserrat', sans-serif; font-weight: 400;
+    font-family: var(--font-sans); font-weight: 300;
     font-size: clamp(0.85rem, 1.2vw, 1rem);
-    color: rgba(255,255,255,0.65); line-height: 1.5;
+    color: var(--ink-dim); line-height: 1.5; letter-spacing: var(--tracking-sans);
     max-width: 480px; display: block;
   }
   /* Project index counter */
   .c-index {
     position: absolute; top: 2rem; right: 3rem; z-index: 3;
-    font-family: 'Montserrat', sans-serif; font-size: 0.7rem;
-    font-weight: 400; color: rgba(255,255,255,0.35);
-    letter-spacing: 0.14em; text-transform: uppercase;
+    font-family: var(--font-sans); font-size: 0.7rem;
+    font-weight: 400; color: var(--ink-dim);
+    letter-spacing: var(--tracking-sans);
   }
 
   /* ── Section intro wrapper + body text ─────────────────────────────────── */
@@ -185,27 +191,30 @@
     width: 650px; max-width: 100%; margin: 0 auto;
   }
   .ex-body-text {
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 400;
+    font-family: var(--font-sans);
+    font-weight: 300;
     font-size: 1.1rem;
-    color: rgba(255,255,255,0.6);
+    color: var(--ink-soft);
+    letter-spacing: var(--tracking-sans);
     line-height: 1.75;
     margin: 0 0 4rem 0;
     max-width: 650px;
-    text-align: left;
+    text-align: center;
   }
 
   /* ── Footer ─────────────────────────────────────────────────────────────── */
   .shared-footer {
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 0.6rem;
     padding: 2.5rem 2rem;
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 400;
+    font-family: var(--font-sans);
+    font-weight: 300;
     font-size: 1rem;
-    color: #ffffff;
+    color: var(--ink-dim);
+    letter-spacing: var(--tracking-sans);
   }
   .shared-footer .wk-logo {
     height: 1.4rem;
@@ -213,13 +222,20 @@
   }
   #wk-footer { padding: 0; }
   @media (max-width: 768px) { #wk-footer { padding: 2rem 2rem 3.5rem; } }
+  /* "(c) 2026 Daniel Alamilla" (.site-credit, type.css): at the foot's left,
+     level with the rest — under the logo in the grid's foot (the nav's side
+     padding), on the page's margin in a project's (whose body has 2.5rem of
+     its own at the sides); under the rest on a narrow screen. */
+  .shared-footer .site-credit { --credit-ink: var(--ink-dim); position: absolute; left: 2.5rem; }
+  #card-expand-body .shared-footer .site-credit { left: calc(var(--margin-x) - 2.5rem); }
+  @media (max-width: 768px) {
+    .shared-footer { flex-wrap: wrap; }
+    .shared-footer .site-credit { position: static; order: 1; flex-basis: 100%; margin-top: 0.8rem; text-align: center; }
+  }
 
   /* ── Responsive ─────────────────────────────────────────────────────────── */
 
   @media (max-width: 768px) {
-    .ex-letter { font-size: clamp(1rem, 10vw, 12vw) !important; }
-    .ex-marquee-row { margin-bottom: -0.3rem; }
-    .ex-marquee-row + .ex-marquee-row { margin-top: 0.15em; }
     #wk-body { padding: 8rem 2.5rem 0; }
   }
   @media (max-width: 768px) {
@@ -289,34 +305,35 @@
     opacity: 0; transition: opacity 320ms var(--ease-out) 200ms;
     border-radius: 0; will-change: transform; transform-origin: center center;
   }
-  .ex-headline { font-family: 'Inter Tight', sans-serif; font-size: 0.65rem; color: rgba(255,255,255,0.65); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
-  .ex-title    { font-family: 'Inter Tight', sans-serif; font-size: clamp(1.5rem, 3.5vw, 2.5rem); color: #fff; line-height: 1.05; margin-bottom: 0.5rem; display: block; }
-  .ex-desc     { font-family: 'Montserrat', sans-serif; font-size: 0.9rem; color: rgba(255,255,255,0.7); max-width: 520px; line-height: 1.45; margin-bottom: 1.5rem; display: block; }
+  .ex-headline { font-family: var(--font-sans); font-weight: 400; font-size: 0.65rem; color: var(--ink-dim); letter-spacing: var(--tracking-sans); margin-bottom: 0.4rem; display: block; }
+  .ex-title    { font-family: var(--font-display); font-weight: 300; letter-spacing: normal; font-size: clamp(1.5rem, 3.5vw, 2.5rem); color: var(--ink); line-height: 1.05; margin-bottom: 0.5rem; display: block; }
+  .ex-desc     { font-family: var(--font-sans); font-weight: 300; font-size: 0.9rem; color: var(--ink-soft); letter-spacing: var(--tracking-sans); max-width: 520px; line-height: 1.45; margin-bottom: 1.5rem; display: block; }
   #card-expand-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
   .ex-btn {
     display: inline-flex; align-items: center; gap: 0.45rem;
     padding: 0.55rem 1.4rem; border-radius: 9999px;
-    font-family: 'Inter Tight', sans-serif; font-size: 0.85rem;
-    letter-spacing: 0.04em; cursor: pointer; border: none;
-    transition: transform 140ms var(--ease-out), background 160ms;
+    font-family: var(--font-sans); font-weight: 400; font-size: 0.85rem;
+    letter-spacing: var(--tracking-sans); cursor: pointer; border: none;
+    transition: transform 140ms var(--ease-out), background 160ms, color 160ms;
   }
   .ex-btn:active { transform: scale(0.95); }
-  .ex-btn-primary { background: #fff; color: #062338; }
-  .ex-btn-ghost   { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.22); }
+  /* (cream text on a fine cream outline, as the web's other buttons; filled under the cursor) */
+  .ex-btn-primary { background: transparent; color: var(--ink); border: 1px solid rgba(246, 236, 221, 0.6); }
+  .ex-btn-primary:hover { background: var(--ink); color: #141414; }
+  .ex-btn-ghost   { background: rgba(246, 236, 221, 0.12); color: var(--ink); border: 1px solid rgba(246, 236, 221, 0.22); }
   #card-expand-body {
-    position: relative; z-index: 1; color: #062338;
+    position: relative; z-index: 1; color: var(--ink);
     background-color: var(--page);
     border-radius: 0; padding: 3.5rem 2.5rem 5rem;
     max-width: 100%; margin: 0; margin-top: -2px;
   }
   #card-expand-body .ex-body-section { margin: 8rem auto 3rem; width: 650px; max-width: 100%; }
   #card-expand-body .ex-body-section:first-of-type { margin-top: 4rem; }
-  #card-expand-body .ex-section-divider { margin-bottom: 1.5rem; background: rgba(22,22,22,0.2); }
-  #card-expand-body .ex-body-text { margin: 0 0 1rem 0; color: #062338; }
-  #card-expand-body .ex-letter { color: #062338; }
-  .ex-meta-stack { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
-  .ex-meta-label { font-family: 'Montserrat', sans-serif; font-weight: 400; font-size: 1.1rem; color: rgba(6,35,56,0.7); }
-  .ex-meta-label strong { font-weight: 700; font-style: italic; color: #062338; }
+  #card-expand-body .ex-section-divider { margin-bottom: 1.5rem; background: rgba(246, 236, 221, 0.2); }
+  #card-expand-body .ex-body-text { margin: 0 0 1rem 0; }
+  .ex-meta-stack { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; margin-bottom: 1rem; text-align: center; }
+  .ex-meta-label { font-family: var(--font-sans); font-weight: 400; font-size: 1.1rem; color: var(--ink-dim); letter-spacing: var(--tracking-sans); }
+  .ex-meta-label strong { font-weight: 400; color: var(--ink); }
   #card-expand-styleframes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
   #card-expand-styleframes:empty { display: none; }
   #card-expand-challenge-videos,
@@ -356,8 +373,8 @@
     opacity: 0; pointer-events: none; transition: opacity 400ms var(--ease-out); z-index: 20;
   }
   #card-expand-scroll-hint span {
-    font-family: 'Inter Tight', sans-serif; font-size: 0.55rem;
-    letter-spacing: 0.15em; color: rgba(255,255,255,0.5); text-transform: uppercase;
+    font-family: var(--font-sans); font-weight: 400; font-size: 0.55rem;
+    letter-spacing: var(--tracking-sans); color: var(--ink-dim);
   }
   #card-expand-scroll-hint svg { width: 18px; height: 18px; animation: hintBounce 1.4s ease-in-out infinite; }
   @keyframes hintBounce {
@@ -370,7 +387,7 @@
     position: fixed; top: 1.5rem; right: 1.5rem;
     width: 2.2rem; height: 2.2rem; border-radius: 50%;
     background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.18);
-    color: #fff; font-size: 1.15rem;
+    color: var(--ink); font-family: var(--font-sans); font-size: 1.15rem;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; z-index: 510; opacity: 0; pointer-events: none;
     transition: opacity 250ms var(--ease-out) 350ms, background 140ms;
@@ -404,7 +421,7 @@
   }
 </style>
 </head>
-<body>
+<body class="grain">
 <div id="page-transition-overlay"></div>
 <script>
   (function(){
@@ -413,9 +430,62 @@
   })();
 </script>
 
+<!-- The palette's colors as --c-* variables (the titles' gradient is made of them). -->
+<script type="module">
+  import { applyPalette } from "/src/palette.js";
+  import { rasterInk, clearInkCache } from "/src/ink.js";
+  import { applyGrain } from "/src/grain.js";
+  applyPalette();
+  applyGrain(); // the web's grain on the page's dark backgrounds (.grain)
+
+  // The sections' titles (.section-title): one size for those of the page —
+  // the biggest at which the longest still fits between the page's two
+  // margins — and each with the middle of its ink on the screen's axis.
+  // Widths are read with the titles at their full size; where the ink of a
+  // title starts and ends, from the pixels of its first and last words
+  // (ink.js, as the home's headline).
+  const SECTION_TITLE_MOBILE_MAX_PX = 768; // up to here they wrap instead (the stylesheet)
+  window.layoutSectionTitles = () => {
+    const page = document.documentElement;
+    const titles = Array.from(document.querySelectorAll(".section-title")).filter((title) => title.firstElementChild && title.offsetParent);
+    if (!titles.length) return;
+    page.style.setProperty("--section-title-fit", "1");
+    titles.forEach((title) => title.style.removeProperty("--section-title-ink"));
+    if (window.innerWidth <= SECTION_TITLE_MOBILE_MAX_PX) return;
+    const margin = parseFloat(getComputedStyle(document.querySelector("#wk-margin-probe")).width); // --margin-x, in px
+    const room = window.innerWidth - 2 * margin;
+    const wide = (title) => {
+      const words = title.querySelectorAll(".section-title-word");
+      return words[words.length - 1].getBoundingClientRect().right - words[0].getBoundingClientRect().left;
+    };
+    page.style.setProperty("--section-title-fit", Math.min(1, ...titles.map((title) => room / wide(title))).toFixed(4));
+    // What each end of the line has between its box and its ink: half the
+    // difference is how far its ink is off its box's middle.
+    const ink = (word) => {
+      const style = getComputedStyle(word);
+      const size = parseFloat(style.fontSize);
+      const found = rasterInk(`${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`, word.textContent, size);
+      const tracking = parseFloat(style.letterSpacing) || 0; // (the box ends one letter-spacing after the last letter's advance)
+      return { left: found.left, right: found.advance + tracking - found.right };
+    };
+    titles.forEach((title) => {
+      const words = title.querySelectorAll(".section-title-word");
+      title.style.setProperty("--section-title-ink", `${((ink(words[words.length - 1]).right - ink(words[0]).left) / 2).toFixed(2)}px`);
+    });
+  };
+  window.layoutSectionTitles();
+  window.addEventListener("resize", window.layoutSectionTitles);
+  document.fonts.ready.then(() => {
+    clearInkCache(); // (what was drawn before the font was there)
+    window.layoutSectionTitles();
+  });
+</script>
+<!-- (the page's side margin, --margin-x, as a length that can be read in px) -->
+<div id="wk-margin-probe" aria-hidden="true" style="position:absolute;visibility:hidden;height:0;width:var(--margin-x)"></div>
+
 <nav id="wk-nav">
   <a href="index.html"><span class="wk-logo" role="img" aria-label="Alamilla"></span></a>
-  <a href="index.html#projects">← Back</a>
+  <a href="works.html">← Back</a>
 </nav>
 
 <!-- ── Body ──────────────────────────────────────────────────────────────── -->
@@ -429,7 +499,6 @@
       <article class="wk-grid-card" data-project-index="0" tabindex="0">
         <div class="wk-media-wrap">
           <video class="wk-media" data-src="proyectos/Spotify/Portada_Spotify Daylist_thumb.mp4" muted loop playsinline preload="none"></video>
-          <div class="c-noise"></div>
           <div class="c-gradient"></div>
         </div>
         <span class="c-index">01 / 11</span>
@@ -442,7 +511,6 @@
       <article class="wk-grid-card" data-project-index="1" tabindex="0">
         <div class="wk-media-wrap">
           <video class="wk-media" data-src="proyectos/ISE/Portada_thumb.mp4" muted loop playsinline preload="none"></video>
-          <div class="c-noise"></div>
           <div class="c-gradient"></div>
         </div>
         <span class="c-index">02 / 11</span>
@@ -455,7 +523,6 @@
       <article class="wk-grid-card" data-project-index="2" tabindex="0">
         <div class="wk-media-wrap">
           <video class="wk-media" data-src="proyectos/Hummel Valencia Baket/Hummel Valencia Basket_Tarjeta_thumb.mp4" muted loop playsinline preload="none"></video>
-          <div class="c-noise"></div>
           <div class="c-gradient"></div>
         </div>
         <span class="c-index">03 / 11</span>
@@ -473,7 +540,6 @@
       <article class="wk-grid-card" data-project-index="3" tabindex="0">
         <div class="wk-media-wrap">
           <video class="wk-media" data-src="/projects/caprabo-tienda-1.mp4" muted loop playsinline preload="none"></video>
-          <div class="c-noise"></div>
           <div class="c-gradient"></div>
         </div>
         <span class="c-index">04 / 11</span>
@@ -486,7 +552,6 @@
       <article class="wk-grid-card" data-project-index="4" tabindex="0">
         <div class="wk-media-wrap">
           <video class="wk-media" data-src="/projects/Styleframes_SItges_1.2.mp4" muted loop playsinline preload="none"></video>
-          <div class="c-noise"></div>
           <div class="c-gradient"></div>
         </div>
         <span class="c-index">05 / 11</span>
@@ -499,7 +564,6 @@
       <article class="wk-grid-card" data-project-index="5" tabindex="0">
         <div class="wk-media-wrap">
           <video class="wk-media" data-src="proyectos/Estiu TMM/Styleframes/Styleframes 1_thumb.mp4" muted loop playsinline preload="none"></video>
-          <div class="c-noise"></div>
           <div class="c-gradient"></div>
         </div>
         <span class="c-index">06 / 11</span>
@@ -517,7 +581,6 @@
       <article class="wk-grid-card" data-project-index="6" tabindex="0">
         <div class="wk-media-wrap">
           <video class="wk-media" data-src="/projects/Proyector.mp4" muted loop playsinline preload="none"></video>
-          <div class="c-noise"></div>
           <div class="c-gradient"></div>
         </div>
         <span class="c-index">07 / 11</span>
@@ -530,7 +593,6 @@
       <article class="wk-grid-card" data-project-index="7" tabindex="0">
         <div class="wk-media-wrap">
           <video class="wk-media" data-src="proyectos/Hummel Betis/Hummel Betis_Tarjeta_thumb.mp4" muted loop playsinline preload="none"></video>
-          <div class="c-noise"></div>
           <div class="c-gradient"></div>
         </div>
         <span class="c-index">08 / 11</span>
@@ -543,7 +605,6 @@
       <article class="wk-grid-card" data-project-index="8" tabindex="0">
         <div class="wk-media-wrap">
           <video class="wk-media" data-src="/projects/Styleframes_5_1.mp4" muted loop playsinline preload="none"></video>
-          <div class="c-noise"></div>
           <div class="c-gradient"></div>
         </div>
         <span class="c-index">09 / 11</span>
@@ -561,7 +622,6 @@
       <article class="wk-grid-card" data-project-index="9" tabindex="0">
         <div class="wk-media-wrap">
           <video class="wk-media" data-src="/projects/Gemini_Portada.mp4" muted loop playsinline preload="none"></video>
-          <div class="c-noise"></div>
           <div class="c-gradient"></div>
         </div>
         <span class="c-index">10 / 11</span>
@@ -574,7 +634,6 @@
       <article class="wk-grid-card" data-project-index="10" tabindex="0">
         <div class="wk-media-wrap">
           <video class="wk-media" data-src="proyectos/Bizlunch/Portada_thumb.mp4" muted loop playsinline preload="none"></video>
-          <div class="c-noise"></div>
           <div class="c-gradient"></div>
         </div>
         <span class="c-index">11 / 11</span>
@@ -591,13 +650,14 @@
 </div>
 
 <footer id="wk-footer" class="shared-footer">
+  <span class="site-credit">&copy; 2026 Daniel Alamilla</span>
   <span>Made with love by</span>
   <span class="wk-logo" role="img" aria-label="Alamilla"></span>
 </footer>
 
 <div id="card-expand">
   <div id="card-expand-backdrop"></div>
-  <div id="card-expand-panel">
+  <div id="card-expand-panel" class="grain">
     <div id="card-expand-hero">
       <video id="card-expand-video" autoplay loop muted playsinline></video>
       <div id="card-expand-meta">
@@ -609,27 +669,27 @@
         </div>
       </div>
     </div>
-    <div id="card-expand-body">
+    <div id="card-expand-body" class="grain">
       <div class="ex-body-section">
         <div class="ex-meta-stack">
           <span class="ex-meta-label" id="ex-meta-role"></span>
           <span class="ex-meta-label" id="ex-meta-tools"></span>
         </div>
-        <div class="ex-section-heading" id="ex-heading-1"></div>
+        <h2 class="section-title" id="ex-heading-1"></h2>
         <div class="ex-section-divider"></div>
         <p class="ex-body-text" id="ex-challenge-text"></p>
       </div>
       <div id="card-expand-challenge-videos"></div>
       <div id="card-expand-styleframes"></div>
       <div class="ex-body-section">
-        <div class="ex-section-heading" id="ex-heading-2"></div>
+        <h2 class="section-title" id="ex-heading-2"></h2>
         <div class="ex-section-divider"></div>
         <p class="ex-body-text" id="ex-process-text"></p>
       </div>
       <div id="card-expand-process-videos"></div>
       <div id="card-expand-process-images"></div>
       <div class="ex-body-section">
-        <div class="ex-section-heading" id="ex-heading-3"></div>
+        <h2 class="section-title" id="ex-heading-3"></h2>
         <div class="ex-section-divider"></div>
         <p class="ex-body-text" id="ex-final-text"></p>
         <div class="ex-final-video-sticky" id="ex-final-video-sticky" style="display:none;">
@@ -641,6 +701,7 @@
       <div id="card-expand-final-videos"></div>
 
       <div class="shared-footer">
+        <span class="site-credit">&copy; 2026 Daniel Alamilla</span>
         <span>Made with love by</span>
         <span class="wk-logo" role="img" aria-label="Alamilla"></span>
       </div>
@@ -656,48 +717,37 @@
 </div>
 
 <script>
-  // ── SELECTED PROJECTS letter-reveal ──────────────────────────────────────
-  function buildLetterRow(text, rowEl) {
-    rowEl.innerHTML = '';
-    text.toUpperCase().split('').forEach(char => {
-      const wrap   = document.createElement('span'); wrap.className = 'ex-letter-wrap';
-      const letter = document.createElement('span'); letter.className = 'ex-letter';
-      letter.textContent = char === ' ' ? ' ' : char;
-      wrap.appendChild(letter); rowEl.appendChild(wrap);
-    });
-  }
-  function animateLettersIn(rowEl, delayOffset) {
-    const letters = Array.from(rowEl.querySelectorAll('.ex-letter'));
-    const indices = letters.map((_, i) => i).sort(() => Math.random() - 0.5);
-    indices.forEach((idx, order) => {
-      const el = letters[idx];
-      setTimeout(() => {
-        el.style.transition = 'transform 800ms cubic-bezier(0.16, 1, 0.3, 1)';
-        el.style.transform  = 'translateY(0)';
-      }, delayOffset + order * 45);
-    });
-  }
-  function resetLetters(rowEl) {
-    Array.from(rowEl.querySelectorAll('.ex-letter')).forEach(el => {
-      el.style.transition = 'none'; el.style.transform = 'translateY(110%)';
-    });
-  }
-
-  function buildHeading(id, lines) {
+  // ── A section's title: two words on a line, each coming up from under it
+  const HEADING_HIDDEN = 'translateY(130%)';
+  function buildHeading(id, words) {
     const container = document.getElementById(id);
     if (!container) return;
     if (container._headingObserver) { container._headingObserver.disconnect(); container._headingObserver = null; }
     container.innerHTML = '';
-    const rows = lines.map(text => {
-      const row = document.createElement('div'); row.className = 'ex-marquee-row';
-      buildLetterRow(text, row); container.appendChild(row); return row;
+    const line = document.createElement('span'); line.className = 'section-title-line';
+    const parts = words.map((text, index) => {
+      const word = document.createElement('span');
+      word.className = index ? 'section-title-word section-title-sans' : 'section-title-word section-title-display title-gradient';
+      word.textContent = text;
+      if (index) line.appendChild(document.createTextNode(' '));
+      line.appendChild(word); return word;
     });
-    rows.forEach(r => resetLetters(r));
+    container.appendChild(line);
+    if (window.layoutSectionTitles) window.layoutSectionTitles(); // its size and its place (the module script; it does it itself when it loads later)
+    const hide = () => parts.forEach(word => { word.style.transition = 'none'; word.style.transform = HEADING_HIDDEN; });
+    hide();
     let played = false;
+    let timers = [];
     const obs = new IntersectionObserver(entries => {
       entries.forEach(e => {
-        if (!e.isIntersecting) { rows.forEach(r => resetLetters(r)); played = false; }
-        else if (!played)      { played = true; rows.forEach((r, i) => animateLettersIn(r, i * 120)); }
+        if (!e.isIntersecting) { timers.forEach(clearTimeout); hide(); played = false; }
+        else if (!played) {
+          played = true;
+          timers = parts.map((word, index) => setTimeout(() => {
+            word.style.transition = 'transform 800ms cubic-bezier(0.16, 1, 0.3, 1)';
+            word.style.transform  = 'translateY(0)';
+          }, index * 120));
+        }
       });
     }, { threshold: 0.2 });
     obs.observe(container);
@@ -1024,7 +1074,7 @@
       const metaTools = document.getElementById('ex-meta-tools');
       if (metaRole)  metaRole.innerHTML  = '';
       if (metaTools) metaTools.innerHTML = '';
-      buildHeading('ex-heading-1', ['COMING', 'SOON']);
+      buildHeading('ex-heading-1', ['Coming', 'soon']);
       document.getElementById('ex-challenge-text').textContent =
         'Full case study for this project is coming soon — check back shortly for the creative challenge, process, and final result.';
       document.getElementById('ex-process-text').textContent = '';
@@ -1078,9 +1128,9 @@
         document.getElementById('ex-final-video').innerHTML = defaultIframe;
       }
 
-      buildHeading('ex-heading-1', ['CREATIVE', 'CHALLENGE']);
-      buildHeading('ex-heading-2', ['DESIGN',   'PROCESS']);
-      buildHeading('ex-heading-3', ['FINAL',    'RESULT']);
+      buildHeading('ex-heading-1', ['Creative', 'challenge']);
+      buildHeading('ex-heading-2', ['Design',   'process']);
+      buildHeading('ex-heading-3', ['Final',    'result']);
 
       cardExpandChallengeVideos.innerHTML = '';
       (p.challengeVideos || []).forEach(src => {
@@ -1173,8 +1223,8 @@
   function closeCardExpand(skipHistory = false) {
     if (!expandedCard) return;
 
-    if (cameFromIndexDeepLink) {
-      window.location.href = 'index.html';
+    if (cameFromDeepLink) {
+      window.location.href = 'works.html';
       return;
     }
 
@@ -1280,13 +1330,13 @@
 
   const initialSlug = location.hash.replace('#', '');
   // True only when this page load already had a #slug in the URL — i.e. the
-  // user arrived via a direct link (like the project cards on index.html),
-  // not by clicking a card inside work.html's own grid (that path pushes
-  // the hash itself, after the page was already loaded with none). Closing
-  // a card opened this way should return to index.html instead of just
-  // clearing the hash and landing on work.html's grid, since the user never
-  // actually chose to browse the grid.
-  const cameFromIndexDeepLink = !!initialSlug;
+  // user arrived via a direct link (a row of the Works page, works.html; a
+  // project's cover on the home), not by clicking a card inside work.html's
+  // own grid (that path pushes the hash itself, after the page was already
+  // loaded with none). Closing a project opened this way goes back to the
+  // Works page instead of just clearing the hash and landing on work.html's
+  // grid, since the user never actually chose to browse the grid.
+  const cameFromDeepLink = !!initialSlug;
   if (initialSlug) {
     requestAnimationFrame(() => openProjectBySlug(initialSlug, true));
   }

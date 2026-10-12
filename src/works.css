@@ -1,0 +1,211 @@
+/* ---- Works (works.html, src/works.js) ------------------------------------------------
+   Every project, one row each, across the page inside its margins
+   (--margin-x: the logo's left edge, the clock's right one). A row is a fine
+   line, the project's title hanging from it on the left and its picture in
+   the middle, always 16:9. The row that is at the middle of the screen opens
+   up: its picture grows, the rows around it make room, and its title is all
+   there (the others' are dimmed). Behind them, still, the home's aura as a
+   whole circle in the middle of the screen (works.js draws it on .wk-aura),
+   on the page's black. Every text is cream. The page itself never scrolls:
+   works.js moves everything (transforms and opacity only) and sizes what
+   depends on the screen. Over the home's stylesheet (the nav, the fonts, the
+   page's variables). */
+html:has(body.works),
+body.works {
+  height: 100%;
+  overflow: hidden;
+  background-color: #0a0a0a; /* the black of the home's panel (the aura's canvas paints it too, with its grain) */
+  overscroll-behavior: none;
+}
+/* The nav, in cream here: its links and its clock. */
+body.works #site-nav {
+  --nav-ink: var(--c-cream);
+  --nav-clock-ink: var(--c-cream);
+}
+/* The logo is a link here (to the home): it takes the logo's place in the
+   nav's grid. */
+#site-nav .nav-home {
+  justify-self: start;
+  line-height: 0;
+  pointer-events: auto;
+}
+.wk {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: var(--c-cream);
+  font-family: var(--font-sans);
+  touch-action: none; /* a finger moves the list, not the page */
+}
+.wk-heading {
+  position: absolute;
+  font: inherit;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.wk-aura {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* The rows fade out towards the top and the bottom of the screen: what goes
+   up does not mix with the nav, and what goes down is gone before the foot's
+   line (--wk-foot: the strip of the screen that line is in). */
+.wk {
+  --wk-foot-bottom: 2.6vh; /* the line's place, as in the home's Contact */
+  --wk-foot: calc(var(--wk-foot-bottom) + 24px);
+}
+.wk-rows {
+  --wk-rows-fade: 120px;
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--wk-rows-fade), #000 calc(100% - var(--wk-foot) - var(--wk-rows-fade)), transparent calc(100% - var(--wk-foot)));
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--wk-rows-fade), #000 calc(100% - var(--wk-foot) - var(--wk-rows-fade)), transparent calc(100% - var(--wk-foot)));
+}
+/* The foot's line (.site-credit, type.css), where the home's Contact has it:
+   at the bottom, in line with the logo, under where the rows end. */
+.wk-credit {
+  --credit-ink: rgba(246, 236, 221, 0.7);
+  position: absolute;
+  left: var(--margin-x);
+  bottom: var(--wk-foot-bottom);
+  pointer-events: none;
+}
+/* A row: a point at the left of the page that works.js puts at the row's top
+   edge; everything in it hangs from there. Hidden while it is off the
+   screen. */
+.wk-row {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 0;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer; /* a click brings it to the middle */
+  will-change: transform;
+}
+.wk-row.is-off {
+  visibility: hidden;
+}
+/* At its top, from margin to margin: a fine line. */
+.wk-line {
+  position: absolute;
+  left: var(--margin-x);
+  right: var(--margin-x);
+  top: 0;
+  height: 1px;
+  background-color: rgba(246, 236, 221, 0.25);
+}
+/* The project's title, hanging from that line on the left margin: Catavalo,
+   as every title of the web, but in plain cream (over the aura its gradient
+   would not read). All the same size. --wk-name-ink (works.js) is what puts
+   the ink of its first letter, not its box, on the margin. works.js dims it
+   away from the middle. */
+.wk-name {
+  position: absolute;
+  left: var(--margin-x);
+  top: 9px;
+  margin-left: var(--wk-name-ink, 0px);
+  font-family: var(--font-display);
+  font-size: clamp(24px, 2vw, 38px);
+  font-weight: 300;
+  line-height: 1;
+  color: var(--c-cream);
+  white-space: nowrap;
+  will-change: opacity;
+}
+/* The picture: 16:9, always. Its box is as big as it gets (in the row at the
+   middle: --wk-thumb-width) and works.js scales it, whole, down from there.
+   Under the cursor, in the row at the middle, .wk-zoom grows a little and
+   .wk-shade darkens it: nothing else. */
+.wk-thumb {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: var(--wk-thumb-width);
+  aspect-ratio: 16 / 9;
+  transform-origin: 50% 0;
+  will-change: transform;
+}
+.wk-zoom {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: #141414;
+  transition: transform 0.4s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+.wk-shade {
+  position: absolute;
+  inset: 0;
+  background-color: #000000;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.wk-thumb img,
+.wk-thumb video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: filter 0.4s ease;
+}
+/* The video, over the cover, only while it plays. */
+.wk-thumb video {
+  opacity: 0;
+  transition: opacity 0.3s ease, filter 0.4s ease;
+}
+.wk-row.is-playing video {
+  opacity: 1;
+}
+/* In the middle of the picture of a project with no page yet, under the
+   cursor: that it is on its way. (On a screen that is only touched there is
+   no cursor: it shows in the row at the middle.) */
+.wk-soon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  opacity: 0;
+  padding: 0.55em 1.1em;
+  border: 1px solid rgba(246, 236, 221, 0.4);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: var(--tracking-sans);
+  line-height: 1;
+  color: var(--c-cream);
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.4s ease;
+}
+.wk-row.is-active .wk-thumb:hover .wk-zoom {
+  transform: scale(1.03);
+}
+.wk-row.is-active .wk-thumb:hover .wk-shade {
+  opacity: 0.2;
+}
+.wk-row.is-active .wk-thumb:hover .wk-soon {
+  opacity: 1;
+}
+@media (hover: none) {
+  .wk-row.is-active .wk-soon {
+    opacity: 1;
+  }
+}
+a.wk-row:focus-visible .wk-zoom {
+  outline: 1px solid var(--c-cream);
+  outline-offset: -1px;
+}
+/* A project with no page yet, at the middle: its picture a little washed
+   out, and nothing to click. */
+.wk-row.is-soon.is-active {
+  cursor: default;
+}
+.wk-row.is-soon.is-active img,
+.wk-row.is-soon.is-active video {
+  filter: saturate(0.45) brightness(0.8);
+}
