@@ -1573,7 +1573,8 @@ function updateNavContrast() {
 // faded in over the loop (which then stops). When the card shrinks back
 // under full size it is faded out again — the loop takes over — stopped and
 // left at 0. While the black panel covers it, it is only paused: it goes on
-// from where it was. Always silent.
+// from where it was. Silent, until its button says otherwise ("The reel's
+// sound" below).
 //   REEL_FULL_AT           share of its final size at which the card
 //                          becomes the reel
 //   REEL_FULL_HYSTERESIS   how far back under that it must shrink before it
@@ -1637,6 +1638,7 @@ function setReelFull(full) {
     reel.timer = setTimeout(rewind, REEL_CROSSFADE_S * 1000); // once it has faded out
   }
   syncReel();
+  syncReelSound();
 }
 function createReelPlayer() {
   if (reel.player) return;
@@ -1673,8 +1675,89 @@ function setupReel(card, preview) {
   new IntersectionObserver((entries) => {
     reel.onScreen = entries[entries.length - 1].isIntersecting;
     syncReel();
+    syncReelSound();
   }).observe(card);
 }
+
+// ---- The reel's sound -------------------------------------------------------
+// The reel starts silent, always. A button at its bottom right (.zp-sound:
+// index.html, style.css) turns its sound on and off; it is there while the
+// reel is "in view": filling the screen, the black panel not yet coming up
+// over it. The sound is only ever heard then:
+//   - turned on, the volume comes up from 0 (never all at once); turned off,
+//     it goes down to 0 and the player is muted;
+//   - the reel going out of view takes it down the same way; back in view,
+//     it comes up again only if the visitor had turned it on (reelSound.wanted:
+//     kept while the page is open, nowhere else);
+//   - anything else on the page that starts to sound turns it off.
+//   REEL_SOUND_FADE_S    seconds the volume takes, up or down
+//   REEL_SOUND_STEP_MS   between two volumes on that way
+const REEL_SOUND_FADE_S = 0.4;
+const REEL_SOUND_STEP_MS = 40;
+const reelSound = {
+  button: document.querySelector(".zp-sound"),
+  wanted: false, // the visitor has turned it on
+  volume: 0, // the player's, 0..1 (it is muted at 0)
+  to: 0, // where that is going: 0 or 1
+  timer: 0,
+};
+const reelInView = () => reel.full && reel.onScreen && moreScroll === 0;
+// A browser may answer the sound by stopping the video (it wants the gesture
+// in the player's own frame): it is set going again, and if that is refused
+// too the reel goes back to silent, which it may always play.
+function keepReelPlaying() {
+  reel.player
+    .getPaused()
+    .then((paused) => {
+      if (!paused || !reelSound.wanted || !reelInView()) return;
+      return reel.player.play().catch(() => {
+        setReelSound(false);
+        syncReel();
+      });
+    })
+    .catch(ignore);
+}
+function fadeReelVolume(to) {
+  if (to === reelSound.to || !reel.player) return;
+  reelSound.to = to;
+  clearInterval(reelSound.timer);
+  if (to) {
+    reel.player.setVolume(reelSound.volume).catch(ignore); // (from where it is: unmuted, it must not be heard at once)
+    reel.player.setMuted(false).then(keepReelPlaying).catch(ignore);
+  }
+  const step = REEL_SOUND_STEP_MS / (REEL_SOUND_FADE_S * 1000);
+  reelSound.timer = setInterval(() => {
+    reelSound.volume = clamp(reelSound.volume + (to ? step : -step), 0, 1);
+    reel.player.setVolume(reelSound.volume).catch(ignore); // (a phone keeps its volume to itself: muting is what counts there)
+    if (reelSound.volume !== to) return;
+    clearInterval(reelSound.timer);
+    if (!to) reel.player.setMuted(true).catch(ignore);
+  }, REEL_SOUND_STEP_MS);
+}
+// The button is there, and the sound heard, only with the reel in view.
+function syncReelSound() {
+  const inView = reelInView();
+  reelSound.button.classList.toggle("is-on", inView);
+  fadeReelVolume(inView && reelSound.wanted ? 1 : 0);
+}
+function setReelSound(wanted) {
+  reelSound.wanted = wanted;
+  reelSound.button.setAttribute("aria-pressed", String(wanted));
+  reelSound.button.setAttribute("aria-label", wanted ? "Turn sound off" : "Turn sound on");
+  reelSound.button.querySelector(".zp-sound-text").textContent = wanted ? "Sound off" : "Sound on";
+  syncReelSound();
+}
+reelSound.button.addEventListener("click", () => setReelSound(!reelSound.wanted));
+// Any other video or audio of the page that starts to sound.
+["play", "volumechange"].forEach((type) =>
+  document.addEventListener(
+    type,
+    ({ target }) => {
+      if (reelSound.wanted && target instanceof HTMLMediaElement && !target.paused && !target.muted && target.volume > 0) setReelSound(false);
+    },
+    true
+  )
+);
 
 // ---- "Still thirsty for more?" panel ----------------------------------------
 // After the showreel's hold, a black panel comes up from below over it, at
@@ -1883,6 +1966,7 @@ function setupZoomParallax() {
     // The black panel: after the zoom's own 100vh and the showreel's hold.
     moreScroll = clamp((time - 1 - REEL_HOLD_VH / 100) * 100, 0, MORE_PANEL_VH + MORE_HOLD_VH + XP_STRETCH_VH);
     if (moreScroll !== moreScrollDamped) requestFrame();
+    syncReelSound(); // (the panel starting up over the reel takes its button and its sound away)
     updateNavContrast();
     // The size the showreel's player is laid out for: the card's at the end.
     zoomCenterCover.style.setProperty("--reel-res", coverScale.toFixed(3));

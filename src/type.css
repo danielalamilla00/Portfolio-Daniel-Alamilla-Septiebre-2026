@@ -77,6 +77,48 @@
   background-blend-mode: var(--grain-blend);
 }
 
+/* The web's pill button: filled with the palette's gradient (the titles':
+   --more-gradient), its text in the panel's black. .pill-icon: an icon in
+   it, before its text — an SVG on a 16 x 16 grid, drawn with a fine line
+   (1.5px) of the text's color. */
+.pill-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.65em 1.15em;
+  border: 0;
+  border-radius: 999px;
+  background: var(--more-gradient);
+  color: #0a0a0a;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: var(--tracking-sans);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+.pill-button:hover {
+  filter: brightness(1.08);
+}
+/* (a white line and, around it, a dark one: seen over anything) */
+.pill-button:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px rgba(10, 10, 10, 0.6);
+}
+.pill-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* "(c) 2026 Daniel Alamilla": the same line at the foot of every page (the
    home's Contact, Works, a project). In --credit-ink where a page sets one. */
 .site-credit {

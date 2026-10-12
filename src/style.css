@@ -703,6 +703,30 @@ body {
 .zp-label.is-on {
   opacity: 1;
 }
+/* The reel's sound (a .pill-button, type.css): at the bottom right of the
+   reel, on the clock's margin; over the covers and under the panel, like the
+   label. There (.is-on, main.js) while the reel fills the screen and the
+   panel has not started to come up over it; gone, it cannot be reached.
+   Its icon: a speaker with its waves while the reel is silent ("Sound on"),
+   a struck one while it sounds ("Sound off"). */
+.zp-sound {
+  position: absolute;
+  right: var(--margin-x);
+  bottom: 4vh;
+  z-index: 2;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s ease, visibility 0s 0.4s, filter 0.2s ease;
+}
+.zp-sound.is-on {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.4s ease, filter 0.2s ease;
+}
+.zp-sound[aria-pressed="false"] .zp-sound-struck,
+.zp-sound[aria-pressed="true"] .zp-sound-waves {
+  display: none;
+}
 .more-link:focus-visible {
   outline: 1px solid #ffffff;
   outline-offset: 4px;

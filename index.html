@@ -106,6 +106,21 @@
           <!-- The section's label, as on the black panel's screens: over the
                showreel while its card fills the screen (main.js). -->
           <p class="more-label zp-label">(Showreel)</p>
+          <!-- The reel's sound, off until asked for: at the bottom right
+               while the showreel fills the screen (main.js, "The reel's
+               sound"). -->
+          <button class="pill-button zp-sound" type="button" aria-pressed="false" aria-label="Turn sound on">
+            <svg class="pill-icon zp-sound-waves" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M2 6h2.5L8 3v10L4.5 10H2z" />
+              <path d="M10.6 5.9a3 3 0 0 1 0 4.2M12.5 4a5.7 5.7 0 0 1 0 8" />
+            </svg>
+            <svg class="pill-icon zp-sound-struck" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M2 6h2.5L8 3v10L4.5 10H2z" />
+              <path d="M10.6 5.9a3 3 0 0 1 0 4.2" />
+              <path d="M1.5 14.5l13-13" />
+            </svg>
+            <span class="zp-sound-text">Sound on</span>
+          </button>
           <!-- The black panel that comes up over the showreel after the zoom
                (main.js, updateMorePanel). Once it is up, the scroll moves
                its content sideways: .more-track holds the "Still thirsty
