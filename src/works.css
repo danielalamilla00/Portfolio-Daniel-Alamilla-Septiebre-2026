@@ -1,6 +1,6 @@
 /* ---- Works (works.html, src/works.js) ------------------------------------------------
    Every project, one row each, across the page inside its margins
-   (--margin-x: the logo's left edge, the clock's right one). A row is a fine
+   (--page-margin: the logo's left edge, the clock's right one). A row is a fine
    line, the project's title hanging from it on the left and its picture in
    the middle, always 16:9. The row that is at the middle of the screen opens
    up: its picture grows, the rows around it make room, and its title is all
@@ -70,7 +70,7 @@ body.works #site-nav {
 .wk-credit {
   --credit-ink: rgba(246, 236, 221, 0.7);
   position: absolute;
-  left: var(--margin-x);
+  left: var(--page-margin);
   bottom: var(--wk-foot-bottom);
   pointer-events: none;
 }
@@ -94,8 +94,8 @@ body.works #site-nav {
 /* At its top, from margin to margin: a fine line. */
 .wk-line {
   position: absolute;
-  left: var(--margin-x);
-  right: var(--margin-x);
+  left: var(--page-margin);
+  right: var(--page-margin);
   top: 0;
   height: 1px;
   background-color: rgba(246, 236, 221, 0.25);
@@ -107,7 +107,7 @@ body.works #site-nav {
    away from the middle. */
 .wk-name {
   position: absolute;
-  left: var(--margin-x);
+  left: var(--page-margin);
   top: 9px;
   margin-left: var(--wk-name-ink, 0px);
   font-family: var(--font-display);
@@ -191,8 +191,33 @@ body.works #site-nav {
 .wk-row.is-active .wk-thumb:hover .wk-soon {
   opacity: 1;
 }
+/* A screen that is only touched: nothing grows or darkens under a cursor
+   there, so the row at the middle says what a tap on it does — a pill at the
+   bottom of its picture ("View project", or the "Coming soon" above). With
+   a cursor it is never shown. */
+.wk-view {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  display: none;
+  opacity: 0;
+  padding: 0.6em 1.1em;
+  border-radius: 999px;
+  background-color: rgba(10, 10, 10, 0.6);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: var(--tracking-sans);
+  line-height: 1;
+  color: var(--c-cream);
+  white-space: nowrap;
+  transform: translateX(-50%);
+  transition: opacity 0.4s ease;
+}
 @media (hover: none) {
-  .wk-row.is-active .wk-soon {
+  .wk-view {
+    display: block;
+  }
+  .wk-row.is-active :is(.wk-view, .wk-soon) {
     opacity: 1;
   }
 }

@@ -27,7 +27,7 @@
   /* Site-wide left/right gutter (nav, headline). Lowered from 7vw per
      client feedback ("el margin izquierdo y derecho de la web tiene que ser
      menor"). */
-  --margin-x: 4vw;
+  --page-margin: 4vw;
   /* What the big titles of the black panel are filled with ("Still thirsty
      for more?", "Experience", and the points of its timeline):
        --more-angle      direction of the gradient
@@ -49,9 +49,25 @@
   );
   --more-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='discrete' tableValues='0 1'/%3E%3CfeFuncG type='discrete' tableValues='0 1'/%3E%3CfeFuncB type='discrete' tableValues='0 1'/%3E%3CfeFuncA type='table' tableValues='0.28 0 0.28'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
 }
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   :root {
-    --margin-x: 1.25rem;
+    --page-margin: 1.25rem;
+  }
+}
+
+/* A phone's browser bar. Every screen of the site is laid out for the whole
+   screen (vh: the bar hidden, as it is while the page is scrolled down), so
+   that pictures and backgrounds always reach its bottom edge; while the bar
+   is showing, what is anchored to that edge (a headline, a foot line, a
+   button) would be under it: it is moved up by --browser-bar, the bar's
+   height at that moment — 0 on a desktop, and where the units to know it are
+   missing. */
+:root {
+  --browser-bar: 0px;
+}
+@supports (height: 100dvh) {
+  :root {
+    --browser-bar: calc(100lvh - 100dvh);
   }
 }
 
@@ -107,6 +123,11 @@
   outline: 2px solid #ffffff;
   outline-offset: 2px;
   box-shadow: 0 0 0 6px rgba(10, 10, 10, 0.6);
+}
+@media (hover: none) {
+  .pill-button {
+    min-height: 44px; /* a finger's */
+  }
 }
 .pill-icon {
   flex: none;

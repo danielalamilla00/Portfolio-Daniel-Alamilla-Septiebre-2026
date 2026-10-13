@@ -12,10 +12,17 @@ import { ORANGE_PALETTE, applyPalette, hexToRgb } from "./palette.js";
 import { createExperience, XP_SCROLL_VH, XP_OUT_VH, XP_ARRIVE_VH } from "./experience.js";
 import { createAbout, ABOUT_SCROLL_VH } from "./about.js";
 import { createContact, CONTACT_SCROLL_VH, CONTACT_SHOWN_VH } from "./contact.js";
+import { onViewportChange, canvasPixelRatio, MOBILE_MAX_PX } from "./viewport.js";
+import { setupMenu } from "./menu.js";
 
 gsap.registerPlugin(ScrollTrigger);
+// The window changing size is looked after here (viewport.js; the end of this
+// file measures every ScrollTrigger again, after everything else has been
+// laid out anew), and a phone's browser bar is no change of size.
+ScrollTrigger.config({ ignoreMobileResize: true, autoRefreshEvents: "visibilitychange,DOMContentLoaded,load" });
 applyPalette(); // the palette as --c-* variables, for style.css
 if (new URLSearchParams(window.location.search).has("grid")) document.documentElement.classList.add("is-grid"); // the page's grid, drawn (style.css)
+setupMenu(); // the nav's links as a whole screen, on a tablet and a phone
 
 // Webfonts and video metadata can still change layout after the first
 // ScrollTrigger measurement; re-measure once everything has loaded so the
@@ -84,23 +91,36 @@ function computeCompositionScale() {
 const HERO_RADIUS = 1292;
 const HERO_CENTER_Y = 1432;
 
+// On a phone the composition is another: there is no room for that dome, and
+// the orange is a whole sphere in the middle of the screen, between the two
+// introductions at the top and the headline at the bottom.
+//   HERO_MOBILE_DIAMETER_VW   its diameter, as a share of the width
+//   HERO_MOBILE_CENTER_Y      where its center is, down the screen (0..1)
+const HERO_MOBILE_DIAMETER_VW = 90;
+const HERO_MOBILE_CENTER_Y = 0.54;
+// The hero orange's circle on screen, in px: its radius and how far down its
+// center is (it is always centered across).
+function heroCircle() {
+  if (viewportWidth <= MOBILE_MAX_PX) return { r: (viewportWidth * HERO_MOBILE_DIAMETER_VW) / 200, cy: window.innerHeight * HERO_MOBILE_CENTER_Y };
+  const s = computeCompositionScale();
+  return { r: HERO_RADIUS * s, cy: HERO_CENTER_Y * s };
+}
+
 // Closed-form, valid because the hero camera is near-orthographic: on
 // screen, a sphere's radius/position is linear in world units
-// (r_px = f_px * R / HERO_CAM_Z). s folds in the composition scale so the
-// reference circle always lands on the same screen pixels; called every
-// frame, so it's always up to date on resize.
-function computeHeroSphereParams(s) {
+// (r_px = f_px * R / HERO_CAM_Z), so that circle always lands on the same
+// screen pixels; called every frame, so it's always up to date on resize.
+function computeHeroSphereParams() {
   const f = window.innerHeight / 2 / Math.tan((HERO_FOV * Math.PI) / 360);
-  const scale = (HERO_CAM_Z * HERO_RADIUS * s) / f;
-  const y = (HERO_CAM_Z * (window.innerHeight / 2 - HERO_CENTER_Y * s)) / f;
-  return { scale, y };
+  const { r, cy } = heroCircle();
+  return { scale: (HERO_CAM_Z * r) / f, y: (HERO_CAM_Z * (window.innerHeight / 2 - cy)) / f };
 }
 
 // alpha:true + a fully transparent clear color so the canvas only paints
 // what's rendered — everywhere else the page's own background shows through.
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-renderer.setSize(viewportWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(canvasPixelRatio());
+renderer.setSize(viewportWidth, window.innerHeight, false); // (its box is the stylesheet's: the whole screen)
 renderer.setClearColor(0x000000, 0);
 
 // ---- Sphere surface constants ---------------------------------------------
@@ -407,16 +427,24 @@ window.addEventListener("pointerleave", () => {
   cursorInfluenceTarget = 0;
 });
 
-function onResize() {
+// The canvas, to the screen it has to cover — whenever that changes, a
+// phone's browser bar included.
+function sizeCanvas() {
   viewportWidth = document.documentElement.clientWidth;
   camera.aspect = viewportWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(viewportWidth, window.innerHeight);
-  updateHeadlineAlignment();
-  layoutCreativityPhrase();
+  renderer.setPixelRatio(canvasPixelRatio());
+  renderer.setSize(viewportWidth, window.innerHeight, false);
   requestFrame();
 }
-window.addEventListener("resize", onResize);
+// ...and what is laid out on it.
+function onResize() {
+  sizeCanvas();
+  updateHeadlineAlignment();
+  layoutCreativityPhrase();
+}
+onViewportChange(sizeCanvas, true);
+onViewportChange(onResize);
 // The vertical scrollbar can come or go without the window being resized.
 new ResizeObserver(() => {
   if (document.documentElement.clientWidth !== viewportWidth) onResize();
@@ -499,10 +527,14 @@ function computeAuraProjects(progress) {
 // proportional to its scale, so multiplying by (current scale / hero scale)
 // keeps the pores the size they have in the hero while the orange changes
 // size during the rise.
+// A phone's orange is a small whole sphere: that many pores on it would be
+// a pixel or two each, so it has fewer and they read as a peel's
+// (GRAIN_SCALE_MOBILE).
 const GRAIN_SCALE = 60;
+const GRAIN_SCALE_MOBILE = 22;
 function computeGrainScale(progress) {
-  const heroScale = computeHeroSphereParams(computeCompositionScale()).scale;
-  return (GRAIN_SCALE * computeSpherePhase(progress).scale) / heroScale;
+  const heroScale = computeHeroSphereParams().scale;
+  return ((viewportWidth <= MOBILE_MAX_PX ? GRAIN_SCALE_MOBILE : GRAIN_SCALE) * computeSpherePhase(progress).scale) / heroScale;
 }
 
 // Hero arc -> rises toward the aura's final shape, driven by the same
@@ -510,7 +542,7 @@ function computeGrainScale(progress) {
 // see updateAura). Recomputed every call (every frame), so it stays
 // correct through any resize.
 function computeSpherePhase(progress) {
-  const hero = computeHeroSphereParams(computeCompositionScale());
+  const hero = computeHeroSphereParams();
   const aura = computeAuraSphereParams();
   const m = computeAuraMorph(progress);
   return {
@@ -900,7 +932,7 @@ function setupHeadlineFocus(headlineWordEl, sectionEl, id) {
     });
   }
   sizeBlurs();
-  window.addEventListener("resize", sizeBlurs);
+  onViewportChange(sizeBlurs);
 
   // Pointer: .headline-word is pointer-events:none, so the cursor is
   // hit-tested by hand against its box (measured in its resting state by
@@ -1076,13 +1108,18 @@ const HEADLINE_BOTTOM_GAP_VH = 1.5;
 function updateHeadlineAlignment() {
   const logoRect = navLogoEl.getBoundingClientRect();
   const logoInkLeft = logoRect.left + logoInkLeftRatio * logoRect.width;
-  const clockInk = measureTextInk(navClockTimeEl);
+  // (a phone has no clock: the page's right margin, where it would end)
+  const inkRight = navClockTimeEl.offsetParent ? measureTextInk(navClockTimeEl).right : viewportWidth - parseFloat(getComputedStyle(siteNavEl).paddingRight);
   headlines.forEach(({ el, section, focus, sans, display }) => {
+    // The two introductions over it, which a phone stacks (style.css): how
+    // tall the first is, for the second to go right under it.
+    section.style.setProperty("--hero-intro-stack", `${section.querySelector(".hero-intro-left").offsetHeight}px`);
     // Measure in the resting state: GSAP's exit tween puts y/scale/blur on
     // .headline-word, which getBoundingClientRect would include. Clear it for
     // the measurement and put it back afterwards.
     const savedTransform = el.style.transform;
     el.style.transform = "none";
+    el.style.translate = "none"; // (...nor what lifts it over a phone's browser bar: style.css)
     // ...and with the first line at its resting weight (the widening while
     // the letters fatten under the cursor is part of that effect, not
     // something to re-align against).
@@ -1099,7 +1136,7 @@ function updateHeadlineAlignment() {
 
     // Right: the second line's last letter's ink → clock ink right edge.
     // (style.right grows leftward)
-    const rightDelta = measureTextInk(display[0]).right - clockInk.right;
+    const rightDelta = measureTextInk(display[0]).right - inkRight;
     display.forEach((line) => (line.style.right = `${rightDelta}px`));
 
     // Bottom: se ancla el punto MÁS BAJO de la tinta de la segunda línea (el
@@ -1117,10 +1154,11 @@ function updateHeadlineAlignment() {
 
     focus.measureHitbox(); // still in the resting state: no exit transform on it
     el.style.transform = savedTransform;
+    el.style.translate = "";
 
     if (window.__debugHeadline) {
       console.log(`[headline ${section.id || section.className}] first letter-logo dx:`, (measureTextInk(sans[0]).left - logoInkLeft).toFixed(2),
-        "| last letter-clock dx:", (measureTextInk(display[0]).right - clockInk.right).toFixed(2),
+        "| last letter-clock dx:", (measureTextInk(display[0]).right - inkRight).toFixed(2),
         "| g-bottom gap:", (sectionBottom - measureTextInk(display[0]).bottom).toFixed(2));
     }
   });
@@ -1544,7 +1582,7 @@ let zoomTimeline = null; // set by setupZoomParallax
 // whenever that card moves. (With prefers-reduced-motion the sections that
 // follow the projects are plain dark blocks of the page, not in that panel:
 // the items are white over them too.)
-const navItems = Array.from(siteNavEl.querySelectorAll(".nav-logo, .nav-links a, .nav-clock"));
+const navItems = Array.from(siteNavEl.querySelectorAll(".nav-logo, .nav-links a, .nav-menu, .nav-clock"));
 let navWhiteOver = null; // what the items are white over
 function updateNavContrast() {
   navWhiteOver ||= [zoomCenterCover, ...document.querySelectorAll(".xp.is-static, .ab.is-static, .ct.is-static")];
@@ -2139,3 +2177,32 @@ function animate() {
 }
 
 requestFrame();
+
+// ---- The window changes size ------------------------------------------------
+// Last of all that viewport.js runs then: every ScrollTrigger is measured
+// again, over what the sections have just laid out. The whole page is as
+// long as the screen is tall (every stretch of it is so many screens of
+// scroll), so the same place in it is the same number of screens down: the
+// scroll is put back there, and the window can go from wide to narrow in the
+// middle of a section without the page moving on to another.
+// (A screen: 100vh, which is what the page is laid out in — on a phone, the
+// screen with the browser's bar hidden, whatever it is doing right now.)
+const screenProbe = document.createElement("div");
+screenProbe.style.cssText = "position:fixed;top:0;left:0;width:0;height:100vh;visibility:hidden;pointer-events:none";
+document.body.appendChild(screenProbe);
+const RESIZE_QUIET_MS = 400; // after a resize, a scroll is the page being put back, not the visitor's
+let screensDown = window.scrollY / screenProbe.offsetHeight;
+let resizedAt = -Infinity;
+window.addEventListener("resize", () => (resizedAt = performance.now()));
+window.addEventListener(
+  "scroll",
+  () => {
+    if (performance.now() - resizedAt > RESIZE_QUIET_MS) screensDown = window.scrollY / screenProbe.offsetHeight;
+  },
+  { passive: true }
+);
+onViewportChange(() => {
+  ScrollTrigger.refresh();
+  window.scrollTo(0, Math.round(screensDown * screenProbe.offsetHeight));
+  requestFrame();
+});

@@ -7,7 +7,7 @@
      (About me's texts are set on it; ?grid in the address draws it). */
   --grid-gutter: 24px;
 }
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   :root {
     --grid-gutter: 12px;
   }
@@ -50,19 +50,6 @@ body {
   isolation: isolate;
 }
 
-/* Paused for this pass (see RINGS_ENABLED in main.js) — rings.js itself is
-   untouched, so this is the only line standing between here and bringing
-   the rings back later. */
-#rings-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  pointer-events: none;
-  display: none;
-}
-
 /* Fixed to the viewport, behind every section: the orange under the
    hero's text, then the aura, which carries on behind #projects once the
    hero has scrolled away. Never takes pointer events (the orange's cursor
@@ -74,6 +61,7 @@ body {
   left: 0;
   width: 100%; /* the visible viewport, without the scrollbar (main.js sizes it the same: viewportWidth) */
   height: 100vh;
+  height: 100dvh; /* what is seen of the screen right now (main.js draws it for window.innerHeight, the same) */
   z-index: 0;
   pointer-events: none;
 }
@@ -85,7 +73,7 @@ body {
    computeCompositionScale in main.js), since that system is "cover"-style
    and can't hit an exact pixel alignment against the nav at every aspect
    ratio the way plain viewport-relative units can.
-   left/right use var(--margin-x), the same gutter the nav sits in — but
+   left/right use var(--page-margin), the same gutter the nav sits in — but
    that only aligns the BOXES. The exact ink-to-logo/ink-to-clock alignment
    and the bottom gap under the "g" are measured and corrected in JS
    (updateHeadlineAlignment in main.js, re-run on resize and once webfonts
@@ -93,11 +81,12 @@ body {
    rule's `bottom`, so the values here are just the pre-JS starting point. */
 .headline-word {
   position: absolute;
-  left: var(--margin-x);
+  left: var(--page-margin);
   /* Same width as .hw-layer-content below, in vw like everything else in
      the headline (its ink is aligned by JS, see above). */
-  width: calc(100vw - 2 * var(--margin-x));
+  width: calc(100vw - 2 * var(--page-margin));
   bottom: 3vh;
+  translate: 0 calc(-1 * var(--browser-bar)); /* clear of a phone's browser bar (type.css); main.js measures it without */
   height: 26.04vw; /* tight to "Designer"'s own nominal box-bottom (13.54vw + 12.5vw) — just a bounding reference for GSAP's scale-from-center pivot, not a clip boundary */
   /* Above the orange (#sphere-canvas, behind this whole section): both
      words sit ON it. */
@@ -150,7 +139,7 @@ body {
   left: 0;
   top: 0;
   bottom: 0;
-  width: calc(100vw - 2 * var(--margin-x));
+  width: calc(100vw - 2 * var(--page-margin));
   transform-origin: 0 0;
   transform: translateX(var(--hw-content-x, 0px)) scaleX(var(--hw-content-scale, 1));
   will-change: transform;
@@ -247,18 +236,44 @@ body {
   pointer-events: none;
 }
 .hero-intro-left {
-  left: var(--margin-x);
+  left: var(--page-margin);
   /* "Motion AI"'s top is ~27.5vw above the bottom edge */
   top: min(var(--hero-intro-left-top), 100vh - 27.5vw - 7.5em);
 }
 .hero-intro-right {
-  right: var(--margin-x);
+  right: var(--page-margin);
   /* "Designer"'s top is ~13.5vw above the bottom edge */
   top: min(var(--hero-intro-right-top), 100vh - 13.5vw - 7.5em);
   text-align: right;
 }
 .hero-intro p {
   text-wrap: pretty; /* no last line of a single word */
+}
+/* A tablet: no smaller than 15px. */
+@media (max-width: 1024px) {
+  .hero-intro {
+    --hero-intro-size: 15px;
+  }
+}
+/* A phone: the two blocks one under the other at the top, as wide as the
+   page, at 15px — the second right under the first (--hero-intro-stack: the
+   first's height, which main.js measures). */
+@media (max-width: 767px) {
+  .hero-intro {
+    --hero-intro-size: 15px;
+    --hero-intro-left-top: 5.5rem;
+    --hero-intro-gap: 1em;
+    left: var(--page-margin);
+    right: var(--page-margin);
+    max-width: none;
+  }
+  .hero-intro-left {
+    top: var(--hero-intro-left-top);
+  }
+  .hero-intro-right {
+    top: calc(var(--hero-intro-left-top) + var(--hero-intro-stack, 5em) + var(--hero-intro-gap));
+    text-align: left;
+  }
 }
 #hero-section .hero-intro p,
 .ct.is-entered .hero-intro p {
@@ -336,12 +351,17 @@ body {
   display: inline-block;
   opacity: 0; /* initial state; updateCreativityPhrase() drives it */
 }
-@media (max-width: 768px) {
+/* A phone: bigger for its width, and the two lines centered on the screen,
+   one under the other, instead of stepped. */
+@media (max-width: 767px) {
   #creativity-phrase {
     --cp-size: 9vw;
-    --cp-line1-x: var(--margin-x);
-    --cp-line2-x: calc(var(--margin-x) + 12vw);
     --cp-line2-baseline: calc(44vh + 10.5vw);
+  }
+  .cp-line {
+    left: 0;
+    right: 0;
+    text-align: center;
   }
 }
 
@@ -531,6 +551,52 @@ body {
   width: 15vw;
   height: 15vh;
 }
+/* A screen taller than it is wide: the same seven, placed for it — wider
+   and in three rows, so that they still fill it as they grow (those
+   sizes in vw and vh would make them slivers). The center one still ends up
+   filling the screen (main.js reads its box). */
+@media (orientation: portrait) {
+  .zp-media {
+    width: 40vw;
+    height: 22vh;
+  }
+  .zp-layer:nth-of-type(2) .zp-media {
+    top: -27vh;
+    left: 12vw;
+    width: 46vw;
+    height: 22vh;
+  }
+  .zp-layer:nth-of-type(3) .zp-media {
+    top: -26vh;
+    left: -30vw;
+    width: 30vw;
+    height: 26vh;
+  }
+  .zp-layer:nth-of-type(4) .zp-media {
+    top: 0;
+    left: 36vw;
+    width: 26vw;
+    height: 18vh;
+  }
+  .zp-layer:nth-of-type(5) .zp-media {
+    top: 26vh;
+    left: 14vw;
+    width: 42vw;
+    height: 22vh;
+  }
+  .zp-layer:nth-of-type(6) .zp-media {
+    top: 24vh;
+    left: -30vw;
+    width: 32vw;
+    height: 20vh;
+  }
+  .zp-layer:nth-of-type(7) .zp-media {
+    top: 2vh;
+    left: -36vw;
+    width: 24vw;
+    height: 14vh;
+  }
+}
 /* "Still thirsty for more?": the black panel that comes up over the
    showreel after the zoom (main.js, updateMorePanel, which moves the panel
    and, inside it, its .more-block: centered here, a little off that on
@@ -681,7 +747,7 @@ body {
    (.zp-label). */
 .more-label {
   position: absolute;
-  left: var(--margin-x);
+  left: var(--page-margin);
   top: 6.5rem;
   color: rgba(255, 255, 255, 0.6);
   font-size: 0.7rem;
@@ -711,8 +777,8 @@ body {
    a struck one while it sounds ("Sound off"). */
 .zp-sound {
   position: absolute;
-  right: var(--margin-x);
-  bottom: 4vh;
+  right: var(--page-margin);
+  bottom: calc(4vh + var(--browser-bar));
   z-index: 2;
   opacity: 0;
   visibility: hidden;
@@ -730,6 +796,19 @@ body {
 .more-link:focus-visible {
   outline: 1px solid #ffffff;
   outline-offset: 4px;
+}
+/* A phone: the title bigger for its width (still much smaller than a wide
+   screen's), the text and the link under it, centered. */
+@media (max-width: 767px) {
+  .more {
+    --more-size: 13vw;
+    --more-gap: 7vw;
+  }
+  .more-info {
+    max-width: 26ch;
+    font-size: 15px;
+    text-align: center;
+  }
 }
 /* Experience: the section after the "Still thirsty" screen on the panel's
    track (src/experience.js, which builds the points from XP_ITEMS and
@@ -784,7 +863,7 @@ body {
    background-clip: text is not supported. */
 .xp-title {
   position: absolute;
-  left: var(--margin-x);
+  left: var(--page-margin);
   bottom: calc(100% - var(--xp-title-y) - 0.757em); /* its capitals' middle is 0.757em above its box's bottom */
   margin-left: calc(-0.12em - var(--xp-title-inset));
   padding: 0.25em 0.12em;
@@ -813,7 +892,7 @@ body {
 }
 .xp-line {
   position: absolute;
-  left: var(--margin-x);
+  left: var(--page-margin);
   right: 0;
   top: calc(var(--xp-line-y) - 0.75px);
   height: 1.5px;
@@ -940,7 +1019,7 @@ body {
      --ab-title-gap       space between one "About me" and the next: about
                           the width of an "o"
    The texts are in one grid (.ab-grid): twelve columns inside the page's
-   margins (--margin-x, the nav's: the logo's left edge and the clock's right
+   margins (--page-margin, the nav's: the logo's left edge and the clock's right
    one), --ab-gutter (the page's, --grid-gutter) between them. What is on the left starts on the first
    column, what is on the right ends on the last; every paragraph is
    --ab-text-cols columns wide.
@@ -957,7 +1036,7 @@ body {
                           text */
 .ab {
   --ab-title-size: min(57vh, 42vw);
-  --ab-title-top: 23.4vh;
+  --ab-title-top: max(23.4vh, 10rem); /* (never up at the section's label, on a very low window) */
   --ab-title-gap: 0.56em;
   --ab-text-size: clamp(2.6rem, 7.9vw, 11rem);
   --ab-gutter: var(--grid-gutter);
@@ -1102,8 +1181,8 @@ body {
    text, on the right; two paragraphs side by side, one on each margin. */
 .ab-grid {
   position: absolute;
-  left: var(--margin-x);
-  right: var(--margin-x);
+  left: var(--page-margin);
+  right: var(--page-margin);
   bottom: var(--ab-flow-bottom);
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -1156,8 +1235,8 @@ html.is-grid body::after {
   position: fixed;
   top: 0;
   bottom: 0;
-  left: var(--margin-x);
-  right: var(--margin-x);
+  left: var(--page-margin);
+  right: var(--page-margin);
   z-index: 60;
   background: repeating-linear-gradient(to right, rgba(0, 229, 255, 0.1) 0, rgba(0, 229, 255, 0.1) var(--grid-col), transparent var(--grid-col), transparent calc(var(--grid-col) + var(--grid-gutter)));
   box-shadow: inset 1px 0 #00e5ff, inset -1px 0 #00e5ff;
@@ -1165,13 +1244,17 @@ html.is-grid body::after {
 }
 /* One column: everything from the left margin, the paragraphs as wide as
    the screen lets them. */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .ab {
-    --ab-title-top: 14vh;
-    --ab-text-size: 7.6vw; /* the first text stays left of the face */
+    --ab-title-size: 32vw;
+    --ab-title-top: max(27vh, 11.5rem); /* lower than a wide screen's: well under the section's label */
+    --ab-text-size: 12vw;
   }
   .ab-grid > * {
     grid-column: 1 / -1;
+  }
+  .ab-text {
+    font-size: 15px;
   }
   .ab-block-2 {
     justify-self: start;
@@ -1242,6 +1325,19 @@ html.is-grid body::after {
   --ct-contact-scale: 1.25;
   font-size: calc(var(--hero-intro-size) * var(--ct-contact-scale));
 }
+/* (a phone, where the two are stacked at the top: under the section's label) */
+@media (max-width: 767px) {
+  .ct .hero-intro {
+    --hero-intro-left-top: 8.75rem;
+  }
+}
+/* (from there up to 1100px the foot is over the headline, where the e-mail
+   and the phone would be: they start higher) */
+@media (min-width: 768px) and (max-width: 1100px) {
+  .ct .hero-intro-right {
+    --hero-intro-right-top: 34vh;
+  }
+}
 .ct .hero-intro p {
   opacity: 0;
 }
@@ -1293,13 +1389,38 @@ html.is-grid body::after {
   background-color: #ffffff;
   color: #141414;
 }
+/* A finger (no hover): everything that is pressed has 44px to be pressed on
+   — a line each for the e-mail and the phone, and around the small ones
+   (the "copy" pill, "Back to top", the panel's link) an area of that height
+   which is not drawn. */
+@media (hover: none) {
+  .ct .hero-intro-right p {
+    line-height: 44px;
+  }
+  .ct-copy,
+  .ct-top,
+  .more-link {
+    position: relative;
+  }
+  .ct-copy::after,
+  .ct-top::after,
+  .more-link::after {
+    content: "";
+    position: absolute;
+    left: -10px;
+    right: -10px;
+    top: 50%;
+    height: 44px;
+    transform: translateY(-50%);
+  }
+}
 /* The foot: in line with the logo on the left and with the clock on the
    right, under the headline's ends. */
 .ct-foot {
   position: absolute;
-  left: var(--margin-x);
-  right: var(--margin-x);
-  bottom: 2.6vh;
+  left: var(--page-margin);
+  right: var(--page-margin);
+  bottom: calc(2.6vh + var(--browser-bar));
   z-index: 3;
   display: flex;
   justify-content: space-between;
@@ -1314,7 +1435,7 @@ html.is-grid body::after {
    tall, a little over the bottom edge). */
 @media (max-width: 1100px) {
   .ct-foot {
-    bottom: calc(26.04vw + 4.5vh);
+    bottom: calc(26.04vw + 4.5vh + var(--browser-bar));
   }
 }
 /* prefers-reduced-motion: a plain screen of the page after About me, all of
@@ -1346,18 +1467,22 @@ html.is-grid body::after {
 .xp-plane.is-behind {
   z-index: 0;
 }
-@media (max-width: 768px) {
+/* A phone: each job has the screen to itself (experience.js, XP_PHONE: its
+   point in the middle, the line lower than half way down) — the title at the
+   top, what the job was over the line and a few words about it under it,
+   centered, neither wider than 80% of the screen. */
+@media (max-width: 767px) {
   .xp {
-    --xp-title-size: 9vw;
-    --xp-role-size: 0.85rem;
-    --xp-detail-size: 0.7rem;
-    --xp-text-width: 40cqw;
-    --xp-desc-width: 42cqw;
-    --xp-dot: 11px;
+    --xp-title-size: 10.5vw;
+    --xp-title-y: 24%;
+    --xp-role-size: 1.15rem;
+    --xp-detail-size: 0.875rem;
+    --xp-text-width: 80cqw;
+    --xp-desc-width: 80cqw;
+    --xp-dot: 12px;
   }
   .xp-desc {
     max-width: var(--xp-desc-width);
-    font-size: 13px;
   }
 }
 /* prefers-reduced-motion (experience.js moves the section out of the panel
@@ -1369,7 +1494,7 @@ html.is-grid body::after {
   width: 100%;
   height: auto;
   min-height: 100vh;
-  padding: 16vh var(--margin-x) 14vh;
+  padding: 16vh var(--page-margin) 14vh;
   overflow: hidden;
   overflow: clip;
   background-color: #0a0a0a;
@@ -1423,7 +1548,7 @@ html.is-grid body::after {
   opacity: 1;
 }
 .xp.is-static .xp-plane {
-  inset: 12vh var(--margin-x) auto auto;
+  inset: 12vh var(--page-margin) auto auto;
   width: min(34vw, 360px);
   height: auto;
   aspect-ratio: 16 / 10;
@@ -1486,7 +1611,7 @@ html.is-grid body::after {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 1.75rem var(--margin-x);
+  padding: 1.75rem var(--page-margin);
   pointer-events: none;
 }
 #site-nav .nav-logo {
@@ -1507,6 +1632,7 @@ html.is-grid body::after {
   pointer-events: auto;
 }
 #site-nav .nav-links a,
+#site-nav .nav-menu,
 #site-nav .nav-clock {
   font-family: var(--font-sans);
   font-weight: 300; /* lightened from 500 per client feedback ("menú más fino") — size/tracking/logo untouched */
@@ -1518,6 +1644,24 @@ html.is-grid body::after {
 }
 #site-nav .nav-links a:hover {
   opacity: 0.6;
+}
+/* "menu": in the links' place, and as one of them, where they do not fit in
+   the bar (the tablet's and the phone's rules at the end of the nav's; it
+   opens .site-menu below). A plain word: what makes it big enough for a
+   finger is around it (padding taken back by its margin). */
+#site-nav .nav-menu {
+  display: none;
+  justify-self: center;
+  margin: -0.9rem -0.8rem;
+  padding: 0.9rem 0.8rem;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+#site-nav .nav-menu:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: -6px;
 }
 /* Live Valencia time at the right end of the bar, same size as the links (see
    shared selector above) — not a link itself so no hover/cursor
@@ -1540,6 +1684,7 @@ html.is-grid body::after {
    it), whatever the nav's ink is at that point. The transition only exists
    while the projects section is around (.is-in-projects). */
 #site-nav .nav-links a.is-white,
+#site-nav .nav-menu.is-white,
 #site-nav .nav-clock.is-white {
   color: #ffffff;
 }
@@ -1547,6 +1692,7 @@ html.is-grid body::after {
   filter: brightness(0) invert(1);
 }
 #site-nav.is-in-projects .nav-links a,
+#site-nav.is-in-projects .nav-menu,
 #site-nav.is-in-projects .nav-clock {
   transition: opacity 0.2s ease, color 0.3s ease;
 }
@@ -1558,6 +1704,7 @@ html.is-grid body::after {
    filters, which starts like the white one so the two blend, lands on
    #ff8a2a. */
 #site-nav.is-in-about .nav-links a,
+#site-nav.is-in-about .nav-menu,
 #site-nav.is-in-about .nav-clock {
   color: var(--c-orange);
 }
@@ -1566,8 +1713,10 @@ html.is-grid body::after {
 }
 /* (.is-leaving-about: for as long as the way back takes, main.js) */
 #site-nav.is-in-about .nav-links a,
+#site-nav.is-in-about .nav-menu,
 #site-nav.is-in-about .nav-clock,
 #site-nav.is-leaving-about .nav-links a,
+#site-nav.is-leaving-about .nav-menu,
 #site-nav.is-leaving-about .nav-clock {
   transition: opacity 0.2s ease, color 0.4s ease;
 }
@@ -1575,18 +1724,116 @@ html.is-grid body::after {
 #site-nav.is-leaving-about .nav-logo {
   transition: filter 0.4s ease;
 }
-@media (max-width: 768px) {
+/* A tablet and a phone: the links do not fit in the bar — "menu" instead,
+   between the logo and the clock, at a size that reads on a small screen. */
+@media (max-width: 1024px) {
+  #site-nav .nav-links {
+    display: none;
+  }
+  #site-nav .nav-menu {
+    display: block;
+  }
+  #site-nav .nav-menu,
+  #site-nav .nav-clock {
+    font-size: 1rem;
+  }
+}
+/* A phone: no clock; "menu" at the right end. */
+@media (max-width: 767px) {
   #site-nav {
-    padding: 1.25rem var(--margin-x);
+    padding: 1.25rem var(--page-margin);
   }
   #site-nav .nav-logo {
     height: 1.7rem;
   }
-  #site-nav .nav-links {
-    gap: 0.9rem;
-  }
-  #site-nav .nav-links a,
   #site-nav .nav-clock {
-    font-size: 0.75rem;
+    display: none;
   }
+  #site-nav .nav-menu {
+    grid-column: 3;
+    justify-self: end;
+  }
+}
+/* The menu open (src/menu.js builds it, from the nav's links): a screen of
+   the panel's black with the web's grain (.grain), under the bar, whose logo
+   and whose "close" (the same button) stay there, in cream whatever the
+   section's own ink is. The links: Inter Tight, big, one under the other on
+   the page's margin, coming up one after the other (--menu-delay each). The
+   one of the section on screen (.is-current), and the one under a cursor,
+   in the titles' Catavalo and gradient. */
+.site-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 49; /* just under the nav */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6rem var(--page-margin) 3rem;
+  background-color: #0a0a0a;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s ease, visibility 0s 0.4s;
+  touch-action: none; /* a finger does not move the page under it */
+  overscroll-behavior: contain;
+}
+.site-menu.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.4s ease;
+}
+.site-menu ul {
+  list-style: none;
+}
+.site-menu li {
+  opacity: 0;
+  transform: translate3d(0, 0.5em, 0);
+  font-size: clamp(2.75rem, 13vw, 6rem);
+  transition: opacity 0.3s ease, transform 0s 0.4s;
+}
+.site-menu.is-open li {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.5s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(0.12s + var(--menu-delay, 0s));
+}
+.site-menu-link {
+  display: inline-block;
+  padding: 0.06em 0.1em 0.1em 0;
+  font-family: var(--font-sans);
+  font-weight: 400;
+  letter-spacing: var(--tracking-sans);
+  line-height: 1.08;
+  color: var(--c-cream);
+  text-decoration: none;
+}
+.site-menu-link.is-current {
+  font-family: var(--font-display);
+  font-weight: 300;
+  letter-spacing: normal;
+  color: var(--c-orange);
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .site-menu-link.is-current {
+    background-image: var(--more-grain), var(--more-gradient);
+    background-size: 200px 200px, 100% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+@media (hover: hover) {
+  .site-menu-link:not(.is-current):hover {
+    color: var(--c-orange);
+  }
+}
+.site-menu-link:focus-visible {
+  outline: 1px solid var(--c-cream);
+  outline-offset: 2px;
+}
+#site-nav.is-menu-open .nav-menu,
+#site-nav.is-menu-open .nav-clock {
+  color: var(--c-cream);
+}
+#site-nav.is-menu-open .nav-logo {
+  filter: brightness(0) invert(1);
 }

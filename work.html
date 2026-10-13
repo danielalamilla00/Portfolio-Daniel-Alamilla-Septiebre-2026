@@ -102,7 +102,7 @@
     font-size: calc(1em * var(--section-title-sans-scale));
     letter-spacing: var(--tracking-sans); color: var(--ink);
   }
-  @media (max-width: 768px) {
+  @media (max-width: 767px) {
     .section-title { left: 0; width: auto; transform: none; text-align: center; }
     .section-title-line { white-space: normal; }
   }
@@ -221,24 +221,24 @@
     width: auto;
   }
   #wk-footer { padding: 0; }
-  @media (max-width: 768px) { #wk-footer { padding: 2rem 2rem 3.5rem; } }
+  @media (max-width: 767px) { #wk-footer { padding: 2rem 2rem 3.5rem; } }
   /* "(c) 2026 Daniel Alamilla" (.site-credit, type.css): at the foot's left,
      level with the rest — under the logo in the grid's foot (the nav's side
      padding), on the page's margin in a project's (whose body has 2.5rem of
      its own at the sides); under the rest on a narrow screen. */
   .shared-footer .site-credit { --credit-ink: var(--ink-dim); position: absolute; left: 2.5rem; }
-  #card-expand-body .shared-footer .site-credit { left: calc(var(--margin-x) - 2.5rem); }
-  @media (max-width: 768px) {
+  #card-expand-body .shared-footer .site-credit { left: calc(var(--page-margin) - 2.5rem); }
+  @media (max-width: 767px) {
     .shared-footer { flex-wrap: wrap; }
     .shared-footer .site-credit { position: static; order: 1; flex-basis: 100%; margin-top: 0.8rem; text-align: center; }
   }
 
   /* ── Responsive ─────────────────────────────────────────────────────────── */
 
-  @media (max-width: 768px) {
+  @media (max-width: 767px) {
     #wk-body { padding: 8rem 2.5rem 0; }
   }
-  @media (max-width: 768px) {
+  @media (max-width: 767px) {
     #wk-nav a:last-child { display: none; }
     #wk-grid { max-width: 100%; gap: 0.75rem; }
     .wk-grid-block { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -392,10 +392,15 @@
     cursor: pointer; z-index: 510; opacity: 0; pointer-events: none;
     transition: opacity 250ms var(--ease-out) 350ms, background 140ms;
   }
+  /* (a finger: 44px to press on, for the close button and the nav's link) */
+  @media (hover: none) {
+    #card-expand-close { width: 44px; height: 44px; top: 1rem; right: 1rem; }
+    #wk-nav a { display: inline-flex; align-items: center; min-height: 44px; }
+  }
   #card-expand.is-open { pointer-events: auto; }
   #card-expand.is-open #card-expand-meta  { opacity: 1; }
   #card-expand.is-open #card-expand-close { opacity: 1; pointer-events: auto; }
-  @media (max-width: 768px) {
+  @media (max-width: 767px) {
     #card-expand-challenge-videos, #card-expand-process-videos,
     #card-expand-process-images,   #card-expand-final-videos { grid-template-columns: 1fr; }
     #card-expand-body .ex-body-section { margin: 4rem auto 2rem; }
@@ -435,6 +440,7 @@
   import { applyPalette } from "/src/palette.js";
   import { rasterInk, clearInkCache } from "/src/ink.js";
   import { applyGrain } from "/src/grain.js";
+  import { onViewportChange, MOBILE_MAX_PX } from "/src/viewport.js";
   applyPalette();
   applyGrain(); // the web's grain on the page's dark backgrounds (.grain)
 
@@ -444,15 +450,14 @@
   // Widths are read with the titles at their full size; where the ink of a
   // title starts and ends, from the pixels of its first and last words
   // (ink.js, as the home's headline).
-  const SECTION_TITLE_MOBILE_MAX_PX = 768; // up to here they wrap instead (the stylesheet)
   window.layoutSectionTitles = () => {
     const page = document.documentElement;
     const titles = Array.from(document.querySelectorAll(".section-title")).filter((title) => title.firstElementChild && title.offsetParent);
     if (!titles.length) return;
     page.style.setProperty("--section-title-fit", "1");
     titles.forEach((title) => title.style.removeProperty("--section-title-ink"));
-    if (window.innerWidth <= SECTION_TITLE_MOBILE_MAX_PX) return;
-    const margin = parseFloat(getComputedStyle(document.querySelector("#wk-margin-probe")).width); // --margin-x, in px
+    if (window.innerWidth <= MOBILE_MAX_PX) return;
+    const margin = parseFloat(getComputedStyle(document.querySelector("#wk-margin-probe")).width); // --page-margin, in px
     const room = window.innerWidth - 2 * margin;
     const wide = (title) => {
       const words = title.querySelectorAll(".section-title-word");
@@ -474,14 +479,14 @@
     });
   };
   window.layoutSectionTitles();
-  window.addEventListener("resize", window.layoutSectionTitles);
+  onViewportChange(window.layoutSectionTitles);
   document.fonts.ready.then(() => {
     clearInkCache(); // (what was drawn before the font was there)
     window.layoutSectionTitles();
   });
 </script>
-<!-- (the page's side margin, --margin-x, as a length that can be read in px) -->
-<div id="wk-margin-probe" aria-hidden="true" style="position:absolute;visibility:hidden;height:0;width:var(--margin-x)"></div>
+<!-- (the page's side margin, --page-margin, as a length that can be read in px) -->
+<div id="wk-margin-probe" aria-hidden="true" style="position:absolute;visibility:hidden;height:0;width:var(--page-margin)"></div>
 
 <nav id="wk-nav">
   <a href="index.html"><span class="wk-logo" role="img" aria-label="Alamilla"></span></a>
@@ -1025,7 +1030,7 @@
     if (!el || !sticky || sticky.style.display === 'none') return;
     const stickyRect = sticky.getBoundingClientRect();
     const vw = window.innerWidth;
-    const videoW = window.matchMedia('(max-width: 768px)').matches ? vw * 0.9 : vw * 0.8;
+    const videoW = window.matchMedia('(max-width: 767px)').matches ? vw * 0.9 : vw * 0.8;
     el.style.width      = videoW + 'px';
     el.style.height     = (videoW * 9 / 16) + 'px';
     el.style.marginLeft = (vw / 2 - videoW / 2 - stickyRect.left) + 'px';
@@ -1147,7 +1152,7 @@
       });
       cardExpandProcessImages.innerHTML = '';
       (p.processImages || []).forEach(src => {
-        const img = document.createElement('img'); img.src = src; img.alt = '';
+        const img = document.createElement('img'); img.loading = 'lazy'; img.decoding = 'async'; img.src = src; img.alt = '';
         cardExpandProcessImages.appendChild(img);
       });
       cardExpandFinalVideos.innerHTML = '';
@@ -1162,7 +1167,7 @@
         if (/\.mp4$/i.test(src)) {
           el = document.createElement('video');
           el.src = src; el.autoplay = true; el.loop = true; el.muted = true; el.playsInline = true;
-        } else { el = document.createElement('img'); el.src = src; el.alt = ''; }
+        } else { el = document.createElement('img'); el.loading = 'lazy'; el.decoding = 'async'; el.src = src; el.alt = ''; }
         cardExpandStyleframes.appendChild(el);
       });
     }

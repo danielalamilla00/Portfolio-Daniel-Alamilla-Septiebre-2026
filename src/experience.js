@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { ORANGE_PALETTE } from "./palette.js";
+import { onViewportChange, canvasPixelRatio, MOBILE_MAX_PX } from "./viewport.js";
 
 // ---- Experience: a horizontal timeline flown over by a paper plane ----------
 // Once the black panel (.more, see main.js "Still thirsty" and index.html) is
@@ -27,18 +28,22 @@ import { ORANGE_PALETTE } from "./palette.js";
 //                       texts, which are all placed by the camera
 //   XP_VH_PER_VW        vertical scroll that moves the camera 1vw
 //   XP_ARRIVE_HOLD_VH   scroll for which the section stays as it arrives
-//   XP_LINE_Y           the line's height on the screen (0 top, 1 bottom)
-//   XP_FIRST_DOT_VW     where the first point is, from the section's left edge
-//   XP_DOT_SPACING_VW   distance between points
-//   XP_END_PAD_VW       track left after the last point
-// (track = 100 + XP_WIDTH_VW; the camera travels XP_WIDTH_VW.)
+// The track's shape, a wide screen's (XP_WIDE) and a phone's (XP_PHONE,
+// where each job has the screen to itself: its point in the middle, a whole
+// screen from the next):
+//   lineY      the line's height on the screen (0 top, 1 bottom)
+//   firstDot   where the first point is, vw from the section's left edge
+//   spacing    distance between points, vw
+//   endPad     track left after the last point, vw
+//   passAt     where on screen (% of its width) each point is when the plane
+//              goes through it: this is what ties the plane to the camera,
+//              and keeps it around the middle of the screen
+// (track = 100 + its width; the camera travels its width.)
 const EXPERIENCE_SCROLL_MULT = 1.6;
 const XP_VH_PER_VW = 1.75 * EXPERIENCE_SCROLL_MULT;
 const XP_ARRIVE_HOLD_VH = 40 * EXPERIENCE_SCROLL_MULT;
-const XP_LINE_Y = 0.72;
-const XP_FIRST_DOT_VW = 25;
-const XP_DOT_SPACING_VW = 45;
-const XP_END_PAD_VW = 50;
+const XP_WIDE = { lineY: 0.72, firstDot: 25, spacing: 45, endPad: 50, passAt: [56, 58, 60, 64] };
+const XP_PHONE = { lineY: 0.6, firstDot: 50, spacing: 100, endPad: 50, passAt: [62, 62, 62, 64] };
 const XP_ITEMS = [
   {
     role: "Video Editor & Digital Content Creator",
@@ -66,13 +71,13 @@ const XP_ITEMS = [
     description: "Dynamic and static content for screens and holograms, managing the full production and working directly with clients.",
   },
 ];
-const dotX = (index) => XP_FIRST_DOT_VW + index * XP_DOT_SPACING_VW;
-const XP_WIDTH_VW = dotX(XP_ITEMS.length - 1) + XP_END_PAD_VW;
-const XP_CAMERA_VW = XP_WIDTH_VW;
+const trackWidth = (shape) => shape.firstDot + (XP_ITEMS.length - 1) * shape.spacing + shape.endPad; // vw
 // Scroll, in vh from where the track starts to move: until the section fills
-// the screen, and for the whole move (hold included).
+// the screen, and for the whole move (hold included). The same on every
+// screen (it is the wide track's): the page is as long on a phone, whose
+// longer track the camera goes along faster once the section is in place.
 export const XP_ARRIVE_VH = 100 * XP_VH_PER_VW;
-export const XP_SCROLL_VH = XP_CAMERA_VW * XP_VH_PER_VW + XP_ARRIVE_HOLD_VH;
+export const XP_SCROLL_VH = trackWidth(XP_WIDE) * XP_VH_PER_VW + XP_ARRIVE_HOLD_VH;
 
 // The plane's route: a smooth curve (Catmull-Rom) that comes in from under
 // the screen, goes through every point of the line and leaves past the right
@@ -100,11 +105,7 @@ export const XP_SCROLL_VH = XP_CAMERA_VW * XP_VH_PER_VW + XP_ARRIVE_HOLD_VH;
 //                            (it leaves when the camera stops)
 //   XP_DOT_DEPTH             its depth as it goes through each point: behind
 //                            or in front of the point and the line
-//   XP_PASS_AT               where on screen (% of its width) each point is
-//                            when the plane goes through it: this is what ties
-//                            the plane to the camera, and keeps it around the
-//                            middle of the screen
-//   XP_MOBILE_AMPLITUDE      the heights are multiplied by this up to 768px wide
+//   XP_MOBILE_AMPLITUDE      the heights are multiplied by this on a phone (under 768px wide)
 const XP_PATH_ENTRY = [-25, 0.9];
 const XP_PATH_EXIT = [22, 1];
 const XP_PATH_OFFSCREEN = 0.8;
@@ -124,9 +125,7 @@ const XP_PATH_LEGS = [
   // to the front and out to the right, climbing and coming closer
   [[0.03, -1.5, 0], [0.12, -6, -0.4], [0.3, -10, -0.3], [0.42, -10, 0], [0.6, 3, 0.7], [0.82, 14, 1]],
 ];
-const XP_PASS_AT = [56, 58, 60, 64];
 const XP_MOBILE_AMPLITUDE = 0.6;
-const XP_MOBILE_MAX_PX = 768;
 
 // The plane itself: a low-poly dart, XP_PLANE_VW long, seen at an angle
 // (XP_PLANE_TILT, radians around its own length) so its wings show. It is
@@ -141,7 +140,7 @@ const XP_MOBILE_MAX_PX = 768;
 // XP_BANK_MAX). Where it is and how it is turned come from the scroll alone:
 // when the scroll stops, so does the plane.
 const XP_PLANE_VW = 12;
-const XP_MOBILE_PLANE_VW = 20; // up to 768px wide
+const XP_MOBILE_PLANE_VW = 20; // on a phone (under 768px wide)
 // Its shape, in plane lengths: nose forward (+x), wings along z, the fold of
 // the keel underneath.
 const XP_PLANE_SHAPE = {
@@ -293,13 +292,15 @@ export function createExperience(panel, reducedMotion) {
   const photo = panel.querySelector(".ab"); // the next section, which the way back opens...
   const picture = photo.querySelector(".ab-photo img"); // ...and its picture
 
-  panel.style.setProperty("--xp-width", `${XP_WIDTH_VW}cqw`);
-  panel.style.setProperty("--xp-line-y", `${XP_LINE_Y * 100}%`);
+  // The track's shape on this screen (buildFlight sets it, and the
+  // stylesheet's --xp-width, --xp-line-y and each point's --xp-x from it).
+  let shape = XP_WIDE;
+  let trackVw = trackWidth(shape);
+  const dotX = (index) => shape.firstDot + index * shape.spacing;
 
   const items = XP_ITEMS.map((item, index) => {
     const el = document.createElement("li");
     el.className = "xp-item";
-    el.style.setProperty("--xp-x", `${dotX(index)}cqw`);
     const dot = document.createElement("span");
     dot.className = "xp-dot";
     const text = document.createElement("p");
@@ -329,7 +330,7 @@ export function createExperience(panel, reducedMotion) {
   let plane = null;
   function createPlane() {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(canvasPixelRatio());
     renderer.setClearColor(0x000000, 0);
     scene = new THREE.Scene();
     camera = new THREE.OrthographicCamera(0, 1, 1, -1, 0.1, 4000); // sized in px by sizePlane()
@@ -420,8 +421,8 @@ export function createExperience(panel, reducedMotion) {
   function sizePlane() {
     renderer.setSize(width, height, false);
     camera.right = width; // world units = px, the line at y = 0
-    camera.top = height * XP_LINE_Y;
-    camera.bottom = -height * (1 - XP_LINE_Y);
+    camera.top = height * shape.lineY;
+    camera.bottom = -height * (1 - shape.lineY);
     camera.updateProjectionMatrix();
   }
 
@@ -442,13 +443,13 @@ export function createExperience(panel, reducedMotion) {
       height = canvas.clientHeight;
       if (!renderer) createPlane();
       sizePlane();
-      plane.position.set(width / 2, height * (XP_LINE_Y - 0.5), 0); // the middle of its canvas
+      plane.position.set(width / 2, height * (shape.lineY - 0.5), 0); // the middle of its canvas
       plane.scale.setScalar(width * 0.7);
       plane.rotation.set(XP_PLANE_TILT, -0.25, 0.12);
       renderer.render(scene, camera);
     };
     draw();
-    window.addEventListener("resize", draw);
+    onViewportChange(draw);
     return { update() {} };
   }
 
@@ -463,17 +464,22 @@ export function createExperience(panel, reducedMotion) {
     width = panel.clientWidth;
     height = panel.clientHeight;
     unit = width / 100;
-    planeSize = (width <= XP_MOBILE_MAX_PX ? XP_MOBILE_PLANE_VW : XP_PLANE_VW) * unit;
-    const vh = (height / 100) * (width <= XP_MOBILE_MAX_PX ? XP_MOBILE_AMPLITUDE : 1);
+    shape = width <= MOBILE_MAX_PX ? XP_PHONE : XP_WIDE;
+    trackVw = trackWidth(shape);
+    panel.style.setProperty("--xp-width", `${trackVw}cqw`);
+    panel.style.setProperty("--xp-line-y", `${shape.lineY * 100}%`);
+    items.forEach((item, index) => item.el.style.setProperty("--xp-x", `${dotX(index)}cqw`));
+    planeSize = (width <= MOBILE_MAX_PX ? XP_MOBILE_PLANE_VW : XP_PLANE_VW) * unit;
+    const vh = (height / 100) * (width <= MOBILE_MAX_PX ? XP_MOBILE_AMPLITUDE : 1);
     const dots = items.map((_, index) => dotX(index));
     // [vw, px above the line, depth]. The two ends are out of the picture
     // whatever its shape: under the bottom edge, and past the right edge of
     // what the camera shows when it stops.
     const outside = XP_PATH_OFFSCREEN * planeSize;
     const waypoints = [
-      [dots[0] + XP_PATH_ENTRY[0], -height * (1 - XP_LINE_Y) - outside, XP_PATH_ENTRY[1]],
+      [dots[0] + XP_PATH_ENTRY[0], -height * (1 - shape.lineY) - outside, XP_PATH_ENTRY[1]],
       ...dots.map((x, index) => [x, 0, XP_DOT_DEPTH[index]]),
-      [XP_WIDTH_VW + outside / unit, XP_PATH_EXIT[0] * vh, XP_PATH_EXIT[1]],
+      [trackVw + outside / unit, XP_PATH_EXIT[0] * vh, XP_PATH_EXIT[1]],
     ];
     const points = [];
     const waypointAt = []; // index of each waypoint among the curve's points
@@ -515,21 +521,21 @@ export function createExperience(panel, reducedMotion) {
 
     // Camera positions (vw travelled) at which the plane is at each waypoint:
     // still out of sight until XP_PATH_ENTER_CAMERA_VW, then through every
-    // point when that point is at its XP_PASS_AT, and gone when the camera
+    // point when that point is at its passAt, and gone when the camera
     // stops.
-    const cameraAt = [XP_PATH_ENTER_CAMERA_VW, ...dots.map((x, index) => 100 + x - XP_PASS_AT[index]), XP_CAMERA_VW];
+    const cameraAt = [XP_PATH_ENTER_CAMERA_VW, ...dots.map((x, index) => 100 + x - shape.passAt[index]), trackVw];
 
     // The way back. Distances along its line are px from the entry point; the
     // screen takes up `first`..`last` of it. The plane's middle starts where
     // its nose is still out of sight and ends where its tail is.
-    const entry = new THREE.Vector3(XP_OUT_ENTRY[0] * width, (XP_LINE_Y - XP_OUT_ENTRY[1]) * height, 0);
-    const heading = new THREE.Vector3(XP_OUT_EXIT[0] * width, (XP_LINE_Y - XP_OUT_EXIT[1]) * height, 0).sub(entry).normalize();
-    const reach = [0, width].flatMap((x) => [height * XP_LINE_Y, -height * (1 - XP_LINE_Y)].map((y) => (x - entry.x) * heading.x + (y - entry.y) * heading.y));
+    const entry = new THREE.Vector3(XP_OUT_ENTRY[0] * width, (shape.lineY - XP_OUT_ENTRY[1]) * height, 0);
+    const heading = new THREE.Vector3(XP_OUT_EXIT[0] * width, (shape.lineY - XP_OUT_EXIT[1]) * height, 0).sub(entry).normalize();
+    const reach = [0, width].flatMap((x) => [height * shape.lineY, -height * (1 - shape.lineY)].map((y) => (x - entry.x) * heading.x + (y - entry.y) * heading.y));
     const start = Math.min(...reach) - planeSize * XP_OUT_SIZE[0] * (XP_PLANE_SHAPE.nose[0] + 0.5);
     const end = Math.max(...reach) + planeSize * XP_OUT_SIZE[1] * (0.5 - XP_OUT_TAIL[0]);
     const back = { entry, heading, start, travel: end - start, turn: Math.atan2(-heading.y, -heading.x), far: Math.hypot(width, height) * 4 };
 
-    flight = { table, along, cameraAt, alongAt: monotone(cameraAt, along), lineStart: line.offsetLeft, lineEnd: XP_WIDTH_VW * unit, back };
+    flight = { table, along, cameraAt, alongAt: monotone(cameraAt, along), lineStart: line.offsetLeft, lineEnd: trackVw * unit, back };
   }
   const sample = (values, at) => {
     const f = clamp(at, 0, 1) * XP_SAMPLES;
@@ -617,7 +623,7 @@ export function createExperience(panel, reducedMotion) {
       const angle = from + (open * step) / steps;
       corners.push([tail.x + Math.cos(angle) * far, tail.y + Math.sin(angle) * far]);
     }
-    photo.style.clipPath = `polygon(${corners.map(([x, y]) => `${x.toFixed(1)}px ${(height * XP_LINE_Y - y).toFixed(1)}px`).join(",")})`; // the screen's y goes down
+    photo.style.clipPath = `polygon(${corners.map(([x, y]) => `${x.toFixed(1)}px ${(height * shape.lineY - y).toFixed(1)}px`).join(",")})`; // the screen's y goes down
   }
   function readyPlane() {
     if (renderer) return;
@@ -670,7 +676,9 @@ export function createExperience(panel, reducedMotion) {
     out = clamp(vh - XP_SCROLL_VH, 0, XP_OUT_VH);
     // The camera: to where the section fills the screen, a hold there, and on.
     const moved = clamp(vh, 0, XP_SCROLL_VH);
-    cameraVw = moved <= XP_ARRIVE_VH ? moved / XP_VH_PER_VW : 100 + Math.max(0, moved - XP_ARRIVE_VH - XP_ARRIVE_HOLD_VH) / XP_VH_PER_VW;
+    // (after the hold: what is left of the track in what is left of the scroll — XP_VH_PER_VW on a wide screen)
+    const rest = (XP_SCROLL_VH - XP_ARRIVE_VH - XP_ARRIVE_HOLD_VH) / (trackVw - 100);
+    cameraVw = moved <= XP_ARRIVE_VH ? moved / XP_VH_PER_VW : 100 + Math.max(0, moved - XP_ARRIVE_VH - XP_ARRIVE_HOLD_VH) / rest;
     track.style.transform = `translate3d(${(-cameraVw * unit).toFixed(2)}px, 0, 0)`;
 
     at = flight.alongAt(cameraVw);
@@ -706,7 +714,7 @@ export function createExperience(panel, reducedMotion) {
   }
 
   layout();
-  window.addEventListener("resize", layout);
+  onViewportChange(layout);
   if (window.requestIdleCallback) window.requestIdleCallback(readyPlane, { timeout: 3000 });
   else setTimeout(readyPlane, 1500); // Safari
   return { update };

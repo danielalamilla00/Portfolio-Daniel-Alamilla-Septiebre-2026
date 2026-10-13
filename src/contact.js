@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createAura, auraFinalShape } from "./aura.js";
+import { onViewportChange, canvasPixelRatio } from "./viewport.js";
 
 // ---- Contact --------------------------------------------------------------------
 // The last screen (.ct), in the same black panel as the sections before it.
@@ -89,7 +90,7 @@ export function createContact(reducedMotion) {
   function readyAura() {
     if (renderer) return;
     renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(canvasPixelRatio());
     aura = createAura(CONTACT_BLACK);
     scene = new THREE.Scene();
     scene.add(aura.mesh);
@@ -133,7 +134,7 @@ export function createContact(reducedMotion) {
       drawAura(CONTACT_AURA_INTENSITY);
     };
     draw();
-    window.addEventListener("resize", draw);
+    onViewportChange(draw);
     return { update() {}, showing: () => false };
   }
 
@@ -161,7 +162,7 @@ export function createContact(reducedMotion) {
     update(Math.max(scrolled, 0), true);
   }
   layout();
-  window.addEventListener("resize", layout);
+  onViewportChange(layout);
   if (window.requestIdleCallback) window.requestIdleCallback(readyAura, { timeout: 4000 });
   else setTimeout(readyAura, 2000); // Safari
   // showing(): some of it is on screen (main.js keeps its headline's focus going).

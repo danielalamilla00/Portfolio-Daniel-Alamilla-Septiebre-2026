@@ -4,6 +4,8 @@ import { createAura } from "./aura.js";
 import { startNavClock } from "./clock.js";
 import { PROJECTS } from "./data/projects.js";
 import { rasterInk, clearInkCache } from "./ink.js";
+import { onViewportChange, canvasPixelRatio, MOBILE_MAX_PX } from "./viewport.js";
+import { setupMenu } from "./menu.js";
 
 // ---- Works: every project, a row each --------------------------------------------------
 // The rows of works.html, one per project (src/data/projects.js), from the
@@ -18,14 +20,13 @@ import { rasterInk, clearInkCache } from "./ink.js";
 // margin, beside the picture (only where the two would run into each other —
 // a narrow screen — is the picture put under it). At rest the picture is
 // WORKS_THUMB_VW wide; in the row at the middle, WORKS_THUMB_ACTIVE_VW
-// (WORKS_MOBILE_* up to WORKS_MOBILE_MAX_PX wide): the one box, scaled. The
+// (WORKS_MOBILE_* up to MOBILE_MAX_PX wide): the one box, scaled. The
 // height it gains belongs to the middle of the screen, not to a row: a row
 // has as much of it as it is over that middle, so as one row opens the one
 // leaving closes by the same and the rows around only move to make room. The
 // same share (0..1) takes its title from WORKS_TITLE_DIM to all there.
 const WORKS_THUMB_VW = 18;
 const WORKS_THUMB_ACTIVE_VW = 40;
-const WORKS_MOBILE_MAX_PX = 768;
 const WORKS_MOBILE_THUMB_VW = 40;
 const WORKS_MOBILE_THUMB_ACTIVE_VW = 84;
 const WORKS_THUMB_RATIO = 16 / 9;
@@ -64,7 +65,7 @@ const WORKS_NEAR_ROWS = 3;
 // are black.
 //   WORKS_AURA_CENTER        its center, as fractions of the width and height
 //   WORKS_AURA_DIAMETER_VH   its diameter (WORKS_MOBILE_AURA_DIAMETER_VW of
-//                            the width up to WORKS_MOBILE_MAX_PX wide)
+//                            the width up to MOBILE_MAX_PX wide)
 //   WORKS_AURA_INTENSITY     how opaque it is over the black (1 = as the
 //                            home's). Lower, so darker, here: as much as it
 //                            takes for the cream title of the row at the
@@ -82,11 +83,12 @@ const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 applyPalette();
 startNavClock();
+setupMenu();
 const stage = document.querySelector(".wk");
 // The aura: its own small renderer, drawn once per size of the screen.
 const auraCanvas = stage.querySelector(".wk-aura");
 const auraRenderer = new THREE.WebGLRenderer({ canvas: auraCanvas, antialias: false });
-auraRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+auraRenderer.setPixelRatio(canvasPixelRatio());
 const aura = createAura(WORKS_BLACK);
 const auraScene = new THREE.Scene();
 auraScene.add(aura.mesh);
@@ -97,8 +99,8 @@ function drawAura(width, height) {
   uniforms.uViewport.value.set(width, height);
   uniforms.uPixelRatio.value = auraRenderer.getPixelRatio();
   uniforms.uCenter.value.set(WORKS_AURA_CENTER[0] * width, WORKS_AURA_CENTER[1] * height);
-  uniforms.uRadius.value = (width <= WORKS_MOBILE_MAX_PX ? (WORKS_MOBILE_AURA_DIAMETER_VW / 100) * width : (WORKS_AURA_DIAMETER_VH / 100) * height) / 2;
-  uniforms.uAlpha.value = width <= WORKS_MOBILE_MAX_PX ? WORKS_MOBILE_AURA_INTENSITY : WORKS_AURA_INTENSITY;
+  uniforms.uRadius.value = (width <= MOBILE_MAX_PX ? (WORKS_MOBILE_AURA_DIAMETER_VW / 100) * width : (WORKS_AURA_DIAMETER_VH / 100) * height) / 2;
+  uniforms.uAlpha.value = width <= MOBILE_MAX_PX ? WORKS_MOBILE_AURA_INTENSITY : WORKS_AURA_INTENSITY;
   auraRenderer.render(auraScene, auraCamera);
 }
 
@@ -138,9 +140,10 @@ const rows = PROJECTS.map((project, index) => {
     zoom.appendChild(video);
   }
   // Over the picture under the cursor: darker (and, a project with no page
-  // yet, that it is on its way).
+  // yet, that it is on its way). Where there is no cursor, what a tap on the
+  // row at the middle does shows on it instead (.wk-view).
   zoom.appendChild(element("span", "wk-shade"));
-  if (!project.url) zoom.appendChild(element("span", "wk-soon", "Coming soon"));
+  zoom.appendChild(project.url ? element("span", "wk-view", "View project →") : element("span", "wk-soon", "Coming soon"));
   thumb.appendChild(zoom);
   el.append(element("span", "wk-line"), name, thumb);
   rowsEl.appendChild(el);
@@ -160,7 +163,7 @@ function measure() {
   const width = stage.clientWidth;
   height = stage.clientHeight;
   drawAura(width, height);
-  const mobile = width <= WORKS_MOBILE_MAX_PX;
+  const mobile = width <= MOBILE_MAX_PX;
   const thumbWide = ((mobile ? WORKS_MOBILE_THUMB_ACTIVE_VW : WORKS_THUMB_ACTIVE_VW) / 100) * width;
   const thumbTall = thumbWide / WORKS_THUMB_RATIO;
   thumbRest = (mobile ? WORKS_MOBILE_THUMB_VW : WORKS_THUMB_VW) / (mobile ? WORKS_MOBILE_THUMB_ACTIVE_VW : WORKS_THUMB_ACTIVE_VW);
@@ -378,7 +381,7 @@ window.addEventListener("pagehide", () => {
 measure();
 position = target = rowLeftAt() * pitch;
 draw();
-window.addEventListener("resize", () => {
+onViewportChange(() => {
   measure();
   draw();
 });

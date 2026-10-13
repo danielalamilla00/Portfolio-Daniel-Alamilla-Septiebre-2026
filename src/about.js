@@ -1,4 +1,5 @@
 import { grainOverlay } from "./grain.js";
+import { onViewportChange } from "./viewport.js";
 
 // ---- About me -----------------------------------------------------------------
 // What the paper plane opens the screen onto (experience.js clips this
@@ -122,7 +123,7 @@ export function createAbout(reducedMotion) {
 
   if (reducedMotion) {
     blocks.forEach((block) => (block.style.opacity = 1));
-    window.addEventListener("resize", alignInk);
+    onViewportChange(alignInk);
     document.fonts.ready.then(alignInk);
     return { update() {} };
   }
@@ -197,7 +198,7 @@ export function createAbout(reducedMotion) {
     update(Math.max(scrolled, 0), true);
   }
   layout();
-  window.addEventListener("resize", layout);
+  onViewportChange(layout);
   document.fonts.ready.then(layout); // the texts' own heights place the last two
   return { update };
 }

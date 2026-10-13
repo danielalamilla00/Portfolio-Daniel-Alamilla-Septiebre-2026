@@ -26,10 +26,12 @@
         <li><a href="#about" data-section="about">about me</a></li>
         <li><a href="#contact" data-section="contact">contact</a></li>
       </ul>
+      <!-- On a tablet and a phone, in the links' place: opens them as a
+           whole screen (src/menu.js). -->
+      <button class="nav-menu" type="button" aria-expanded="false" aria-controls="site-menu">menu</button>
       <p class="nav-clock"><span>valencia</span> <time id="nav-clock-time"></time></p>
     </nav>
     <section id="hero-section">
-      <canvas id="rings-canvas"></canvas>
       <!-- Anchored to the bottom of the viewport directly in vw/vh (see
            .headline-word in style.css), NOT part of the 1920x1080
            composition-scaled system the orange uses — that system is
