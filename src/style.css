@@ -29,6 +29,37 @@ body {
   overflow-x: clip;
 }
 
+/* A screen that is touched: no scroll indicator — the page's own (a thin
+   light bar down the right edge of a dark page, while it moves) or anything
+   else's. Nothing in the page scrolls but the page itself; the boxes that cut
+   what is in them say so too, should a browser think otherwise. */
+@media (hover: none) {
+  html,
+  body {
+    scrollbar-width: none;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+  }
+}
+.zp-sticky,
+.more,
+.more-track,
+.xp,
+.ab,
+.ct {
+  scrollbar-width: none;
+}
+.zp-sticky::-webkit-scrollbar,
+.more::-webkit-scrollbar,
+.more-track::-webkit-scrollbar,
+.xp::-webkit-scrollbar,
+.ab::-webkit-scrollbar,
+.ct::-webkit-scrollbar {
+  display: none;
+}
+
 /* Pinned by GSAP ScrollTrigger (see main.js) for the hero + creativity
    phase, then released into normal flow, with #projects right after it.
    position:relative so it's a stable containing block for its absolutely
@@ -516,6 +547,17 @@ body {
   overflow: hidden;
   pointer-events: auto;
 }
+/* The panel's black behind the center card, on a screen taller than wide
+   (the rules for it further down; --zp-backdrop is main.js's, 0..1). */
+.zp-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: none;
+  background-color: #0a0a0a;
+  opacity: var(--zp-backdrop, 0);
+  pointer-events: none;
+}
 .zp-layer:nth-of-type(2) .zp-media {
   top: -30vh;
   left: 5vw;
@@ -556,18 +598,26 @@ body {
    sizes in vw and vh would make them slivers). The center one still ends up
    filling the screen (main.js reads its box). */
 @media (orientation: portrait) {
+  /* (the center one: 16:9, the reel's own shape — it grows to the screen's
+     width and the reel is seen whole, on the panel's black) */
   .zp-media {
     width: 40vw;
-    height: 22vh;
+    height: 22.5vw;
+  }
+  .zp-layer:first-of-type {
+    z-index: 3; /* over .zp-backdrop, which is over the other covers */
+  }
+  .zp-backdrop {
+    display: block;
   }
   .zp-layer:nth-of-type(2) .zp-media {
-    top: -27vh;
+    top: -24vh;
     left: 12vw;
     width: 46vw;
     height: 22vh;
   }
   .zp-layer:nth-of-type(3) .zp-media {
-    top: -26vh;
+    top: -23vh;
     left: -30vw;
     width: 30vw;
     height: 26vh;
@@ -579,13 +629,13 @@ body {
     height: 18vh;
   }
   .zp-layer:nth-of-type(5) .zp-media {
-    top: 26vh;
+    top: 23vh;
     left: 14vw;
     width: 42vw;
     height: 22vh;
   }
   .zp-layer:nth-of-type(6) .zp-media {
-    top: 24vh;
+    top: 21vh;
     left: -30vw;
     width: 32vw;
     height: 20vh;
@@ -636,7 +686,7 @@ body {
   --more-black: #0a0a0a;
   position: absolute;
   inset: 0;
-  z-index: 3; /* over the covers (.zp-layer) */
+  z-index: 5; /* over the covers (.zp-layer), the showreel's label and its button */
   overflow: hidden;
   overflow: clip; /* see .zp-sticky */
   background-color: var(--more-black);
@@ -761,7 +811,7 @@ body {
    the covers and under the panel; there only while the showreel's card fills
    the screen (main.js, setReelFull). */
 .zp-label {
-  z-index: 2;
+  z-index: 4;
   opacity: 0;
   font-family: var(--font-sans);
   transition: opacity 0.4s ease;
@@ -779,7 +829,7 @@ body {
   position: absolute;
   right: var(--page-margin);
   bottom: calc(4vh + var(--browser-bar));
-  z-index: 2;
+  z-index: 4;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.4s ease, visibility 0s 0.4s, filter 0.2s ease;
@@ -788,6 +838,14 @@ body {
   opacity: 1;
   visibility: visible;
   transition: opacity 0.4s ease, filter 0.2s ease;
+}
+/* A screen taller than wide: the reel is a 16:9 band across its middle —
+   the button right under it, on the right. */
+@media (orientation: portrait) {
+  .zp-sound {
+    top: calc(50% + 28.125vw + 12px);
+    bottom: auto;
+  }
 }
 .zp-sound[aria-pressed="false"] .zp-sound-struck,
 .zp-sound[aria-pressed="true"] .zp-sound-waves {
@@ -1117,6 +1175,22 @@ body {
   mask-image: linear-gradient(to bottom, var(--ab-fade-curve));
   pointer-events: none;
   will-change: transform;
+}
+/* The window the content goes up in: the section's own box, and still. On a
+   phone nothing of the content is let into the nav's place: it is gone, with
+   a short fade, --ab-safe from the top (the nav's height and 24px more).
+   --ab-away (about.js: how far up the whole section has gone, at its end)
+   keeps that line where it is on the screen as the section leaves. */
+.ab-window {
+  position: absolute;
+  inset: 0;
+}
+@media (max-width: 767px) {
+  .ab-window {
+    --ab-safe: calc(4.2rem + 24px);
+    -webkit-mask: linear-gradient(to bottom, transparent var(--ab-safe), #000 calc(var(--ab-safe) + 28px)) 0 var(--ab-away, 0px) / 100% 100% no-repeat;
+    mask: linear-gradient(to bottom, transparent var(--ab-safe), #000 calc(var(--ab-safe) + 28px)) 0 var(--ab-away, 0px) / 100% 100% no-repeat;
+  }
 }
 .ab-content {
   position: absolute;
@@ -1554,7 +1628,7 @@ html.is-grid body::after {
   aspect-ratio: 16 / 10;
 }
 
-/* The showreel's card: over its local loop (the <video>), the Vimeo player
+/* The showreel's card: over its local loop (the <video>), the YouTube player
    with the whole reel (main.js, "Showreel"), covering the card like
    object-fit: cover — a 16:9 box, centered, big enough on both axes. It is
    laid out --reel-res times bigger and scaled back down by the same: that

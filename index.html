@@ -107,6 +107,10 @@
           </h2>
           <!-- The section's label, as on the black panel's screens: over the
                showreel while its card fills the screen (main.js). -->
+          <!-- A screen taller than wide: the panel's black, behind the
+               showreel's card as it gets to its size (it is 16:9 there, as
+               wide as the screen: main.js, syncZoom). -->
+          <span class="zp-backdrop grain" aria-hidden="true"></span>
           <p class="more-label zp-label">(Showreel)</p>
           <!-- The reel's sound, off until asked for: at the bottom right
                while the showreel fills the screen (main.js, "The reel's
@@ -170,6 +174,9 @@
               <div class="ab-shade"></div>
               <div class="ab-fade grain"></div>
               <p class="more-label">(About me)</p>
+              <!-- (.ab-window: still; on a phone it hides what of the content
+                   gets up to the nav: style.css) -->
+              <div class="ab-window">
               <div class="ab-content">
                 <h2 class="ab-title" aria-label="About me">
                   <span class="ab-marquee" aria-hidden="true">
@@ -204,6 +211,7 @@
                     you&rsquo;ll find me travelling, discovering new cultures and sharing good moments with friends.
                   </p>
                 </div>
+              </div>
               </div>
             </section>
             <!-- Contact: the last screen, which comes up over About me when

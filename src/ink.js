@@ -6,6 +6,18 @@
 // Neither a Range's box (advance widths and the font's generic ascent and
 // descent) nor canvas measureText()'s actualBoundingBox* (measured: off by
 // several px at these sizes) is the ink.
+// When the webfonts are in: `run` is called once the browser says its fonts
+// are ready, and again once each of the site's faces has been asked for
+// outright and has come. The first alone is not enough: a browser's "ready"
+// can come before a face that is first used later (Safari's does), and what
+// was measured with the fallback font — a headline aligned for letters of
+// another width — would stay as it was.
+const SITE_FACES = ["300 1em Catavalo", "600 1em Catavalo", "300 1em 'Inter Tight'", "400 1em 'Inter Tight'", "500 1em 'Inter Tight'"];
+export function whenFontsLoad(run) {
+  document.fonts.ready.then(run);
+  Promise.all(SITE_FACES.map((face) => document.fonts.load(face))).then(run, run);
+}
+
 const inkCanvas = document.createElement("canvas");
 const inkCtx = inkCanvas.getContext("2d", { willReadFrequently: true });
 const rasterInkCache = new Map();

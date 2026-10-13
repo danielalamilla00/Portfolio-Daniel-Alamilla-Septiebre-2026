@@ -1,5 +1,6 @@
 import { grainOverlay } from "./grain.js";
 import { onViewportChange } from "./viewport.js";
+import { whenFontsLoad } from "./ink.js";
 
 // ---- About me -----------------------------------------------------------------
 // What the paper plane opens the screen onto (experience.js clips this
@@ -124,7 +125,7 @@ export function createAbout(reducedMotion) {
   if (reducedMotion) {
     blocks.forEach((block) => (block.style.opacity = 1));
     onViewportChange(alignInk);
-    document.fonts.ready.then(alignInk);
+    whenFontsLoad(alignInk);
     return { update() {} };
   }
 
@@ -180,6 +181,7 @@ export function createAbout(reducedMotion) {
     if (away !== left || force) {
       left = away;
       section.style.transform = left ? `translate3d(0, ${snap((-left / 100) * height)}px, 0)` : "none";
+      section.style.setProperty("--ab-away", `${snap((left / 100) * height)}px`); // (style.css, .ab-window)
       section.classList.toggle("is-gone", left === 100);
     }
     blocks.forEach((block, index) => {
@@ -199,6 +201,6 @@ export function createAbout(reducedMotion) {
   }
   layout();
   onViewportChange(layout);
-  document.fonts.ready.then(layout); // the texts' own heights place the last two
+  whenFontsLoad(layout); // the texts' own heights place the last two
   return { update };
 }

@@ -105,7 +105,11 @@ export const XP_SCROLL_VH = trackWidth(XP_WIDE) * XP_VH_PER_VW + XP_ARRIVE_HOLD_
 //                            (it leaves when the camera stops)
 //   XP_DOT_DEPTH             its depth as it goes through each point: behind
 //                            or in front of the point and the line
-//   XP_MOBILE_AMPLITUDE      the heights are multiplied by this on a phone (under 768px wide)
+// On a phone each job's texts fill the screen's width around its point: the
+// plane does not come down to the line there. It flies over them, in the
+// clear band between the section's title and the jobs' texts
+// (XP_PHONE_FLY_VH over the line, with a slow wave: XP_PHONE_LEGS, as
+// XP_PATH_LEGS), and is smaller.
 const XP_PATH_ENTRY = [-25, 0.9];
 const XP_PATH_EXIT = [22, 1];
 const XP_PATH_OFFSCREEN = 0.8;
@@ -125,7 +129,16 @@ const XP_PATH_LEGS = [
   // to the front and out to the right, climbing and coming closer
   [[0.03, -1.5, 0], [0.12, -6, -0.4], [0.3, -10, -0.3], [0.42, -10, 0], [0.6, 3, 0.7], [0.82, 14, 1]],
 ];
-const XP_MOBILE_AMPLITUDE = 0.6;
+const XP_PHONE_FLY_VH = 23;
+const XP_PHONE_LEGS = [
+  // up from under the screen, before the first job's texts are there
+  [[0.3, -14, 0.9], [0.6, 8, 0.6], [0.85, 20, 0.3]],
+  [[0.25, 25.5, 0.2], [0.5, 23, 0], [0.75, 20.5, -0.2]],
+  [[0.25, 20.5, -0.2], [0.5, 23, 0], [0.75, 25.5, 0.2]],
+  [[0.25, 25.5, 0.2], [0.5, 23, 0], [0.75, 20.5, 0]],
+  // and out to the right, climbing and coming closer
+  [[0.3, 24, 0.4], [0.65, 29, 0.8]],
+];
 
 // The plane itself: a low-poly dart, XP_PLANE_VW long, seen at an angle
 // (XP_PLANE_TILT, radians around its own length) so its wings show. It is
@@ -140,7 +153,7 @@ const XP_MOBILE_AMPLITUDE = 0.6;
 // XP_BANK_MAX). Where it is and how it is turned come from the scroll alone:
 // when the scroll stops, so does the plane.
 const XP_PLANE_VW = 12;
-const XP_MOBILE_PLANE_VW = 20; // on a phone (under 768px wide)
+const XP_MOBILE_PLANE_VW = 14; // on a phone (under 768px wide)
 // Its shape, in plane lengths: nose forward (+x), wings along z, the fold of
 // the keel underneath.
 const XP_PLANE_SHAPE = {
@@ -469,8 +482,11 @@ export function createExperience(panel, reducedMotion) {
     panel.style.setProperty("--xp-width", `${trackVw}cqw`);
     panel.style.setProperty("--xp-line-y", `${shape.lineY * 100}%`);
     items.forEach((item, index) => item.el.style.setProperty("--xp-x", `${dotX(index)}cqw`));
-    planeSize = (width <= MOBILE_MAX_PX ? XP_MOBILE_PLANE_VW : XP_PLANE_VW) * unit;
-    const vh = (height / 100) * (width <= MOBILE_MAX_PX ? XP_MOBILE_AMPLITUDE : 1);
+    const phone = width <= MOBILE_MAX_PX;
+    planeSize = (phone ? XP_MOBILE_PLANE_VW : XP_PLANE_VW) * unit;
+    const vh = height / 100;
+    const fly = phone ? XP_PHONE_FLY_VH * vh : 0; // px over the line as it goes by each point
+    const legs = phone ? XP_PHONE_LEGS : XP_PATH_LEGS;
     const dots = items.map((_, index) => dotX(index));
     // [vw, px above the line, depth]. The two ends are out of the picture
     // whatever its shape: under the bottom edge, and past the right edge of
@@ -478,8 +494,8 @@ export function createExperience(panel, reducedMotion) {
     const outside = XP_PATH_OFFSCREEN * planeSize;
     const waypoints = [
       [dots[0] + XP_PATH_ENTRY[0], -height * (1 - shape.lineY) - outside, XP_PATH_ENTRY[1]],
-      ...dots.map((x, index) => [x, 0, XP_DOT_DEPTH[index]]),
-      [trackVw + outside / unit, XP_PATH_EXIT[0] * vh, XP_PATH_EXIT[1]],
+      ...dots.map((x, index) => [x, fly, XP_DOT_DEPTH[index]]),
+      [trackVw + outside / unit, fly + XP_PATH_EXIT[0] * vh * (phone ? 0.4 : 1), XP_PATH_EXIT[1]],
     ];
     const points = [];
     const waypointAt = []; // index of each waypoint among the curve's points
@@ -487,7 +503,7 @@ export function createExperience(panel, reducedMotion) {
       waypointAt.push(points.length);
       points.push(waypoint);
       const next = waypoints[index + 1];
-      if (next) XP_PATH_LEGS[index].forEach(([share, y, z]) => points.push([waypoint[0] + (next[0] - waypoint[0]) * share, y * vh, z]));
+      if (next) legs[index].forEach(([share, y, z]) => points.push([waypoint[0] + (next[0] - waypoint[0]) * share, y * vh, z]));
     });
     const curve = new THREE.CatmullRomCurve3(
       points.map(([x, y, z]) => new THREE.Vector3(x * unit, y, z * XP_DEPTH_VW * unit)),

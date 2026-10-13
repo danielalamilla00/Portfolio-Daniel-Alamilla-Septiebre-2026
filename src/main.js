@@ -6,8 +6,8 @@ import fragmentShader from "./shaders/sphere.frag.glsl?raw";
 import { createAura, auraFinalShape, AURA_FEATHER } from "./aura.js";
 import { applyGrain } from "./grain.js";
 import { startNavClock } from "./clock.js";
-import { rasterInk, coverageEdges, clearInkCache } from "./ink.js";
-import Player from "@vimeo/player";
+import { rasterInk, coverageEdges, clearInkCache, whenFontsLoad } from "./ink.js";
+import { createYouTubePlayer, youTubeEmbedUrl } from "./youtube.js";
 import { ORANGE_PALETTE, applyPalette, hexToRgb } from "./palette.js";
 import { createExperience, XP_SCROLL_VH, XP_OUT_VH, XP_ARRIVE_VH } from "./experience.js";
 import { createAbout, ABOUT_SCROLL_VH } from "./about.js";
@@ -31,6 +31,12 @@ window.addEventListener("load", () => ScrollTrigger.refresh());
 
 const canvas = document.querySelector("#sphere-canvas");
 const heroSectionEl = document.querySelector("#hero-section");
+// A screen: 100vh, which is what the page is laid out in — on a phone, the
+// screen with the browser's bar hidden, whatever the bar is doing right now
+// (window.innerHeight is what is seen at this moment).
+const screenProbe = document.createElement("div");
+screenProbe.style.cssText = "position:fixed;top:0;left:0;width:0;height:100vh;visibility:hidden;pointer-events:none";
+document.body.appendChild(screenProbe);
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -94,14 +100,27 @@ const HERO_CENTER_Y = 1432;
 // On a phone the composition is another: there is no room for that dome, and
 // the orange is a whole sphere in the middle of the screen, between the two
 // introductions at the top and the headline at the bottom.
-//   HERO_MOBILE_DIAMETER_VW   its diameter, as a share of the width
-//   HERO_MOBILE_CENTER_Y      where its center is, down the screen (0..1)
+// It never covers the introductions: it has the stretch of screen between the
+// end of the second one and the headline (heroRoom, measured from the texts
+// themselves by updateHeadlineAlignment), in the middle of which it is, and
+// is made smaller to fit in it; if even at its smallest it does not, it
+// stays under the introductions and goes down behind the headline.
+//   HERO_MOBILE_DIAMETER_VW       its diameter, as a share of the width...
+//   HERO_MOBILE_MIN_DIAMETER_VW   ...and the least it is made
+//   HERO_MOBILE_GAP_PX            left between it and the texts
 const HERO_MOBILE_DIAMETER_VW = 90;
-const HERO_MOBILE_CENTER_Y = 0.54;
+const HERO_MOBILE_MIN_DIAMETER_VW = 56;
+const HERO_MOBILE_GAP_PX = 18;
+let heroRoom = null; // { top, bottom }: px down the screen
 // The hero orange's circle on screen, in px: its radius and how far down its
 // center is (it is always centered across).
 function heroCircle() {
-  if (viewportWidth <= MOBILE_MAX_PX) return { r: (viewportWidth * HERO_MOBILE_DIAMETER_VW) / 200, cy: window.innerHeight * HERO_MOBILE_CENTER_Y };
+  if (viewportWidth <= MOBILE_MAX_PX) {
+    const top = (heroRoom ? heroRoom.top : window.innerHeight * 0.3) + HERO_MOBILE_GAP_PX;
+    const bottom = (heroRoom ? heroRoom.bottom : window.innerHeight * 0.82) - HERO_MOBILE_GAP_PX;
+    const r = clamp((bottom - top) / 2, (viewportWidth * HERO_MOBILE_MIN_DIAMETER_VW) / 200, (viewportWidth * HERO_MOBILE_DIAMETER_VW) / 200);
+    return { r, cy: Math.max((top + bottom) / 2, top + r) };
+  }
   const s = computeCompositionScale();
   return { r: HERO_RADIUS * s, cy: HERO_CENTER_Y * s };
 }
@@ -694,6 +713,7 @@ function measureLogoInk(img) {
 // scroll exit (opacity/blur/scale on .headline-word itself) is untouched.
 const HEADLINE_BLUR_MAX_VW = 0.75; // strongest blur: horizontal std-dev in vw (14.4px at 1920)
 const HEADLINE_BLUR_Y_RATIO = 0.8; // vertical spread relative to horizontal (a bit less, as in the reference)
+const HEADLINE_BLUR_TOUCH = 0.3; // share of that blur where there is no cursor: the focus moves by itself there, and the headline has to read all the time
 // Copies in the stack: 1 sharp + (n - 1) blur steps. Compared side by side
 // on this machine: 3 is all but indistinguishable from 4 and holds 60fps
 // with the focus moving on its own (4 dropped as low as ~30 under load);
@@ -927,7 +947,7 @@ function setupHeadlineFocus(headlineWordEl, sectionEl, id) {
 
   function sizeBlurs() {
     blurNodes.forEach((node, k) => {
-      const sx = (((k + 1) / (HEADLINE_BLUR_LAYERS - 1)) * HEADLINE_BLUR_MAX_VW * window.innerWidth) / 100;
+      const sx = (((k + 1) / (HEADLINE_BLUR_LAYERS - 1)) * HEADLINE_BLUR_MAX_VW * (autoOnly ? HEADLINE_BLUR_TOUCH : 1) * window.innerWidth) / 100;
       node.setAttribute("stdDeviation", `${sx.toFixed(2)} ${(sx * HEADLINE_BLUR_Y_RATIO).toFixed(2)}`);
     });
   }
@@ -1153,6 +1173,14 @@ function updateHeadlineAlignment() {
     el.style.bottom = `${baseBottomPx + (targetBottomGap - currentBottomGap)}px`;
 
     focus.measureHitbox(); // still in the resting state: no exit transform on it
+    // The room the hero's orange has on a phone (heroCircle): from the end of
+    // the second introduction to the headline — which a browser's bar, when
+    // it is showing, has lifted by its height.
+    if (section === heroSectionEl) {
+      const second = section.querySelector(".hero-intro-right");
+      heroRoom = { top: second.offsetTop + second.offsetHeight, bottom: el.offsetTop - (screenProbe.offsetHeight - window.innerHeight) };
+      requestFrame();
+    }
     el.style.transform = savedTransform;
     el.style.translate = "";
 
@@ -1170,7 +1198,7 @@ function onFontsChanged() {
   clearInkCache();
   updateHeadlineAlignment();
 }
-document.fonts.ready.then(onFontsChanged);
+whenFontsLoad(onFontsChanged);
 document.fonts.addEventListener("loadingdone", onFontsChanged);
 navLogoEl.decode().then(() => {
   measureLogoInk(navLogoEl);
@@ -1242,7 +1270,7 @@ function layoutCreativityPhrase() {
   });
 }
 layoutCreativityPhrase();
-document.fonts.ready.then(layoutCreativityPhrase);
+whenFontsLoad(layoutCreativityPhrase);
 
 function updateCreativityPhrase(progress, delta) {
   phraseProgress += (progress - phraseProgress) * (1 - Math.exp(-PHRASE_DAMPING * delta));
@@ -1477,7 +1505,7 @@ function layoutFeaturedTitle() {
   probe.remove();
   [featuredScaleEl.style.transform, featuredRasterEl.style.transform] = zoomTransforms;
 }
-document.fonts.ready.then(layoutFeaturedTitle);
+whenFontsLoad(layoutFeaturedTitle);
 
 let scrollProgress = 0;
 // The sphere/aura follow a damped copy of scrollProgress (frame-rate
@@ -1570,6 +1598,8 @@ const ZOOM_PARALLAX_PROJECTS = [
 const ZOOM_PARALLAX_SCALES = [4, 5, 6, 5, 6, 8, 9]; // relative to one another (the reference's values)
 const ZOOM_PARALLAX_COVER = 1.03; // layer 0 ends this much bigger than an exact cover of the viewport
 const ZOOM_PARALLAX_HOLD = 0.2; // last share of the zoom's own scroll (20vh of its 100vh)
+const ZOOM_BACKDROP_FROM = 0.5; // a screen taller than wide: the black behind the center card comes in from this share of the card's final size...
+const ZOOM_BACKDROP_TO = 0.92; // ...and is all there at this one
 
 let zoomCenterCover = null; // the showreel's card, .zp-media of layer 0 (setupZoomParallax)
 let zoomTimeline = null; // set by setupZoomParallax
@@ -1584,6 +1614,7 @@ let zoomTimeline = null; // set by setupZoomParallax
 // the items are white over them too.)
 const navItems = Array.from(siteNavEl.querySelectorAll(".nav-logo, .nav-links a, .nav-menu, .nav-clock"));
 let navWhiteOver = null; // what the items are white over
+let zoomBackdrop = 0; // how much of the reel's black backdrop is there (a screen taller than wide: syncZoom), 0..1
 function updateNavContrast() {
   navWhiteOver ||= [zoomCenterCover, ...document.querySelectorAll(".xp.is-static, .ab.is-static, .ct.is-static")];
   const areas = navWhiteOver.map((area) => area.getBoundingClientRect());
@@ -1593,7 +1624,7 @@ function updateNavContrast() {
     const y = (box.top + box.bottom) / 2;
     item.classList.toggle(
       "is-white",
-      areas.some((area) => x >= area.left && x <= area.right && y >= area.top && y <= area.bottom)
+      zoomBackdrop > 0.5 || areas.some((area) => x >= area.left && x <= area.right && y >= area.top && y <= area.bottom)
     );
   });
 }
@@ -1602,93 +1633,130 @@ function updateNavContrast() {
 // The center card has two states:
 //   - small, and all through the zoom: the short local loop (Portada_Reel),
 //     like every other card;
-//   - once it has grown to fill the screen: the WHOLE showreel, from second
-//     0 every time, in a Vimeo player (REEL_URL) laid over the loop and
-//     filling the card like object-fit: cover (.zp-reel in style.css).
-// The player is created ahead of time, when the card comes near the screen,
-// and waits there, paused and invisible. When the card reaches full size it
-// is sent back to 0 and played, and as soon as it reports "playing" it is
-// faded in over the loop (which then stops). When the card shrinks back
-// under full size it is faded out again — the loop takes over — stopped and
-// left at 0. While the black panel covers it, it is only paused: it goes on
-// from where it was. Silent, until its button says otherwise ("The reel's
-// sound" below).
+//   - once it has grown to fill the screen: the WHOLE showreel, in a YouTube
+//     player (REEL_VIDEO; youtube.js) laid over the loop and filling the card
+//     like object-fit: cover (.zp-reel in style.css).
+// YouTube draws its own interface over the picture — the video's title,
+// buttons, "more videos" — every time the video starts to move: when it is
+// first played, when it goes on after a pause and each time it starts over;
+// it is there for some four seconds and nothing takes it away. So that it is
+// never seen, the player is only ever shown once it has been playing for
+// longer than that (REEL_UI_S), and hidden again a moment before the video
+// ends (REEL_END_LEAD_S); the local loop is what shows meanwhile. For that:
+//   - the player is created ahead of time, when the card comes near the
+//     screen, and plays, silent and invisible, from the moment the card is on
+//     it: by the time the card fills the screen that interface is long gone,
+//     and the reel is faded in over the loop at once (wherever it has got
+//     to: sending it back to its start would bring the interface back);
+//   - while the black panel covers it, it is paused; when it goes on, it is
+//     the loop that shows for those first seconds;
+//   - each time it starts over, likewise: the loop for a few seconds, and the
+//     reel again.
+// Silent, until its button says otherwise ("The reel's sound" below).
 //   REEL_FULL_AT           share of its final size at which the card
 //                          becomes the reel
 //   REEL_FULL_HYSTERESIS   how far back under that it must shrink before it
 //                          becomes the loop again, so a scroll wavering
-//                          right at the threshold does not restart the reel
+//                          right at the threshold does not flicker
 //   REEL_CROSSFADE_S       seconds of the fade between the two
 //   REEL_HOLD_VH           scroll, in viewport heights, that the reel stays
 //                          full screen for after the zoom's own hold and
 //                          before the panel starts to come up
+//   REEL_UI_S              how long after it starts to move the player is
+//                          kept out of sight (YouTube's interface, measured:
+//                          gone 3.7 to 4.2 seconds in)
+//   REEL_END_LEAD_S        how long before its end it is taken out of sight
+//   REEL_WATCH_MS          how often, while it is shown, its time left is
+//                          looked at
 const REEL_FULL_AT = 1;
 const REEL_FULL_HYSTERESIS = 0.03;
 const REEL_CROSSFADE_S = 0.4;
 const REEL_HOLD_VH = 200;
-const REEL_URL = "https://player.vimeo.com/video/1006517705?muted=1&loop=1&controls=0&title=0&byline=0&portrait=0&dnt=1&autopause=0";
+const REEL_UI_S = 4.6;
+const REEL_END_LEAD_S = 0.9;
+const REEL_WATCH_MS = 250;
+const REEL_VIDEO = "QECgFCR1ESE"; // the whole reel: its id on YouTube (youtu.be/<id>)
 const REEL_NEAR_MARGIN = "100% 0px"; // how far from the screen the card still is when its player is created
 const reel = {
   card: null, // .zp-media of layer 0 (setupReel)
   preview: null, // its <video>: the local loop
-  player: null, // the Vimeo player, once created
+  player: null, // the YouTube player, once created
   full: false, // the card is at full size: the reel's turn
-  live: false, // ...and the reel is playing and shown
+  live: false, // ...and the reel is shown
   onScreen: false,
   covered: false, // the black panel is all the way up
+  playing: false, // the player's video is moving
+  cleanAt: Infinity, // when YouTube's interface will have gone from over it (performance.now())
+  ending: false, // it is about to start over
   timer: 0, // what is left to do once the running fade ends
+  cleanTimer: 0, // looks again at cleanAt
+  watch: 0, // looks at the time left while it is shown
 };
 const ignore = () => {}; // a player command that did not go through (not loaded yet, or blocked)
 // Whichever of the two is on plays while the card can be seen.
 function syncReel() {
   const visible = reel.onScreen && !reel.covered;
   if (reel.player) {
-    if (visible && reel.full) reel.player.play().catch(ignore);
-    else if (!visible) reel.player.pause().catch(ignore);
+    if (visible) reel.player.play().catch(ignore);
+    else reel.player.pause().catch(ignore);
   }
   if (!visible) reel.preview.pause();
   else if (!reel.live) reel.preview.play().catch(ignore);
+  showReel();
 }
-// The player's "playing": the reel is really moving, so it can be shown.
+// The reel is shown while the card fills the screen and its picture is the
+// video's alone; the loop otherwise.
 function showReel() {
-  if (!reel.full || reel.live) return; // (it also fires when it resumes from under the panel)
-  reel.live = true;
-  reel.card.classList.add("is-live");
+  const live = reel.full && reel.onScreen && !reel.covered && reel.playing && !reel.ending && performance.now() >= reel.cleanAt;
+  if (live === reel.live) return;
+  reel.live = live;
+  reel.card.classList.toggle("is-live", live);
   clearTimeout(reel.timer);
-  reel.timer = setTimeout(() => reel.preview.pause(), REEL_CROSSFADE_S * 1000);
+  clearInterval(reel.watch);
+  if (live) {
+    reel.timer = setTimeout(() => reel.preview.pause(), REEL_CROSSFADE_S * 1000);
+    reel.watch = setInterval(() => {
+      reel.player
+        .timeLeft()
+        .then((left) => {
+          if (left > REEL_END_LEAD_S) return;
+          reel.ending = true;
+          showReel();
+        })
+        .catch(ignore);
+    }, REEL_WATCH_MS);
+  } else if (reel.onScreen && !reel.covered) reel.preview.play().catch(ignore);
+}
+// The player's video has started to move, or has stopped.
+function onReelState(playing) {
+  reel.playing = playing;
+  clearTimeout(reel.cleanTimer);
+  if (playing) {
+    reel.ending = false;
+    reel.cleanAt = performance.now() + REEL_UI_S * 1000;
+    reel.cleanTimer = setTimeout(showReel, REEL_UI_S * 1000 + 20);
+  }
+  showReel();
+  watchReelSound(playing);
 }
 const reelLabelEl = document.querySelector(".zp-label"); // the section's label, there while the card fills the screen
 function setReelFull(full) {
   if (full === reel.full) return;
   reel.full = full;
   reelLabelEl.classList.toggle("is-on", full);
-  clearTimeout(reel.timer);
-  const rewind = () => {
-    if (!reel.player) return;
-    reel.player.pause().catch(ignore);
-    reel.player.setCurrentTime(0).catch(ignore);
-  };
-  if (full) {
-    rewind(); // always from the start
-  } else {
-    reel.live = false;
-    reel.card.classList.remove("is-live");
-    reel.timer = setTimeout(rewind, REEL_CROSSFADE_S * 1000); // once it has faded out
-  }
-  syncReel();
+  showReel();
   syncReelSound();
 }
 function createReelPlayer() {
   if (reel.player) return;
   const frame = document.createElement("iframe");
   frame.className = "zp-reel";
-  frame.src = REEL_URL;
-  frame.allow = "autoplay; fullscreen; picture-in-picture";
+  frame.src = youTubeEmbedUrl(REEL_VIDEO);
+  frame.allow = "autoplay; encrypted-media; picture-in-picture";
   frame.title = "Daniel Alamilla Showreel";
   frame.tabIndex = -1; // nothing to operate in it: no controls, no pointer events
   reel.card.appendChild(frame);
-  reel.player = new Player(frame);
-  reel.player.on("playing", showReel);
+  reel.player = createYouTubePlayer(frame, onReelState);
   syncReel();
 }
 // Called by setupZoomParallax with layer 0's card and its <video>.
@@ -1718,42 +1786,50 @@ function setupReel(card, preview) {
 }
 
 // ---- The reel's sound -------------------------------------------------------
-// The reel starts silent, always. A button at its bottom right (.zp-sound:
-// index.html, style.css) turns its sound on and off; it is there while the
-// reel is "in view": filling the screen, the black panel not yet coming up
-// over it. The sound is only ever heard then:
+// The reel is silent, always, until it is asked for its sound: a button at
+// its bottom right (.zp-sound: index.html, style.css) turns it on and off.
+// The button is there while the reel is "in view": filling the screen, the
+// black panel not yet coming up over it. The sound is only ever heard then,
+// and only after a press of that button in that same visit to the reel:
 //   - turned on, the volume comes up from 0 (never all at once); turned off,
 //     it goes down to 0 and the player is muted;
-//   - the reel going out of view takes it down the same way; back in view,
-//     it comes up again only if the visitor had turned it on (reelSound.wanted:
-//     kept while the page is open, nowhere else);
-//   - anything else on the page that starts to sound turns it off.
+//   - the reel going out of view takes it down the same way AND turns it
+//     off: back at the reel it is silent, the button to be pressed again
+//     (it never comes back by itself);
+//   - the page being left for another tab, or anything else on it starting
+//     to sound, turns it off too;
+//   - every time the video starts to move with the sound off, the player is
+//     muted again, whatever it had kept by itself.
 //   REEL_SOUND_FADE_S    seconds the volume takes, up or down
 //   REEL_SOUND_STEP_MS   between two volumes on that way
+//   REEL_SOUND_STALL_MS  the video stopped for this long with the sound on:
+//                        the browser will not have it (it wants the gesture
+//                        in the player's own frame) — the reel goes back to
+//                        silent, which it may always play
 const REEL_SOUND_FADE_S = 0.4;
 const REEL_SOUND_STEP_MS = 40;
+const REEL_SOUND_STALL_MS = 1500;
 const reelSound = {
   button: document.querySelector(".zp-sound"),
   wanted: false, // the visitor has turned it on
   volume: 0, // the player's, 0..1 (it is muted at 0)
   to: 0, // where that is going: 0 or 1
   timer: 0,
+  stalled: 0,
 };
 const reelInView = () => reel.full && reel.onScreen && moreScroll === 0;
-// A browser may answer the sound by stopping the video (it wants the gesture
-// in the player's own frame): it is set going again, and if that is refused
-// too the reel goes back to silent, which it may always play.
-function keepReelPlaying() {
-  reel.player
-    .getPaused()
-    .then((paused) => {
-      if (!paused || !reelSound.wanted || !reelInView()) return;
-      return reel.player.play().catch(() => {
-        setReelSound(false);
-        syncReel();
-      });
-    })
-    .catch(ignore);
+// The player's video starting to move, or stopping (onReelState).
+function watchReelSound(playing) {
+  clearTimeout(reelSound.stalled);
+  if (playing) {
+    if (!reelSound.to) reel.player.setMuted(true).catch(ignore);
+  } else if (reelSound.to) {
+    reelSound.stalled = setTimeout(() => {
+      setReelSound(false);
+      reel.player.setMuted(true).catch(ignore);
+      syncReel();
+    }, REEL_SOUND_STALL_MS);
+  }
 }
 function fadeReelVolume(to) {
   if (to === reelSound.to || !reel.player) return;
@@ -1761,7 +1837,7 @@ function fadeReelVolume(to) {
   clearInterval(reelSound.timer);
   if (to) {
     reel.player.setVolume(reelSound.volume).catch(ignore); // (from where it is: unmuted, it must not be heard at once)
-    reel.player.setMuted(false).then(keepReelPlaying).catch(ignore);
+    reel.player.setMuted(false).catch(ignore);
   }
   const step = REEL_SOUND_STEP_MS / (REEL_SOUND_FADE_S * 1000);
   reelSound.timer = setInterval(() => {
@@ -1772,10 +1848,12 @@ function fadeReelVolume(to) {
     if (!to) reel.player.setMuted(true).catch(ignore);
   }, REEL_SOUND_STEP_MS);
 }
-// The button is there, and the sound heard, only with the reel in view.
+// The button is there, and the sound heard, only with the reel in view; out
+// of view, it is off.
 function syncReelSound() {
   const inView = reelInView();
   reelSound.button.classList.toggle("is-on", inView);
+  if (!inView && reelSound.wanted) return setReelSound(false);
   fadeReelVolume(inView && reelSound.wanted ? 1 : 0);
 }
 function setReelSound(wanted) {
@@ -1786,6 +1864,10 @@ function setReelSound(wanted) {
   syncReelSound();
 }
 reelSound.button.addEventListener("click", () => setReelSound(!reelSound.wanted));
+// The page left for another tab, or put away.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && reelSound.wanted) setReelSound(false);
+});
 // Any other video or audio of the page that starts to sound.
 ["play", "volumechange"].forEach((type) =>
   document.addEventListener(
@@ -1988,8 +2070,14 @@ function setupZoomParallax() {
   const zoomCoverScale = () => {
     const box = getComputedStyle(centerMedia);
     const viewport = document.documentElement;
+    // (a screen taller than wide: as wide as the screen and no more — the card is 16:9 there, and the reel is seen whole)
+    if (zoomPortrait()) return viewport.clientWidth / parseFloat(box.width);
     return Math.max(viewport.clientWidth / parseFloat(box.width), viewport.clientHeight / parseFloat(box.height)) * ZOOM_PARALLAX_COVER;
   };
+  // On such a screen the center card does not end up covering it: the
+  // panel's black comes in behind it (.zp-backdrop, over the other covers)
+  // as it gets to its size, from ZOOM_BACKDROP_FROM of it on.
+  const zoomPortrait = () => document.documentElement.clientHeight >= document.documentElement.clientWidth;
   // The title grows with the center video, glued to it: on every update
   // of this same timeline it is handed that layer's current scale.
   const syncZoom = () => {
@@ -2001,6 +2089,8 @@ function setupZoomParallax() {
     const size = scale / coverScale;
     if (size >= REEL_FULL_AT - 1e-3) setReelFull(true);
     else if (size < REEL_FULL_AT - REEL_FULL_HYSTERESIS) setReelFull(false);
+    zoomBackdrop = zoomPortrait() ? clamp((size - ZOOM_BACKDROP_FROM) / (ZOOM_BACKDROP_TO - ZOOM_BACKDROP_FROM), 0, 1) : 0;
+    sticky.style.setProperty("--zp-backdrop", zoomBackdrop.toFixed(3));
     // The black panel: after the zoom's own 100vh and the showreel's hold.
     moreScroll = clamp((time - 1 - REEL_HOLD_VH / 100) * 100, 0, MORE_PANEL_VH + MORE_HOLD_VH + XP_STRETCH_VH);
     if (moreScroll !== moreScrollDamped) requestFrame();
@@ -2185,11 +2275,6 @@ requestFrame();
 // scroll), so the same place in it is the same number of screens down: the
 // scroll is put back there, and the window can go from wide to narrow in the
 // middle of a section without the page moving on to another.
-// (A screen: 100vh, which is what the page is laid out in — on a phone, the
-// screen with the browser's bar hidden, whatever it is doing right now.)
-const screenProbe = document.createElement("div");
-screenProbe.style.cssText = "position:fixed;top:0;left:0;width:0;height:100vh;visibility:hidden;pointer-events:none";
-document.body.appendChild(screenProbe);
 const RESIZE_QUIET_MS = 400; // after a resize, a scroll is the page being put back, not the visitor's
 let screensDown = window.scrollY / screenProbe.offsetHeight;
 let resizedAt = -Infinity;

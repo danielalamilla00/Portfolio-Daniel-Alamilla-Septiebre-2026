@@ -102,9 +102,14 @@
     font-size: calc(1em * var(--section-title-sans-scale));
     letter-spacing: var(--tracking-sans); color: var(--ink);
   }
+  /* A phone: the two words one under the other, centered. Nothing cuts them
+     there (Catavalo's tall strokes were cut at the top of the first line):
+     the box of the line is as big as it needs, with room between the lines
+     for those strokes, and a word comes in by fading in as it rises
+     (buildHeading) instead of from under an edge. */
   @media (max-width: 767px) {
     .section-title { left: 0; width: auto; transform: none; text-align: center; }
-    .section-title-line { white-space: normal; }
+    .section-title-line { white-space: normal; overflow: visible; padding: 0; margin: 0; line-height: 1.2; }
   }
   .ex-section-divider {
     position: relative; left: 50%;
@@ -406,7 +411,10 @@
     #card-expand-body .ex-body-section { margin: 4rem auto 2rem; }
     #card-expand-body .ex-body-section:first-of-type { margin-top: 2rem; }
     .ex-meta-label { font-size: 0.95rem; }
-    .ex-final-video { width: 90vw; height: 50.625vw; }
+    /* (its parent is as wide as the text's column there, not a point: the
+       player is placed by the stylesheet alone, 90vw wide and centered) */
+    .ex-final-video-sticky { width: 100%; }
+    .ex-final-video { width: 90vw !important; height: 50.625vw !important; margin-left: calc(50% - 45vw) !important; }
     #card-expand-meta {
       justify-content: flex-start;
       padding: 5rem 1.75rem 2rem;
@@ -438,7 +446,7 @@
 <!-- The palette's colors as --c-* variables (the titles' gradient is made of them). -->
 <script type="module">
   import { applyPalette } from "/src/palette.js";
-  import { rasterInk, clearInkCache } from "/src/ink.js";
+  import { rasterInk, clearInkCache, whenFontsLoad } from "/src/ink.js";
   import { applyGrain } from "/src/grain.js";
   import { onViewportChange, MOBILE_MAX_PX } from "/src/viewport.js";
   applyPalette();
@@ -480,7 +488,7 @@
   };
   window.layoutSectionTitles();
   onViewportChange(window.layoutSectionTitles);
-  document.fonts.ready.then(() => {
+  whenFontsLoad(() => {
     clearInkCache(); // (what was drawn before the font was there)
     window.layoutSectionTitles();
   });
@@ -724,6 +732,7 @@
 <script>
   // ── A section's title: two words on a line, each coming up from under it
   const HEADING_HIDDEN = 'translateY(130%)';
+  const HEADING_PHONE = window.matchMedia('(max-width: 767px)'); // (nothing to come up from under there: see .section-title-line)
   function buildHeading(id, words) {
     const container = document.getElementById(id);
     if (!container) return;
@@ -739,7 +748,11 @@
     });
     container.appendChild(line);
     if (window.layoutSectionTitles) window.layoutSectionTitles(); // its size and its place (the module script; it does it itself when it loads later)
-    const hide = () => parts.forEach(word => { word.style.transition = 'none'; word.style.transform = HEADING_HIDDEN; });
+    const hide = () => parts.forEach(word => {
+      word.style.transition = 'none';
+      word.style.transform = HEADING_PHONE.matches ? 'translateY(35%)' : HEADING_HIDDEN;
+      word.style.opacity = HEADING_PHONE.matches ? '0' : '';
+    });
     hide();
     let played = false;
     let timers = [];
@@ -749,8 +762,9 @@
         else if (!played) {
           played = true;
           timers = parts.map((word, index) => setTimeout(() => {
-            word.style.transition = 'transform 800ms cubic-bezier(0.16, 1, 0.3, 1)';
+            word.style.transition = 'transform 800ms cubic-bezier(0.16, 1, 0.3, 1), opacity 500ms ease';
             word.style.transform  = 'translateY(0)';
+            word.style.opacity    = '';
           }, index * 120));
         }
       });
@@ -1108,21 +1122,25 @@
       const finalVideoSticky = document.getElementById('ex-final-video-sticky');
       const finalVimeoUrl    = p.finalResultVimeo;
       const finalYoutubeUrl  = p.finalResultYoutube;
+      // On a screen that is touched the player plays in the page (not full
+      // screen) and starts by itself, silent and over and over: an iPhone
+      // showed nothing but black until it was pressed.
+      const finalTouch       = window.matchMedia('(hover: none)').matches;
       const finalEmbedUrl    = finalVimeoUrl
-        ? finalVimeoUrl  + '?title=0&byline=0&portrait=0&controls=1'
+        ? finalVimeoUrl  + '?title=0&byline=0&portrait=0&controls=1&playsinline=1' + (finalTouch ? '&autoplay=1&muted=1&loop=1' : '')
         : finalYoutubeUrl
-          ? finalYoutubeUrl + '?controls=1&rel=0&modestbranding=1'
+          ? finalYoutubeUrl + '?fs=0&playsinline=1' + (finalTouch ? `&autoplay=1&mute=1&loop=1&playlist=${finalYoutubeUrl.split('/').pop()}` : '')
           : '';
 
       finalText.textContent   = p.finalResult || '';
       finalText.style.display = !p.finalResult ? 'none' : '';
 
-      const defaultIframe = '<iframe id="ex-final-video-iframe" src="" title="Final result video" frameborder="0" allow="autoplay; picture-in-picture"></iframe>';
+      const defaultIframe = '<iframe id="ex-final-video-iframe" src="" title="Final result video" frameborder="0" loading="lazy" allow="autoplay; picture-in-picture"></iframe>';
       if (finalEmbedUrl) {
         finalVideoSticky.style.display = '';
         if (finalYoutubeUrl) {
           document.getElementById('ex-final-video').innerHTML =
-            `<iframe id="ex-final-video-iframe" width="100%" height="100%" src="${finalYoutubeUrl}?fs=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+            `<iframe id="ex-final-video-iframe" width="100%" height="100%" src="${finalEmbedUrl}" title="YouTube video player" frameborder="0" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
         } else {
           document.getElementById('ex-final-video').innerHTML = defaultIframe;
           document.getElementById('ex-final-video-iframe').src = finalEmbedUrl;

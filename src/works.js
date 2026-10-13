@@ -3,7 +3,7 @@ import { applyPalette } from "./palette.js";
 import { createAura } from "./aura.js";
 import { startNavClock } from "./clock.js";
 import { PROJECTS } from "./data/projects.js";
-import { rasterInk, clearInkCache } from "./ink.js";
+import { rasterInk, clearInkCache, whenFontsLoad } from "./ink.js";
 import { onViewportChange, canvasPixelRatio, MOBILE_MAX_PX } from "./viewport.js";
 import { setupMenu } from "./menu.js";
 
@@ -385,7 +385,7 @@ onViewportChange(() => {
   measure();
   draw();
 });
-document.fonts.ready.then(() => {
+whenFontsLoad(() => {
   clearInkCache(); // (what was drawn before the font was there)
   measure();
   draw();
