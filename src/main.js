@@ -9,7 +9,7 @@ import { startNavClock } from "./clock.js";
 import { rasterInk, coverageEdges, clearInkCache, whenFontsLoad } from "./ink.js";
 import { createYouTubePlayer, youTubeEmbedUrl } from "./youtube.js";
 import { ORANGE_PALETTE, applyPalette, hexToRgb } from "./palette.js";
-import { createExperience, XP_SCROLL_VH, XP_OUT_VH, XP_ARRIVE_VH } from "./experience.js";
+import { createExperience } from "./experience.js";
 import { createAbout, ABOUT_SCROLL_VH } from "./about.js";
 import { createContact, CONTACT_SCROLL_VH, CONTACT_SHOWN_VH } from "./contact.js";
 import { onViewportChange, canvasPixelRatio, MOBILE_MAX_PX } from "./viewport.js";
@@ -1570,10 +1570,11 @@ heroScrollTimeline
 // showreel filling the screen, on its own ("Showreel" below),
 // MORE_PANEL_VH in which the black panel comes up over it ("Still
 // thirsty" below), MORE_HOLD_VH with it still, and then what the Experience
-// section takes (src/experience.js): XP_SCROLL_VH in which that panel's
-// content moves sideways through it and XP_OUT_VH for how it ends, opening
-// onto About me, which takes ABOUT_SCROLL_VH (src/about.js). All of it
-// is one timeline, 1 unit of time = 100vh of scroll.
+// section takes (src/experience.js: its scrollVh, in which that panel's
+// content moves through it, and its outVh for how it ends, opening onto
+// About me — a wide screen's version and a phone's do not take the same),
+// and About me, which takes ABOUT_SCROLL_VH (src/about.js). All of it is one
+// timeline, 1 unit of time = 100vh of scroll.
 //
 // EDIT HERE to change the covers: one entry per layer, in layer order.
 //   0 center (fills the screen at the end)   1 top (wide)
@@ -1602,7 +1603,8 @@ const ZOOM_BACKDROP_FROM = 0.5; // a screen taller than wide: the black behind t
 const ZOOM_BACKDROP_TO = 0.92; // ...and is all there at this one
 
 let zoomCenterCover = null; // the showreel's card, .zp-media of layer 0 (setupZoomParallax)
-let zoomTimeline = null; // set by setupZoomParallax
+let zoomTimeline = null; // set by buildZoomTimeline
+let buildZoomTimeline = null; // set by setupZoomParallax
 
 // The nav inside the center project: its ink is the page's dark from the
 // creativity phase on (updateNavInk); each item (logo, links, clock) turns
@@ -1920,10 +1922,13 @@ const MORE_TEXT_SETTLE_VH = 30;
 const MORE_TEXT_SETTLE_DROP_VH = (MORE_TEXT_SPEED * MORE_TEXT_SETTLE_VH) / 2;
 const moreEl = document.querySelector(".more");
 const moreBlockEl = moreEl.querySelector(".more-block");
-// The Experience section, on the panel's track after this screen. With
+// The Experience section, on the panel's track after this screen. It has two
+// versions, a wide screen's and a phone's (src/experience.js): the one that
+// goes with the window is mounted further down ("Experience's two versions"),
+// where the page's length — which follows from it — is set too. With
 // prefers-reduced-motion it is a static block after the projects instead,
 // and takes no scroll of its own.
-const experience = createExperience(moreEl, prefersReducedMotion);
+let experience = prefersReducedMotion ? createExperience(moreEl, "static") : null;
 // The web's grain on every flat dark background (.grain, grain.js): the page
 // itself (what is around the orange in the hero; the aura's quad, which
 // covers it from the moment it shows, has the same grain of its own); the
@@ -1936,12 +1941,14 @@ const about = createAbout(prefersReducedMotion);
 // ...and Contact, which comes up after About me when that goes away
 // (src/contact.js).
 const contact = createContact(prefersReducedMotion);
-const XP_VH = XP_SCROLL_VH + XP_OUT_VH; // all of Experience's scroll
-const XP_STRETCH_VH = prefersReducedMotion ? 0 : XP_VH + ABOUT_SCROLL_VH + CONTACT_SCROLL_VH;
-// Scroll that .zp adds after the zoom's own 100vh.
-const ZP_AFTER_VH = REEL_HOLD_VH + MORE_PANEL_VH + MORE_HOLD_VH + XP_STRETCH_VH;
+// How much scroll there is from there on. It depends on the version of
+// Experience that is mounted (each takes its own), so these are asked for,
+// not kept:
+const xpVh = () => experience.scrollVh + experience.outVh; // all of Experience's scroll
+const stretchVh = () => (prefersReducedMotion ? 0 : xpVh() + ABOUT_SCROLL_VH + CONTACT_SCROLL_VH); // what the panel's sections take
+const zpAfterVh = () => REEL_HOLD_VH + MORE_PANEL_VH + MORE_HOLD_VH + stretchVh(); // scroll that .zp adds after the zoom's own 100vh
 
-let moreScroll = 0; // vh scrolled since the panel started to come up, 0..MORE_PANEL_VH + MORE_HOLD_VH + XP_STRETCH_VH
+let moreScroll = 0; // vh scrolled since the panel started to come up, 0..MORE_PANEL_VH + MORE_HOLD_VH + stretchVh()
 let moreScrollDamped = 0;
 let moreApplied = -1;
 function updateMorePanel() {
@@ -1963,15 +1970,15 @@ function updateMorePanel() {
     reel.covered = rise === 1;
     syncReel();
   }
-  if (XP_STRETCH_VH) {
-    const moved = clamp(moreScrollDamped - MORE_PANEL_VH - MORE_HOLD_VH, 0, XP_STRETCH_VH);
-    experience.update(Math.min(moved, XP_VH));
-    about.update(Math.max(moved - XP_VH, 0));
-    const leaving = moved - XP_VH - ABOUT_SCROLL_VH; // vh since About me started to go away upwards
+  if (!prefersReducedMotion && experience) {
+    const moved = clamp(moreScrollDamped - MORE_PANEL_VH - MORE_HOLD_VH, 0, stretchVh());
+    experience.update(Math.min(moved, xpVh()));
+    about.update(Math.max(moved - xpVh(), 0));
+    const leaving = moved - xpVh() - ABOUT_SCROLL_VH; // vh since About me started to go away upwards
     contact.update(Math.max(leaving, 0));
     // The nav is orange while About me is behind it: from half way through
     // the plane's opening of it, until its picture has gone up past the nav.
-    setNavInAbout(moved >= XP_VH - XP_OUT_VH / 2 && leaving < NAV_ABOUT_UNTIL_VH);
+    setNavInAbout(moved >= xpVh() - experience.outVh / 2 && leaving < NAV_ABOUT_UNTIL_VH);
   }
 }
 // .is-in-about on the nav (orange, style.css), and for a moment after it
@@ -2041,19 +2048,6 @@ function setupZoomParallax() {
   });
 
   zoomCenterCover = layers[0].firstElementChild;
-  document.querySelector(".zp").style.setProperty("--zp-after", `${ZP_AFTER_VH}vh`);
-  // The nav's "experience" link: the scroll at which the camera has moved one
-  // screen, so the section fills it; its "about me" link: the scroll at
-  // which About me has just been opened (1vh into it, clear of the plane's
-  // last frame); and its "contact" link: the scroll at which all of Contact
-  // is shown. (Reduced motion: the three sections are their own anchors, see
-  // experience.js and contact.js.)
-  if (XP_STRETCH_VH) {
-    const trackStart = 100 + REEL_HOLD_VH + MORE_PANEL_VH + MORE_HOLD_VH;
-    document.querySelector("#experience").style.top = `${trackStart + XP_ARRIVE_VH}vh`;
-    document.querySelector("#about").style.top = `${trackStart + XP_VH + 1}vh`;
-    document.querySelector("#contact").style.top = `${trackStart + XP_VH + ABOUT_SCROLL_VH + CONTACT_SHOWN_VH}vh`;
-  }
 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
@@ -2092,30 +2086,85 @@ function setupZoomParallax() {
     zoomBackdrop = zoomPortrait() ? clamp((size - ZOOM_BACKDROP_FROM) / (ZOOM_BACKDROP_TO - ZOOM_BACKDROP_FROM), 0, 1) : 0;
     sticky.style.setProperty("--zp-backdrop", zoomBackdrop.toFixed(3));
     // The black panel: after the zoom's own 100vh and the showreel's hold.
-    moreScroll = clamp((time - 1 - REEL_HOLD_VH / 100) * 100, 0, MORE_PANEL_VH + MORE_HOLD_VH + XP_STRETCH_VH);
+    moreScroll = clamp((time - 1 - REEL_HOLD_VH / 100) * 100, 0, MORE_PANEL_VH + MORE_HOLD_VH + stretchVh());
     if (moreScroll !== moreScrollDamped) requestFrame();
     syncReelSound(); // (the panel starting up over the reel takes its button and its sound away)
     updateNavContrast();
     // The size the showreel's player is laid out for: the card's at the end.
     zoomCenterCover.style.setProperty("--reel-res", coverScale.toFixed(3));
   };
+  // The timeline: the zoom, and then as much time as .zp has scroll after it
+  // — which is not this function's to know. Built (and built again, when
+  // that changes) by "Experience's two versions" below.
   const zoomUnits = 1 - ZOOM_PARALLAX_HOLD;
-  zoomTimeline = gsap
-    .timeline({
-      scrollTrigger: { trigger: ".zp", start: "top top", end: "bottom bottom", scrub: 1, invalidateOnRefresh: true, onRefresh: syncZoom },
-      onUpdate: syncZoom,
-    })
-    .fromTo(
-      layers,
-      { scale: 1 },
-      { scale: (i) => (zoomCoverScale() * ZOOM_PARALLAX_SCALES[i]) / ZOOM_PARALLAX_SCALES[0], ease: "none", duration: zoomUnits },
-      0
-    )
-    .to({}, { duration: ZOOM_PARALLAX_HOLD }, zoomUnits)
-    .to({}, { duration: ZP_AFTER_VH / 100 }, 1);
-  updateMorePanel();
+  buildZoomTimeline = () => {
+    if (zoomTimeline) {
+      if (zoomTimeline.scrollTrigger) zoomTimeline.scrollTrigger.kill();
+      zoomTimeline.kill();
+    }
+    zoomTimeline = gsap
+      .timeline({
+        scrollTrigger: { trigger: ".zp", start: "top top", end: "bottom bottom", scrub: 1, invalidateOnRefresh: true, onRefresh: syncZoom },
+        onUpdate: syncZoom,
+      })
+      .fromTo(
+        layers,
+        { scale: 1 },
+        { scale: (i) => (zoomCoverScale() * ZOOM_PARALLAX_SCALES[i]) / ZOOM_PARALLAX_SCALES[0], ease: "none", duration: zoomUnits },
+        0
+      )
+      .to({}, { duration: ZOOM_PARALLAX_HOLD }, zoomUnits)
+      .to({}, { duration: zpAfterVh() / 100 }, 1);
+  };
 }
 setupZoomParallax();
+
+// ---- Experience's two versions ---------------------------------------------
+// A wide screen has Experience as a track that moves sideways; a phone, as a
+// column that goes up with the scroll (src/experience.js). They are two sets
+// of animations over the same markup, and each is mounted in its own
+// gsap.matchMedia() context: when the window crosses from one to the other,
+// GSAP takes the old one down — the zoom's timeline and its ScrollTrigger,
+// which are made in it, and through its return function Experience itself,
+// which then leaves nothing behind — and only then mounts the new one.
+// The two do not take the same scroll, and everything after the panel is in
+// place follows from that: how long .zp is, where the nav's links land and
+// how long the zoom's timeline goes on (setScrollBudget). The same is done
+// when the window changes size without changing version, if the phone's
+// column has come out another height ("The window changes size" below).
+let panelContext = null; // the context the mounted version lives in
+let scrollBudget = -1; // the zpAfterVh() the page is laid out for
+function setScrollBudget() {
+  scrollBudget = zpAfterVh();
+  document.querySelector(".zp").style.setProperty("--zp-after", `${scrollBudget}vh`);
+  // The nav's "experience" link: the scroll at which the section is in
+  // place; its "about me" link: the scroll at which About me has just been
+  // opened (1vh into it, clear of the plane's last frame); and its "contact"
+  // link: the scroll at which all of Contact is shown. (Reduced motion: the
+  // three sections are their own anchors, see experience.js and contact.js.)
+  if (!prefersReducedMotion) {
+    const trackStart = 100 + REEL_HOLD_VH + MORE_PANEL_VH + MORE_HOLD_VH;
+    document.querySelector("#experience").style.top = `${trackStart + experience.arriveVh}vh`;
+    document.querySelector("#about").style.top = `${trackStart + xpVh() + 1}vh`;
+    document.querySelector("#contact").style.top = `${trackStart + xpVh() + ABOUT_SCROLL_VH + CONTACT_SHOWN_VH}vh`;
+  }
+  buildZoomTimeline();
+  moreApplied = -1; // (the panel's sections are told again where the scroll is)
+  updateMorePanel();
+  requestFrame();
+}
+function mountExperience(mode, context) {
+  experience = createExperience(moreEl, mode);
+  panelContext = context;
+  setScrollBudget();
+  return () => experience.destroy();
+}
+if (prefersReducedMotion) setScrollBudget();
+else {
+  const media = gsap.matchMedia();
+  media.add(`(min-width: ${MOBILE_MAX_PX + 1}px)`, (context) => mountExperience("wide", context));
+  media.add(`(max-width: ${MOBILE_MAX_PX}px)`, (context) => mountExperience("phone", context));
+}
 
 // Created after the hero's pinning ScrollTrigger on purpose: triggers are
 // measured in creation order, and these sit below the pin on the page.
@@ -2123,11 +2172,11 @@ setupZoomParallax();
 // the zoom ends — not to its very end, which the showreel's hold, the black
 // panel and the Experience section come after — so everything that is a
 // share of it (AURA_PROJECTS_T, FEATURED_UP_GUARD) keeps its length in
-// scroll whatever ZP_AFTER_VH is.
+// scroll whatever comes after the zoom (zpAfterVh).
 ScrollTrigger.create({
   trigger: "#projects",
   start: "top bottom",
-  end: () => `+=${document.querySelector("#projects").offsetHeight - (ZP_AFTER_VH / 100) * window.innerHeight}`,
+  end: () => `+=${document.querySelector("#projects").offsetHeight - (zpAfterVh() / 100) * window.innerHeight}`,
   onUpdate: (self) => {
     projectsProgress = self.progress;
     requestFrame();
@@ -2269,25 +2318,49 @@ function animate() {
 requestFrame();
 
 // ---- The window changes size ------------------------------------------------
-// Last of all that viewport.js runs then: every ScrollTrigger is measured
-// again, over what the sections have just laid out. The whole page is as
-// long as the screen is tall (every stretch of it is so many screens of
-// scroll), so the same place in it is the same number of screens down: the
-// scroll is put back there, and the window can go from wide to narrow in the
-// middle of a section without the page moving on to another.
+// Last of all that viewport.js runs then: Experience is laid out again (the
+// page's length with it, if its version takes another scroll now) and every
+// ScrollTrigger is measured again, over what the sections have just laid out.
+// Then the scroll is put back where the page was. Every stretch of the page
+// is so many screens of scroll, so a place in it is a number of screens down
+// — but for Experience, whose two versions are not as long: the place kept
+// is the screens down to Experience's start, the share of Experience's own
+// scroll, or the screens past its end (pagePlace / scrollOf). So the window
+// can go from wide to narrow in the middle of any section without the page
+// moving on to another.
 const RESIZE_QUIET_MS = 400; // after a resize, a scroll is the page being put back, not the visitor's
-let screensDown = window.scrollY / screenProbe.offsetHeight;
+const zpEl = document.querySelector(".zp");
+// (vh down the page at which Experience's scroll starts)
+const xpStartVh = () => ((zpEl.getBoundingClientRect().top + window.scrollY) / screenProbe.offsetHeight) * 100 + 100 + REEL_HOLD_VH + MORE_PANEL_VH + MORE_HOLD_VH;
+function pagePlace() {
+  const at = (window.scrollY / screenProbe.offsetHeight) * 100;
+  if (prefersReducedMotion) return { before: at };
+  const start = xpStartVh();
+  if (at < start) return { before: at };
+  return at < start + xpVh() ? { share: (at - start) / xpVh() } : { past: at - start - xpVh() };
+}
+function scrollOf(place) {
+  const at = "before" in place ? place.before : "share" in place ? xpStartVh() + place.share * xpVh() : xpStartVh() + xpVh() + place.past;
+  return Math.round((at / 100) * screenProbe.offsetHeight);
+}
+let place = pagePlace();
 let resizedAt = -Infinity;
 window.addEventListener("resize", () => (resizedAt = performance.now()));
 window.addEventListener(
   "scroll",
   () => {
-    if (performance.now() - resizedAt > RESIZE_QUIET_MS) screensDown = window.scrollY / screenProbe.offsetHeight;
+    if (performance.now() - resizedAt > RESIZE_QUIET_MS) place = pagePlace();
   },
   { passive: true }
 );
 onViewportChange(() => {
+  experience.layout();
+  if (zpAfterVh() !== scrollBudget) {
+    if (panelContext) panelContext.add(null, setScrollBudget); // (in its context: taken down with it)
+    else setScrollBudget();
+  }
   ScrollTrigger.refresh();
-  window.scrollTo(0, Math.round(screensDown * screenProbe.offsetHeight));
+  window.scrollTo(0, scrollOf(place));
+  moreApplied = -1;
   requestFrame();
 });

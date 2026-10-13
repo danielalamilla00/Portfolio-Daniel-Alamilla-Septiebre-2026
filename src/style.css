@@ -1541,23 +1541,86 @@ html.is-grid body::after {
 .xp-plane.is-behind {
   z-index: 0;
 }
-/* A phone: each job has the screen to itself (experience.js, XP_PHONE: its
-   point in the middle, the line lower than half way down) — the title at the
-   top, what the job was over the line and a few words about it under it,
-   centered, neither wider than 80% of the screen. */
-@media (max-width: 767px) {
-  .xp {
-    --xp-title-size: 10.5vw;
-    --xp-title-y: 24%;
-    --xp-role-size: 1.15rem;
-    --xp-detail-size: 0.875rem;
-    --xp-text-width: 80cqw;
-    --xp-desc-width: 80cqw;
-    --xp-dot: 12px;
-  }
-  .xp-desc {
-    max-width: var(--xp-desc-width);
-  }
+/* The phone's version of it (experience.js, createPhone, which puts
+   .is-vertical on the panel while it is mounted): the panel's track is a
+   column — the "Still thirsty" screen, then this section under it, as wide as
+   the screen and as tall as it needs — that goes up with the scroll. The
+   title at the top, on the page's margin; a fine line down the left margin
+   (--xp-line-x; experience.js gives it its top and its height, and draws it
+   as the plane goes down it); each job beside its point on that line: what it
+   was, where and when, and a few words about it, all from the left, a third
+   of a screen from the next. The texts are whole (no letter by letter): a
+   job's block fades in, rising, when the plane is on its point. */
+.more.is-vertical .more-track {
+  flex-direction: column;
+  width: 100%;
+  height: auto;
+}
+.more.is-vertical .more-screen {
+  width: 100%;
+  height: 100vh; /* the panel's own: a screen */
+}
+.more.is-vertical .xp {
+  --xp-title-size: 10.5vw;
+  --xp-role-size: 1.2rem;
+  --xp-detail-size: 0.9rem;
+  --xp-dot: 13px;
+  --xp-line-x: calc(var(--page-margin) + 4px);
+  --xp-text-x: calc(var(--xp-line-x) + 4rem); /* clear of the plane, which is on the line */
+  width: 100%;
+  height: auto;
+  padding-bottom: 60vh; /* (black, under the last job: the plane leaves over it) */
+}
+.more.is-vertical .xp-title {
+  position: relative;
+  left: 0;
+  bottom: auto;
+  width: max-content;
+  margin-top: 9.25rem; /* under the section's label, which is under the nav */
+  margin-left: calc(var(--page-margin) - 0.12em - var(--xp-title-inset));
+}
+.more.is-vertical .xp-line {
+  left: var(--xp-line-x);
+  right: auto;
+  width: 1px;
+  background-color: var(--c-cream);
+  transform-origin: 50% 0;
+  transform: scaleY(0); /* initial state; experience.js draws it */
+}
+.more.is-vertical .xp-items {
+  margin-top: 16vh;
+  padding: 0 var(--page-margin) 0 var(--xp-text-x);
+}
+.more.is-vertical .xp-item {
+  position: relative;
+  left: auto;
+  top: auto;
+  margin-bottom: 30vh;
+}
+.more.is-vertical .xp-item:last-child {
+  margin-bottom: 0;
+}
+/* (its middle on the line, level with the middle of the first line of text) */
+.more.is-vertical .xp-dot {
+  left: calc(var(--xp-line-x) + 0.5px - var(--xp-text-x) - var(--xp-dot) / 2);
+  top: calc(var(--xp-role-size) * 0.55 - var(--xp-dot) / 2);
+  background-color: #0a0a0a; /* (the line does not show through it) */
+}
+.more.is-vertical .xp-text,
+.more.is-vertical .xp-desc {
+  position: static;
+  width: auto;
+  max-width: 34ch;
+  transform: none;
+  opacity: 0; /* initial state; experience.js drives it */
+  text-align: left;
+}
+.more.is-vertical .xp-desc {
+  margin-top: 0.9em;
+  text-wrap: pretty;
+}
+.more.is-vertical .xp-char {
+  opacity: 1;
 }
 /* prefers-reduced-motion (experience.js moves the section out of the panel
    and adds .is-static): a plain block after the projects — the title, the
