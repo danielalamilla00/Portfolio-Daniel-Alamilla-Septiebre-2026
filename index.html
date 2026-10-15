@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body class="grain">
+    <!-- Where the nav's "home" link lands: the top of the page, the hero. -->
+    <span class="page-anchor" id="home" aria-hidden="true"></span>
     <!-- The Three.js canvas (orange, then aura): fixed to the viewport
          behind all content (see #sphere-canvas in style.css), so the aura
          can carry on from the pinned hero into #projects. -->
@@ -20,6 +22,7 @@
     <nav id="site-nav">
       <img class="nav-logo" src="/logo-alamilla-new.svg" alt="Alamilla" />
       <ul class="nav-links">
+        <li><a href="#home" data-section="home">home</a></li>
         <li><a href="works.html" data-section="projects">projects</a></li>
         <li><a href="#showreel" data-section="showreel">showreel</a></li>
         <li><a href="#experience" data-section="experience">experience</a></li>

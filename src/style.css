@@ -519,6 +519,12 @@ body {
   position: absolute;
   top: 100vh;
 }
+/* The nav's "home" link's place: the very top of the page. */
+.page-anchor {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
 .zp-sticky {
   position: sticky;
   top: 0;
