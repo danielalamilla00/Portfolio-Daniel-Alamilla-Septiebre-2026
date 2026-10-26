@@ -22,13 +22,6 @@ body.works #site-nav {
   --nav-ink: var(--c-cream);
   --nav-clock-ink: var(--c-cream);
 }
-/* The logo is a link here (to the home): it takes the logo's place in the
-   nav's grid. */
-#site-nav .nav-home {
-  justify-self: start;
-  line-height: 0;
-  pointer-events: auto;
-}
 .wk {
   position: fixed;
   inset: 0;

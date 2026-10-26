@@ -1,0 +1,434 @@
+/* A project's page (work.html, src/project.js): one template for all of them.
+   The page's black with the web's grain (body.grain); everything inside the
+   page's margins (--page-margin), on the page's twelve columns.
+     --pj-top    from the top of the screen to the category (under the nav)
+     --pj-dim    the cream of the small labels
+     --pj-line   the cream of the facts' rules
+     --header-h  the nav's height: its padding (1.75rem, above and under)
+                 and its logo (2.2rem) — style.css, #site-nav */
+body.project {
+  --header-h: 5.7rem;
+  --pj-top: 8rem;
+  --pj-dim: rgba(246, 236, 221, 0.6);
+  --pj-line: rgba(246, 236, 221, 0.15);
+  margin: 0;
+  background-color: #0a0a0a;
+  color: var(--c-cream);
+  font-family: var(--font-sans);
+  letter-spacing: var(--tracking-sans);
+}
+/* The nav, in cream: its links and its clock. */
+body.project #site-nav {
+  --nav-ink: var(--c-cream);
+  --nav-clock-ink: var(--c-cream);
+}
+.pj {
+  padding: var(--pj-top) var(--page-margin) 0;
+}
+.pj p,
+.pj h1,
+.pj h2,
+.pj dl,
+.pj dd,
+.pj figure {
+  margin: 0;
+}
+
+/* -- the head: the category, small, and the name, giant; centered. (Its
+   padding, .title-gradient's, leaves room for the strokes that reach past
+   the lines.) */
+.pj-head {
+  text-align: center;
+}
+.pj-category {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--pj-dim);
+}
+.pj-title {
+  display: block;
+  margin: 0 auto;
+  font-size: 12vw;
+  line-height: 0.9;
+  text-wrap: balance;
+}
+
+/* -- the two columns: the facts on the left (4 of the 12), the video and its
+   frames on the right (8). The left one stays where it is while the right
+   one goes by (sticky; --pj-stick: project.js) until the end of the block.
+   At its start both stop for a while (project.js), their middles level, in
+   the middle of the screen under the nav: the video's column is as tall as
+   that, the video in its middle; the texts are lower in the page by as much
+   as they have to be to get there at the same time (--pj-info-shift); the
+   scroll the video is held for is room under its column (--pj-hold-room). */
+.pj-body {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--grid-gutter);
+  margin-top: 8vh;
+}
+.pj-video-slot {
+  grid-column: 5 / -1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  min-height: calc(100dvh - var(--header-h));
+  margin-bottom: var(--pj-hold-room, 0px);
+}
+.pj-video-slot > * {
+  flex: 1;
+  min-width: 0;
+}
+.pj-info {
+  grid-column: 1 / span 4;
+  grid-row: 1 / span 2;
+  align-self: start;
+  position: sticky;
+  top: var(--pj-stick, 7.5rem);
+  margin-top: var(--pj-info-shift, 0px);
+  padding-right: clamp(1rem, 3vw, 4rem);
+}
+.pj-frames {
+  grid-column: 5 / -1;
+  grid-row: 2;
+  display: grid;
+  row-gap: var(--grid-gutter);
+  margin-top: var(--grid-gutter);
+}
+
+/* The texts and the facts. "Idea" and "Challenge" in the titles' letters
+   (.title-gradient: Catavalo, the palette's gradient); the room it leaves
+   round them for the strokes (--title-room) kept off the column's edge and
+   off what is under them, 12px down. */
+.pj .pj-label {
+  margin: calc(var(--title-room) * -1) calc(var(--title-room) * -1) calc(12px - var(--title-room));
+  font-size: clamp(22px, 1.9vw, 32px);
+  line-height: 1;
+}
+.pj-copy {
+  font-size: clamp(17px, 1.15vw, 20px);
+  font-weight: 300;
+  line-height: 1.5;
+  color: var(--c-cream);
+  text-wrap: pretty;
+}
+.pj .pj-copy + .pj-label {
+  margin-top: calc(2.25rem - var(--title-room));
+}
+.pj-facts {
+  margin-top: 2.75rem;
+  border-top: 1px solid var(--pj-line);
+}
+.pj-fact {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1.5rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--pj-line);
+}
+.pj-fact-name {
+  flex: none;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--pj-dim);
+}
+.pj-fact-value {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: right;
+}
+
+/* The pieces of the right column — the video and its frames — are all the
+   same box: 16:9, as wide as the column, one on top of another with the
+   grid's gutter between them. What is in each fills it (cover), centered unless the project
+   says where to look (projects.js: focus). */
+/* The video: its poster over it until it plays (.is-playing); its controls
+   over its foot, on a shade — words, in cream, and the bar of where it is. */
+.pj-video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background-color: #000000;
+}
+.pj-video-stage {
+  position: absolute;
+  inset: 0;
+}
+.pj-poster,
+.pj-embed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+}
+.pj-poster {
+  z-index: 1;
+  transition: opacity 0.6s ease;
+}
+.pj-video.is-playing .pj-poster {
+  opacity: 0;
+  pointer-events: none;
+}
+.pj-controls {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2.5rem 1.25rem 0.75rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
+}
+.pj-control {
+  flex: none;
+  padding: 0.35rem 0;
+  border: 0;
+  background: none;
+  color: var(--c-cream);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: var(--tracking-sans);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+.pj-control:hover {
+  opacity: 0.6;
+}
+.pj-control:focus-visible,
+.pj-bar:focus-visible,
+.pj-watch:focus-visible {
+  outline: 1px solid var(--c-cream);
+  outline-offset: 3px;
+}
+/* (a fine line; what is pressed to move along it is taller) */
+.pj-bar {
+  position: relative;
+  flex: 1;
+  height: 16px;
+  cursor: pointer;
+  touch-action: none;
+}
+.pj-bar::before,
+.pj-bar-fill {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+}
+.pj-bar::before {
+  background-color: rgba(246, 236, 221, 0.25);
+}
+.pj-bar-fill {
+  display: block;
+  background-color: var(--c-cream);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+}
+/* "Click to watch project": in the video's middle, on a pane of frosted
+   glass, in the controls' letters; gone (fading) while it is watched. */
+.pj-watch {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: var(--tracking-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.25s ease, opacity 0.25s ease;
+}
+.pj-watch:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.pj-watch.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.pj-watch-icon {
+  flex: none;
+}
+
+/* Full screen: the whole screen, the video whole in it (and never faded:
+   project.js fades it as it leaves the page). */
+.pj-video:fullscreen {
+  aspect-ratio: auto;
+  opacity: 1 !important;
+}
+.pj-video:fullscreen .pj-embed {
+  object-fit: contain;
+}
+
+/* The frames: the clips, then any other pictures. Each one moves a little
+   inside its box as the page goes by (project.js). */
+.pj-frame {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background-color: #000000;
+}
+.pj-frame > * {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  scale: 1.1; /* (room for its move) */
+}
+/* A clip: nothing to press, and none of the player's own buttons (an iPhone's
+   "play" over it, when it will not play by itself). */
+.pj-frame video {
+  pointer-events: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+.pj-frame video::-webkit-media-controls,
+.pj-frame video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
+/* -- the end: "Next project", as big as the name; the next three projects;
+   the way back to all of them. */
+.pj-end {
+  margin-top: 22vh;
+  text-align: center;
+}
+.pj-next-heading {
+  font-size: 12vw;
+  font-weight: 400;
+  line-height: 0.9;
+}
+.pj-next-sans {
+  font-size: calc(1em * 1.055); /* (read as the same size as Catavalo's word: see .xp-title) */
+}
+.pj-next-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--grid-gutter);
+  margin-top: 8vh;
+  text-align: left;
+}
+.pj-card {
+  color: var(--c-cream);
+  text-decoration: none;
+}
+.pj-card-thumb {
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background-color: #000000;
+}
+.pj-card-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pj-card:hover .pj-card-thumb img,
+.pj-card:focus-visible .pj-card-thumb img {
+  transform: scale(1.03);
+}
+.pj-card-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.9rem;
+  font-size: 13px;
+  font-weight: 400;
+}
+.pj-card-more {
+  flex: none;
+  color: var(--pj-dim);
+}
+.pj-card:focus-visible {
+  outline: 1px solid var(--c-cream);
+  outline-offset: 6px;
+}
+.pj-back {
+  display: inline-block;
+  margin-top: 12vh;
+  padding: 0.75rem 0;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--c-cream);
+  text-decoration: none;
+}
+.pj-back:hover {
+  opacity: 0.6;
+}
+
+/* -- the foot */
+.pj-foot {
+  display: flex;
+  justify-content: center;
+  padding: 4rem var(--page-margin) 2.5rem;
+}
+
+/* -- a phone: one column — the name, the video, the texts and the facts, the
+   frames, the end; the next three projects side by side, scrolled sideways. */
+@media (max-width: 767px) {
+  body.project {
+    --pj-top: 6.5rem;
+  }
+  .pj-body {
+    display: block;
+  }
+  .pj-video-slot {
+    display: block;
+    min-height: 0;
+  }
+  .pj-info {
+    position: static;
+    margin-top: 3rem;
+    padding-right: 0;
+  }
+  .pj-frames {
+    margin-top: 3rem; /* (under the facts) */
+  }
+  .pj-controls {
+    gap: 1rem;
+    padding: 2rem 0.75rem 0.4rem;
+  }
+  .pj-watch {
+    padding: 10px 18px;
+    font-size: 14px;
+  }
+  .pj-next-row {
+    display: flex;
+    gap: 12px;
+    margin-inline: calc(var(--page-margin) * -1);
+    padding-inline: var(--page-margin);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--page-margin);
+    scrollbar-width: none;
+  }
+  .pj-next-row::-webkit-scrollbar {
+    display: none;
+  }
+  .pj-card {
+    flex: 0 0 82%;
+    scroll-snap-align: start;
+  }
+}

@@ -68,5 +68,8 @@ export function createYouTubePlayer(frame, onState) {
     setMuted: (muted) => tell((player) => (muted ? player.mute() : player.unMute())),
     setVolume: (volume) => tell((player) => player.setVolume(volume * 100)), // 0..1
     timeLeft: () => tell((player) => player.getDuration() - player.getCurrentTime()), // seconds to its end
+    time: () => tell((player) => player.getCurrentTime()), // seconds in
+    duration: () => tell((player) => player.getDuration()), // seconds
+    seek: (seconds) => tell((player) => player.seekTo(seconds, true)),
   };
 }

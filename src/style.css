@@ -1757,6 +1757,13 @@ html.is-grid body::after {
   padding: 1.75rem var(--page-margin);
   pointer-events: none;
 }
+/* On the other pages the logo is a link (to the home): it takes the logo's
+   place in the nav's grid. */
+#site-nav .nav-home {
+  justify-self: start;
+  line-height: 0;
+  pointer-events: auto;
+}
 #site-nav .nav-logo {
   justify-self: start;
   height: 2.2rem;

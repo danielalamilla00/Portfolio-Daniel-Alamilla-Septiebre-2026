@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { applyPalette } from "./palette.js";
 import { createAura } from "./aura.js";
 import { startNavClock } from "./clock.js";
-import { PROJECTS } from "./data/projects.js";
+import { PROJECTS, projectUrl } from "./data/projects.js";
 import { rasterInk, clearInkCache, whenFontsLoad } from "./ink.js";
 import { onViewportChange, canvasPixelRatio, MOBILE_MAX_PX } from "./viewport.js";
 import { setupMenu } from "./menu.js";
@@ -116,13 +116,14 @@ const element = (tag, className, text) => {
 const rowsEl = stage.querySelector(".wk-rows");
 const rows = PROJECTS.map((project, index) => {
   // A link to its page, or — with none yet — just a row.
-  const el = element(project.url ? "a" : "div", project.url ? "wk-row is-off" : "wk-row is-soon is-off");
-  if (project.url) el.href = project.url;
+  const url = projectUrl(project);
+  const el = element(url ? "a" : "div", url ? "wk-row is-off" : "wk-row is-soon is-off");
+  if (url) el.href = url;
   else {
     el.tabIndex = 0;
-    el.setAttribute("aria-label", `${project.title} (coming soon)`);
+    el.setAttribute("aria-label", `${project.shortTitle} (coming soon)`);
   }
-  const name = element("span", "wk-name", project.title);
+  const name = element("span", "wk-name", project.shortTitle);
   const thumb = element("span", "wk-thumb");
   const zoom = element("span", "wk-zoom");
   const image = element("img", "");
@@ -130,7 +131,7 @@ const rows = PROJECTS.map((project, index) => {
   image.decoding = "async";
   zoom.appendChild(image);
   let video = null;
-  if (project.video) {
+  if (project.preview) {
     video = element("video", "");
     video.muted = true;
     video.loop = true;
@@ -143,7 +144,7 @@ const rows = PROJECTS.map((project, index) => {
   // yet, that it is on its way). Where there is no cursor, what a tap on the
   // row at the middle does shows on it instead (.wk-view).
   zoom.appendChild(element("span", "wk-shade"));
-  zoom.appendChild(project.url ? element("span", "wk-view", "View project →") : element("span", "wk-soon", "Coming soon"));
+  zoom.appendChild(url ? element("span", "wk-view", "View project →") : element("span", "wk-soon", "Coming soon"));
   thumb.appendChild(zoom);
   el.append(element("span", "wk-line"), name, thumb);
   rowsEl.appendChild(el);
@@ -176,7 +177,7 @@ function measure() {
   const size = parseFloat(style.fontSize);
   const font = `${style.fontStyle} ${style.fontWeight} ${WORKS_TITLE_PROBE_PX}px ${style.fontFamily}`;
   const margin = parseFloat(getComputedStyle(rows[0].el.querySelector(".wk-line")).left);
-  const inks = rows.map((row) => rasterInk(font, row.project.title, WORKS_TITLE_PROBE_PX));
+  const inks = rows.map((row) => rasterInk(font, row.project.shortTitle, WORKS_TITLE_PROBE_PX));
   rows.forEach((row, index) => row.name.style.setProperty("--wk-name-ink", `${((-inks[index].left * size) / WORKS_TITLE_PROBE_PX).toFixed(2)}px`));
   const longest = Math.max(...inks.map((ink) => ink.right - ink.left)) * (size / WORKS_TITLE_PROBE_PX);
   // Beside the picture if there is room for the longest; over it if not.
@@ -250,7 +251,7 @@ function activate(row, on) {
   row.el.classList.toggle("is-active", on);
   if (!row.video) return;
   if (on) {
-    if (!row.video.src) row.video.src = encodeURI(row.project.video);
+    if (!row.video.src) row.video.src = encodeURI(row.project.preview);
     row.video.play().catch(() => {}); // (not allowed to, or already gone: the cover stays)
   } else {
     row.video.pause();
