@@ -1592,9 +1592,9 @@ const ZOOM_PARALLAX_PROJECTS = [
   { slug: "otono-tmm", title: "Otoño TMM", src: "/proyectos/Otoño TMM/Portada_Tardor TMM.mp4", alt: "Otoño TMM project cover" },
   { slug: "sitges", title: "Sitges Film Festival", src: "/proyectos/Sitges/Styleframes/Styleframes_SItges_1.2.mp4", alt: "Sitges Film Festival project cover" },
   { slug: "spotify", title: "Spotify Daylist", src: "/proyectos/Spotify/Portada_Spotify Daylist.mp4", alt: "Spotify Daylist project cover" },
-  { slug: "hummel-betis", title: "Hummel Betis", src: "/proyectos/Hummel Betis/Hummel Betis_Tarjeta.mp4", alt: "Hummel Betis project cover" },
+  { slug: "hummel", title: "Hummel", src: "/proyectos/Hummel/clips/clip-05.mp4", alt: "Hummel project cover" },
   { slug: "tmm-esferas", title: "TMM Esferas", src: "/proyectos/TMM Esferas/Portada_TMM Esferas.mp4", alt: "TMM Esferas project cover" },
-  { slug: "estiu-tmm", title: "Estiu TMM", src: "/proyectos/Estiu TMM/Portada_Estiu TMM.mp4", alt: "Estiu TMM project cover" },
+  { slug: "ron-barcelo", title: "Barceló", src: "/proyectos/Estiu TMM/Portada_Estiu TMM.mp4", alt: "Barceló project cover" },
 ].map((project) => ({ href: `work.html#${project.slug}`, ...project }));
 const ZOOM_PARALLAX_SCALES = [4, 5, 6, 5, 6, 8, 9]; // relative to one another (the reference's values)
 const ZOOM_PARALLAX_COVER = 1.03; // layer 0 ends this much bigger than an exact cover of the viewport

@@ -7,7 +7,9 @@
 // projects', or only those named.
 // The originals are not in the site (they are big, and public/ is published):
 // they stay in their folders, under ORIGINALS — by default the portfolio's
-// own, Desktop/Portfolio/Motion; another with ORIGINALS=<folder>.
+// own, Desktop/Portfolio/Motion; another with ORIGINALS=<folder>. (One that
+// is a path of the site's — it starts with "/" — is the site's own, under
+// public/: a project's web version of its video.)
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -25,7 +27,8 @@ const kb = (file) => Math.round(statSync(file).size / 1024);
 
 for (const project of projects) {
   for (const clip of project.frames) {
-    const source = join(ORIGINALS, clip.original || project.original);
+    const original = clip.original || project.original;
+    const source = original.startsWith("/") ? join("public", original) : join(ORIGINALS, original);
     if (!existsSync(source)) throw new Error(`${project.slug}: no original at ${source}`);
     const out = join("public", clip.video);
     const poster = out.replace(/\.mp4$/, ".webp");

@@ -129,7 +129,8 @@ function factsTable(project) {
 }
 
 // -- the video ---------------------------------------------------------------------------
-// Its poster over it until it plays. It starts by itself, silent; its controls are the
+// Its poster over it until it plays. It waits, stopped, until someone
+// presses play (and then plays with its sound); its controls are the
 // page's: play / pause, where it is (and where to go: the bar), sound, full
 // screen — and, in its middle while it is not being watched, "Click to watch
 // project" (watchButton). Whatever plays it — a <video>, YouTube's player, Vimeo's — is
@@ -158,7 +159,7 @@ function videoBlock(project) {
   bar.setAttribute("aria-valuemin", "0");
   bar.setAttribute("aria-valuemax", "100");
   bar.tabIndex = 0;
-  const soundButton = element("button", "pj-control", "Sound on");
+  const soundButton = element("button", "pj-control", "Sound off");
   const fullButton = element("button", "pj-control", "Full screen");
   [playButton, soundButton, fullButton].forEach((button) => (button.type = "button"));
   controls.append(playButton, bar, soundButton, fullButton);
@@ -169,7 +170,7 @@ function videoBlock(project) {
   box.append(stage, controls, watch.button);
 
   let playing = false;
-  let muted = true;
+  let muted = false;
   // (watched: playing, with its sound)
   const watched = () => watch.show(!playing || muted);
   let share = 0; // how far in, 0..1
@@ -197,7 +198,9 @@ function videoBlock(project) {
     fill.style.transform = `scaleX(${at.toFixed(4)})`;
     bar.setAttribute("aria-valuenow", String(Math.round(at * 100)));
   };
-  const player = makePlayer(project.video, stage, poster, { onState, onTime });
+  // (an MP4 that has a lighter one for a phone: that one, on a phone)
+  const small = project.videoSmall && window.matchMedia("(max-width: 767px)").matches;
+  const player = makePlayer(small ? project.videoSmall : project.video, stage, poster, { onState, onTime });
 
   const setSound = (on) => {
     muted = !on;
@@ -238,8 +241,8 @@ function videoBlock(project) {
 }
 
 // "Click to watch project": over a project's video, in its middle, while it
-// is not being watched — before it starts, stopped, or playing by itself
-// with no sound —; pressed, it plays it with its sound (onWatch), and goes
+// is not being watched — before it starts, stopped, or playing with its
+// sound off —; pressed, it plays it with its sound (onWatch), and goes
 // (fading; it comes back the same way). What it gives back: the button, and
 // show(on).
 const PJ_PLAY_ICON = '<svg class="pj-watch-icon" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d="M1.5 0.8 9.2 5 1.5 9.2Z" fill="currentColor"/></svg>';
@@ -258,7 +261,7 @@ function makePlayer(url, stage, poster, { onState, onTime }) {
     const frame = element("iframe", "pj-embed");
     frame.allow = "autoplay; encrypted-media; picture-in-picture";
     frame.title = "Video";
-    frame.src = `https://www.youtube-nocookie.com/embed/${id}?${new URLSearchParams({ enablejsapi: 1, origin: window.location.origin, autoplay: 1, mute: 1, controls: 0, loop: 1, playlist: id, playsinline: 1, rel: 0, iv_load_policy: 3, disablekb: 1, fs: 0 })}`;
+    frame.src = `https://www.youtube-nocookie.com/embed/${id}?${new URLSearchParams({ enablejsapi: 1, origin: window.location.origin, autoplay: 0, mute: 0, controls: 0, loop: 1, playlist: id, playsinline: 1, rel: 0, iv_load_policy: 3, disablekb: 1, fs: 0 })}`;
     stage.appendChild(frame);
     let duration = 0;
     let ticking = 0;
@@ -281,7 +284,7 @@ function makePlayer(url, stage, poster, { onState, onTime }) {
     const frame = element("iframe", "pj-embed");
     frame.allow = "autoplay; fullscreen; picture-in-picture";
     frame.title = "Video";
-    frame.src = `https://player.vimeo.com/video/${vimeoId(url)}?${new URLSearchParams({ autoplay: 1, muted: 1, loop: 1, controls: 0, title: 0, byline: 0, portrait: 0, dnt: 1, playsinline: 1 })}`;
+    frame.src = `https://player.vimeo.com/video/${vimeoId(url)}?${new URLSearchParams({ autoplay: 0, muted: 0, loop: 1, controls: 0, title: 0, byline: 0, portrait: 0, dnt: 1, playsinline: 1 })}`;
     stage.appendChild(frame);
     const origin = "https://player.vimeo.com";
     const post = (method, value) => frame.contentWindow.postMessage(JSON.stringify(value === undefined ? { method } : { method, value }), origin);
@@ -307,10 +310,9 @@ function makePlayer(url, stage, poster, { onState, onTime }) {
   }
   // An MP4: a <video> of the page's own.
   const video = element("video", "pj-embed");
-  video.muted = true;
   video.loop = true;
   video.playsInline = true;
-  video.autoplay = true;
+  video.preload = "metadata";
   video.poster = poster.src;
   video.src = encodeURI(url);
   stage.appendChild(video);
