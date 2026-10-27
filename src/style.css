@@ -1735,6 +1735,26 @@ html.is-grid body::after {
   object-fit: cover;
 }
 
+/* Behind the nav, so that nothing going under it is seen through it
+   (nav-veil.js): the page's black, as tall as the nav (--nav-veil-nav),
+   fading to nothing 60px under it, its grain over it (.grain). Off, fading,
+   where the page says the nav is over a colour with nothing under it. */
+.nav-veil {
+  position: fixed;
+  z-index: 49; /* under the nav (50), over every section */
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--nav-veil-nav, 5.7rem) + 60px);
+  background-color: #0a0a0a;
+  -webkit-mask-image: linear-gradient(to bottom, #000 var(--nav-veil-nav, 5.7rem), transparent);
+  mask-image: linear-gradient(to bottom, #000 var(--nav-veil-nav, 5.7rem), transparent);
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.nav-veil.is-off {
+  opacity: 0;
+}
 /* Nav: fixed to the viewport (outside #hero-section) so it stays on screen
    over the projects section too. position:fixed always makes the nav its
    own stacking context, so the z-index has to be on this wrapper: the

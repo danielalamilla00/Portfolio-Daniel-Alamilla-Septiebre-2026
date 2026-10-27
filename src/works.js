@@ -3,6 +3,7 @@ import { applyPalette } from "./palette.js";
 import { createAura } from "./aura.js";
 import { startNavClock } from "./clock.js";
 import { PROJECTS, projectUrl } from "./data/projects.js";
+import { plainTitle, titleParts } from "./title.js";
 import { rasterInk, clearInkCache, whenFontsLoad } from "./ink.js";
 import { onViewportChange, canvasPixelRatio, MOBILE_MAX_PX } from "./viewport.js";
 import { setupMenu } from "./menu.js";
@@ -15,33 +16,44 @@ import { setupMenu } from "./menu.js";
 // title. Transforms and opacity only; the sizes that depend on the screen are
 // worked out once (and on resize), never while it moves.
 //
-// A row is, from its top: its line, WORKS_PAD_PX, its picture (16:9, always)
-// and WORKS_GAP_PX to the next; its title hangs from the line at the left
-// margin, beside the picture (only where the two would run into each other —
-// a narrow screen — is the picture put under it). At rest the picture is
+// A row goes from its line to the next row's, its picture (16:9, always) in
+// the middle of the two — at least WORKS_THUMB_MARGIN_PX from each, at every
+// size it takes — its title hanging from its line at the left margin, as
+// wide as the room there is beside the picture at its biggest, less
+// WORKS_TITLE_GAP_PX, on two lines if one is not enough; and its description
+// at the right margin, as far from the picture as the title is (the two
+// mirror each other across the middle of the page: so they stay at the same
+// distance from it at every size it takes), on three lines at most — wider
+// if three lines are not enough for it there (the row is taller if they
+// need it). Where two lines are not enough for a title — a
+// phone, a narrow screen — both go over the picture, the description under
+// the title, as wide as the page. At rest the picture is
 // WORKS_THUMB_VW wide; in the row at the middle, WORKS_THUMB_ACTIVE_VW
 // (WORKS_MOBILE_* up to MOBILE_MAX_PX wide): the one box, scaled. The
 // height it gains belongs to the middle of the screen, not to a row: a row
 // has as much of it as it is over that middle, so as one row opens the one
 // leaving closes by the same and the rows around only move to make room. The
-// same share (0..1) takes its title from WORKS_TITLE_DIM to all there.
+// same share (0..1) takes its title and description from WORKS_TITLE_DIM to
+// all there.
 const WORKS_THUMB_VW = 18;
 const WORKS_THUMB_ACTIVE_VW = 40;
 const WORKS_MOBILE_THUMB_VW = 40;
 const WORKS_MOBILE_THUMB_ACTIVE_VW = 84;
 const WORKS_THUMB_RATIO = 16 / 9;
-const WORKS_PAD_PX = 12;
-const WORKS_GAP_PX = 12;
+const WORKS_THUMB_MARGIN_PX = 16;
+const WORKS_TITLE_GAP_PX = 32;
+const WORKS_TITLE_LINES = 2;
+const WORKS_DESC_GAP_PX = 12; // (over the picture: between the title and its description)
 // The titles (style.css sizes them): each starts with the INK of its first
 // letter on the page's left margin, the logo's left edge — measured from its
 // own pixels (ink.js, as the hero's headline; drawn WORKS_TITLE_PROBE_PX
-// big) — WORKS_TITLE_TOP_PX under its row's line. WORKS_TITLE_CLEAR_PX: the
-// least there has to be between the longest of them and the picture at its
-// biggest for the two to be side by side.
+// big) — WORKS_TITLE_TOP_PX under its row's line (works.css: .wk-name).
+// Where it breaks into two lines is worked out for the picture at its
+// biggest, so that a title does not jump from one line to two as its row
+// opens.
 const WORKS_TITLE_PROBE_PX = 200;
 const WORKS_TITLE_TOP_PX = 9;
-const WORKS_TITLE_CLEAR_PX = 16;
-const WORKS_TITLE_DIM = 0.45;
+const WORKS_TITLE_DIM = 0.5;
 // How it moves: the position follows where the wheel, a finger or the keys
 // have sent it with the web's damping (1 - exp(-WORKS_DAMPING * delta) per
 // frame, as the home's AURA_DAMPING), never past the first row or the last;
@@ -121,9 +133,14 @@ const rows = PROJECTS.map((project, index) => {
   if (url) el.href = url;
   else {
     el.tabIndex = 0;
-    el.setAttribute("aria-label", `${project.shortTitle} (coming soon)`);
+    el.setAttribute("aria-label", `${plainTitle(project.title)} (coming soon)`);
   }
-  const name = element("span", "wk-name", project.shortTitle);
+  // (its title in the web's two letters, and what it is)
+  const text = element("span", "wk-text");
+  const name = element("span", "wk-name");
+  name.append(...titleParts(project.title));
+  text.appendChild(name);
+  const desc = project.description ? element("span", "wk-desc", project.description) : null;
   const thumb = element("span", "wk-thumb");
   const zoom = element("span", "wk-zoom");
   const image = element("img", "");
@@ -146,9 +163,9 @@ const rows = PROJECTS.map((project, index) => {
   zoom.appendChild(element("span", "wk-shade"));
   zoom.appendChild(url ? element("span", "wk-view", "View project →") : element("span", "wk-soon", "Coming soon"));
   thumb.appendChild(zoom);
-  el.append(element("span", "wk-line"), name, thumb);
+  el.append(element("span", "wk-line"), text, ...(desc ? [desc] : []), thumb);
   rowsEl.appendChild(el);
-  const row = { el, index, project, name, thumb, image, video, top: 0, bottom: 0, open: -1, off: true, loaded: false, active: false };
+  const row = { el, index, project, text, name, desc, thumb, image, video, top: 0, bottom: 0, open: -1, off: true, loaded: false, active: false };
   return row;
 });
 
@@ -157,8 +174,9 @@ let height = 0;
 let pitch = 1; // a row at rest, px
 let extra = 0; // what the row at the middle has over that, px
 let thumbRest = 1; // the picture's size at rest, as a share of what it is in the row at the middle
-let pad = 0; // from a row's line down to its picture, px
-let middle = 0; // where the middle of the active row's picture is: the middle of the screen
+let thumbTall = 0; // the picture's height in the row at the middle, px
+let head = 0; // what the title takes over the picture (when it is over it), px
+let middle = 0; // where the middle of the active row is: the picture's at the middle of the screen
 function measure() {
   const at = position / pitch; // which row is at the middle: kept through a resize
   const width = stage.clientWidth;
@@ -166,28 +184,64 @@ function measure() {
   drawAura(width, height);
   const mobile = width <= MOBILE_MAX_PX;
   const thumbWide = ((mobile ? WORKS_MOBILE_THUMB_ACTIVE_VW : WORKS_THUMB_ACTIVE_VW) / 100) * width;
-  const thumbTall = thumbWide / WORKS_THUMB_RATIO;
+  thumbTall = thumbWide / WORKS_THUMB_RATIO;
   thumbRest = (mobile ? WORKS_MOBILE_THUMB_VW : WORKS_THUMB_VW) / (mobile ? WORKS_MOBILE_THUMB_ACTIVE_VW : WORKS_THUMB_ACTIVE_VW);
   stage.style.setProperty("--wk-thumb-width", `${thumbWide}px`);
 
   // The titles: each one's ink on the margin (what its first letter leaves
-  // before it, from its pixels), and how far right the longest gets. All
-  // read, then all written.
-  const style = getComputedStyle(rows[0].name);
-  const size = parseFloat(style.fontSize);
-  const font = `${style.fontStyle} ${style.fontWeight} ${WORKS_TITLE_PROBE_PX}px ${style.fontFamily}`;
+  // before it, from its pixels: those of its first part, in that part's
+  // letters).
   const margin = parseFloat(getComputedStyle(rows[0].el.querySelector(".wk-line")).left);
-  const inks = rows.map((row) => rasterInk(font, row.project.shortTitle, WORKS_TITLE_PROBE_PX));
-  rows.forEach((row, index) => row.name.style.setProperty("--wk-name-ink", `${((-inks[index].left * size) / WORKS_TITLE_PROBE_PX).toFixed(2)}px`));
-  const longest = Math.max(...inks.map((ink) => ink.right - ink.left)) * (size / WORKS_TITLE_PROBE_PX);
-  // Beside the picture if there is room for the longest; over it if not.
-  const beside = margin + longest + WORKS_TITLE_CLEAR_PX <= (width - thumbWide) / 2;
-  pad = beside ? WORKS_PAD_PX : WORKS_TITLE_TOP_PX + size + WORKS_PAD_PX;
+  const lefts = rows.map((row) => {
+    const first = row.name.firstElementChild || row.name;
+    const style = getComputedStyle(first);
+    const font = `${style.fontStyle} ${style.fontWeight} ${WORKS_TITLE_PROBE_PX}px ${style.fontFamily}`;
+    return (rasterInk(font, first.textContent, WORKS_TITLE_PROBE_PX).left * parseFloat(style.fontSize)) / WORKS_TITLE_PROBE_PX;
+  });
+  rows.forEach((row, index) => row.name.style.setProperty("--wk-name-ink", `${(-lefts[index]).toFixed(2)}px`));
+  // How wide a title and its description can be: beside the picture at its
+  // biggest (on either side of it), less the gap — if every title fits in two
+  // lines there; if not (or on a phone), over the picture, as wide as the
+  // page, the description under its title. How far down the words of the
+  // row that has the most go, then.
+  const room = (width - thumbWide) / 2 - margin - WORKS_TITLE_GAP_PX;
+  const fit = (wide) => {
+    rows.forEach((row) => (row.text.style.maxWidth = wide));
+    return Math.max(...rows.map((row) => row.name.offsetHeight));
+  };
+  const lineTall = fit("none"); // (one line of the two letters: measured, they do not share their heights)
+  const beside = !mobile && fit(`${room}px`) <= lineTall * WORKS_TITLE_LINES + 1;
+  if (!beside) fit(`${width - 2 * margin}px`);
+  stage.classList.toggle("is-stacked", !beside);
+  stage.style.setProperty("--wk-desc-width", `${beside ? room : width - 2 * margin}px`);
+  rows.forEach((row) => row.desc && (row.desc.style.top = beside ? "" : `${WORKS_TITLE_TOP_PX + row.name.offsetHeight + WORKS_DESC_GAP_PX}px`));
+  // (beside the picture, each description as wide as its title's ink reaches
+  // from the margin — its mirror — or as much wider as its three lines need)
+  rows.forEach((row) => {
+    if (!row.desc) return;
+    if (!beside) {
+      row.desc.style.width = "";
+      return;
+    }
+    const ink = document.createRange();
+    ink.selectNodeContents(row.name);
+    let wide = Math.min(ink.getBoundingClientRect().right - margin, room);
+    row.desc.style.width = `${wide}px`;
+    while (row.desc.scrollHeight > row.desc.clientHeight + 1 && wide < room) {
+      wide = Math.min(wide + 8, room);
+      row.desc.style.width = `${wide}px`;
+    }
+  });
+  const deepest = Math.max(...rows.map((row) => Math.max(WORKS_TITLE_TOP_PX + row.text.offsetHeight, row.desc ? row.desc.offsetTop + row.desc.offsetHeight : 0)));
+  head = beside ? 0 : deepest;
 
+  // A row at rest: its picture with the margin above and under it — or, if
+  // its title needs more, as tall as that; the row at the middle has the
+  // picture's growth over that.
   extra = thumbTall * (1 - thumbRest);
-  pitch = pad + thumbTall * thumbRest + WORKS_GAP_PX;
-  // (the active row is centered on the screen less what it has over and under its picture)
-  middle = height / 2 - (pad - WORKS_GAP_PX) / 2;
+  pitch = Math.max(head + thumbTall * thumbRest + 2 * WORKS_THUMB_MARGIN_PX, deepest + WORKS_THUMB_MARGIN_PX);
+  // (the active row's picture at the middle of the screen)
+  middle = height / 2 - head / 2;
   position = target = at * pitch;
   rows.forEach((row) => (row.open = -1));
 }
@@ -239,8 +293,14 @@ function draw() {
     const open = clamp((bottom - top - pitch) / extra, 0, 1); // how much of the extra height it has
     if (open === row.open) continue;
     row.open = open;
-    row.thumb.style.transform = `translate3d(-50%, ${pad.toFixed(2)}px, 0) scale(${(thumbRest + (1 - thumbRest) * open).toFixed(5)})`;
-    row.name.style.opacity = (WORKS_TITLE_DIM + (1 - WORKS_TITLE_DIM) * open).toFixed(3);
+    // (the picture in the middle of what the row has under its title, from
+    // the row's height as it is now)
+    const scale = thumbRest + (1 - thumbRest) * open;
+    const down = head + (bottom - top - head - thumbTall * scale) / 2;
+    row.thumb.style.transform = `translate3d(-50%, ${down.toFixed(2)}px, 0) scale(${scale.toFixed(5)})`;
+    const dim = (WORKS_TITLE_DIM + (1 - WORKS_TITLE_DIM) * open).toFixed(3);
+    row.text.style.opacity = dim;
+    if (row.desc) row.desc.style.opacity = dim;
     activate(row, open >= WORKS_ACTIVE_FROM);
   }
 }

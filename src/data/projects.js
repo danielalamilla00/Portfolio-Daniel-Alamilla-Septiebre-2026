@@ -1,86 +1,136 @@
 // ---- The projects ---------------------------------------------------------------------
-// One entry per folder of public/proyectos (all but Reel and _archive, the
-// old ones), in the order of the
-// Works page (works.html, src/works.js), which lists them all. Those that have
-// a page of their own (work.html#<slug>: one template for all of them,
-// src/project.js) carry what that page shows; those that do not are "Coming
-// soon" on the Works page, and have no link.
+// One entry per project, in the order of the Works page (works.html,
+// src/works.js), which lists them all. Those that have a page of their own
+// (work.html#<slug>: one template for all of them, src/project.js) carry what
+// that page shows; one that does not would be "Coming soon" on the Works page,
+// with no link. Each one's files are in public/proyectos/<slug>/ (Caprabo's,
+// in its old folder); the old projects', in public/proyectos/_archive/.
 //
+//   title        its name: on its page (giant, at the top), its row on the
+//                Works page and its card at the end of the others. In the
+//                web's two letters, both in cream: its *brand, between
+//                asterisks*, in Catavalo, the rest in Inter Tight
+//                (src/title.js)
 // On the Works page:
-//   shortTitle   the title of its row
-//   cover        the picture of its row: a frame of its cover video
-//                (public/works/covers)
+//   description  what it is, in about three lines, under its title (not its
+//                page's tagline)
+//   cover        the picture of its row
 //   preview      what plays, muted and in a loop, while its row is the one in
-//                the middle (optional: without it the cover stays)
+//                the middle (optional: without it the cover stays):
+//                preview.mp4, a few seconds of its video (Fallas's, 8 s to
+//                16 s; BizLunch's, 57 s to 1:10; its first frame,
+//                preview.webp, their cover)
 // On its page (only the projects with a slug):
-//   slug         its address: work.html#<slug>
+//   slug         its address: work.html#<slug> (no spaces, accents or
+//                capitals); an old one that has changed: MOVED, below
+//   tagline      what it is, in one line, under its name (optional)
 //   category     a word or two over its name
-//   title        its name, giant, at the top
 //   idea         what it was for: 2 or 3 lines
 //   challenge    what was hard about it: 2 to 4 lines
-//   client, industry, role, tools, year   the table of facts (a
-//                null one is not shown)
+//   client, industry, display, role, tools, year   the table of facts (a
+//                null or missing one is not shown); display: the screens it
+//                was made for
 //   credits      who else made it: [{ role, name }], or null
-//   video        the project itself: a Vimeo or YouTube address, or an MP4
-//   videoSmall   (an MP4's) a lighter one of it for a phone (optional)
-//   poster       what shows until it plays (public/works/posters: the video's
-//                own thumbnail, or its first frame)
-//   original     the video the clips are cut from: its path in the folder of
-//                originals (scripts/clips.mjs: Desktop/Portfolio/Motion), or
-//                one of the site's (a path that starts with "/": public/)
-//   frames       4 to 6 clips cut from it, one under another under the video,
-//                silent and in a loop: { video, start, duration } — where it
-//                is (public/proyectos/<folder>/clips/clip-NN.mp4, its poster
-//                the .webp of the same name) and the stretch of the original
-//                it is (in seconds). Change those and run "npm run clips
-//                <slug>" to cut them again. One cut from another video than
-//                the project's says which (original).
-//   extraFrames  after the clips: other pictures or clips of it (the
-//                process, a styleframe) — { image } or { video }, and where
-//                to look in it if it is not 16:9 and its middle is not what
-//                matters (focus: a CSS object-position, "50% 20%")
+//   video        the project itself: a YouTube address, or an MP4 (its web
+//                version: <slug>-1080.mp4)
+//   videoSmall   (an MP4's) a lighter one of it for a phone (<slug>-720.mp4)
+//   poster       what shows until it plays (poster.webp: a frame of it)
 // (The three projects at the end of the page are the next three of this list
 // that have a page — after the last, the first ones again.)
-// Texts marked LONG are over those lengths, and are left as they were: to be
-// chosen. TO FILL IN: industry (none is known), credits, and year (a
-// placeholder, the same in all).
+// TO FILL IN: industry (none is known but Hummel's), credits, and the year
+// of those that have YEAR (a placeholder). Texts marked DRAFT were written
+// from what their video shows: to be checked.
 const CATEGORY = "Motion Design"; // the same in all but those that say another
 const YEAR = "2025"; // placeholder
 
 export const PROJECTS = [
   {
-    slug: "hummel",
-    shortTitle: "Hummel",
-    title: "Hummel",
+    slug: "waapiti-ai-3d-logo-reveal",
+    title: "*Waapiti AI* 3D Logo Reveal",
+    description: "A 3D logo reveal for Waapiti AI where thousands of glowing filaments pull the camera into the void before the brand appears.",
+    tagline: "Particle-driven 3D animation for Waapiti AI's brand reveal.",
+    category: CATEGORY,
+    // DRAFT (idea, challenge): written from what the video shows — to be checked
+    idea: "A logo reveal for Waapiti AI built from particles: streaks of violet and pink light pull into a glowing ring, and the Waapiti logo appears at its centre.",
+    challenge: "Making a field of particles read as one controlled move in under ten seconds — light that gathers rather than scatters — so the logo lands as the payoff instead of getting lost in the effect.",
+    client: "Waapiti AI",
+    industry: null,
+    role: "Motion Designer",
+    tools: "Cinema 4D, After Effects, Kling",
+    year: "2026",
+    credits: null,
+    video: "https://youtu.be/DWOTVQwR6N8",
+    poster: "/proyectos/waapiti-ai-3d-logo-reveal/poster.webp",
+    cover: "/proyectos/waapiti-ai-3d-logo-reveal/poster.webp",
+    preview: "/proyectos/waapiti-ai-3d-logo-reveal/preview.mp4",
+  },
+  {
+    slug: "hummel-kit-launch-campaign",
+    title: "*Hummel* Kit Launch Campaign",
+    description: "A joint campaign for Hummel uniting Valencia Basket and Real Betis, presenting both new kits under one shared visual story.",
+    tagline: "Joint campaign uniting Valencia Basket and Real Betis under one brand.",
     category: "Sports Campaign",
     // DRAFT (idea, challenge): written from what the video shows — to be checked
-    idea: "A Hummel sports campaign that brings two of its clubs into one piece: Real Betis's green-and-white football shirt and Valencia Basket's orange jersey, ending on one line — We are Hummel.",
+    idea: "A Hummel sports campaign that brings two of its clubs into one piece: Real Betis's green-and-white football shirt and Valencia Basket's orange jersey, ending on one line — Two clubs, one brand.",
     challenge: "Two clubs, two sports and two colour worlds in thirteen seconds. Each kit needed its own moment — the stripes and \"Somos Balompié\" for Betis, \"Taronja\" for Valencia Basket — while the whole still read as one Hummel campaign.",
     client: "Hummel",
     industry: "Sportswear",
-    role: "TODO",
-    tools: "TODO",
-    year: "TODO",
+    role: "Motion Designer",
+    tools: "Cinema 4D, After Effects, Kling",
+    year: "2026",
     credits: null,
-    video: "/proyectos/Hummel/hummel-1080.mp4",
-    videoSmall: "/proyectos/Hummel/hummel-720.mp4",
-    poster: "/proyectos/Hummel/poster.webp",
-    original: "/proyectos/Hummel/hummel-1080.mp4",
-    frames: [
-      { video: "/proyectos/Hummel/clips/clip-01.mp4", start: 0.5, duration: 2.5 },
-      { video: "/proyectos/Hummel/clips/clip-02.mp4", start: 3, duration: 2.5 },
-      { video: "/proyectos/Hummel/clips/clip-03.mp4", start: 5.5, duration: 2.5 },
-      { video: "/proyectos/Hummel/clips/clip-04.mp4", start: 8, duration: 2.5 },
-      { video: "/proyectos/Hummel/clips/clip-05.mp4", start: 10.5, duration: 2.5 },
-    ],
-    extraFrames: [],
-    cover: "/works/covers/hummel.jpg",
-    preview: "/proyectos/Hummel/hummel-720.mp4",
+    video: "https://youtu.be/FabgEQtwm-Y",
+    poster: "/proyectos/hummel-kit-launch-campaign/poster.webp",
+    cover: "/proyectos/hummel-kit-launch-campaign/poster.webp",
+    preview: "/proyectos/hummel-kit-launch-campaign/preview.mp4",
   },
   {
-    slug: "spotify-daylist",
-    shortTitle: "Spotify",
-    title: "Spotify Daylist",
+    slug: "tmm-3d-brand-reveal",
+    title: "*TMM* 3D Brand Reveal",
+    description: "A 3D brand reveal for The Multisensory Makers where glowing spheres gather and settle into the TMM logo, for TMM's Sensory Sync showroom screens.",
+    tagline: "Glowing spheres that gather to form The Multisensory Makers' logo.",
+    category: CATEGORY,
+    // DRAFT (idea, challenge): written from what the video shows — to be checked
+    idea: "A 3D brand reveal for The Multisensory Makers: glowing spheres drift out of the dark, pile into one mass and gather into the TMM letters, which settle into the logo. Created for Sensory Sync, the immersive screens of TMM's showroom.",
+    challenge: "A crowd of soft, glowing spheres had to move as one — loose enough to feel alive, ordered enough that the letters read clearly before they resolve into the flat logo.",
+    client: "TMM",
+    industry: null,
+    display: "Sensory Sync · TMM showroom screens",
+    role: "Motion Designer",
+    tools: "Cinema 4D, After Effects, Kling",
+    year: "2026",
+    credits: null,
+    video: "https://youtu.be/7pxdlWAiUOQ",
+    poster: "/proyectos/tmm-3d-brand-reveal/poster.webp",
+    cover: "/proyectos/tmm-3d-brand-reveal/poster.webp",
+    preview: "/proyectos/tmm-3d-brand-reveal/preview.mp4",
+  },
+  {
+    slug: "tmm-halloween-spot",
+    title: "*TMM* Halloween Spot",
+    description: "A seasonal spot for TMM with an animated jack-o'-lantern and melting type announcing spooky season, for TMM's Sensory Sync showroom screens.",
+    tagline: "Animated jack-o'-lantern and melting type for TMM's spooky season.",
+    category: CATEGORY,
+    // DRAFT (idea, challenge): written from what the video shows — to be checked
+    idea: "A Halloween spot for TMM: a carved jack-o'-lantern turns to face the camera in a misty forest, then the scene gives way to dripping orange type — \"Spooky season at TMM!\". Designed to play on Sensory Sync, the screens of TMM's showroom.",
+    challenge: "Keeping a seasonal piece playful rather than gory: the pumpkin's expression and the melting letters carry the mood, while the brand's name stays readable through the drips.",
+    client: "TMM",
+    industry: null,
+    display: "Sensory Sync · TMM showroom screens",
+    role: "Motion Designer",
+    tools: "Cinema 4D, After Effects, Kling",
+    year: "2026",
+    credits: null,
+    video: "https://youtu.be/-u5k984d138",
+    poster: "/proyectos/tmm-halloween-spot/poster.webp",
+    cover: "/proyectos/tmm-halloween-spot/poster.webp",
+    preview: "/proyectos/tmm-halloween-spot/preview.mp4",
+  },
+  {
+    slug: "spotify-daylist-social-campaign",
+    title: "*Spotify* Daylist Social Campaign",
+    description: "Motion pieces for Spotify Daylist, turning moods like 'musical karaoke evening' into short, playful animated visuals for social.",
+    tagline: "Motion pieces for daylists like 'musical karaoke evening' and more.",
     category: CATEGORY,
     idea: "A paid advertising campaign for Spotify's Daylist feature, translating its ever-changing, personalized playlists into a bold, mobile-first ad designed for social media promotion.",
     challenge: "Daylist is a playlist that rewrites itself throughout the day, so the ad needed to move the same way — quick, mood-driven, never quite the same twice. It had to run as sponsored content and blend into the feed rather than announce itself as an ad.",
@@ -90,23 +140,57 @@ export const PROJECTS = [
     tools: "After Effects",
     year: YEAR,
     credits: null,
-    video: "https://www.youtube.com/watch?v=IXRR8XM6_7k",
-    poster: "/works/posters/spotify-daylist.jpg",
-    original: "Spotify Daylist/SPOTIFY DAYLIST_1.mp4",
-    frames: [
-      { video: "/proyectos/Spotify/clips/clip-01.mp4", start: 0.51, duration: 3 },
-      { video: "/proyectos/Spotify/clips/clip-02.mp4", start: 4.13, duration: 3 },
-      { video: "/proyectos/Spotify/clips/clip-03.mp4", start: 7.75, duration: 3 },
-      { video: "/proyectos/Spotify/clips/clip-04.mp4", start: 11.37, duration: 3 },
-    ],
-    extraFrames: [],
-    cover: "/works/covers/spotify.jpg",
-    preview: "/proyectos/Spotify/Portada_Spotify Daylist_thumb.mp4",
+    video: "/proyectos/spotify-daylist-social-campaign/spotify-daylist-social-campaign-1080.mp4",
+    videoSmall: "/proyectos/spotify-daylist-social-campaign/spotify-daylist-social-campaign-720.mp4",
+    poster: "/proyectos/spotify-daylist-social-campaign/poster.webp",
+    cover: "/proyectos/spotify-daylist-social-campaign/poster.webp",
+    preview: "/proyectos/spotify-daylist-social-campaign/preview.mp4",
+  },
+  {
+    slug: "tmm-autumn-3d-visual",
+    title: "*TMM* Autumn 3D Visual",
+    description: "A seasonal 3D visual for TMM where a still carpet of autumn leaves is lifted by the wind and swirls towards the camera, for TMM's Sensory Sync showroom screens.",
+    tagline: "Seasonal 3D piece where a carpet of leaves rises into the air.",
+    category: CATEGORY,
+    // DRAFT (idea, challenge): written from what the video shows — to be checked
+    idea: "A seasonal 3D visual for TMM: a still carpet of autumn leaves lifts off the ground, flies towards the camera and gathers into the TMM logo — \"La tardor ja està aquí\". Made for Sensory Sync, the immersive screens of TMM's showroom.",
+    challenge: "Making a whole carpet of leaves move as one: heavy and still on the ground before the wind takes it, then a swirl that stays readable enough for the leaves to settle into the logo.",
+    client: "TMM",
+    industry: null,
+    display: "Sensory Sync · TMM showroom screens",
+    role: "Motion Designer",
+    tools: "Cinema 4D, After Effects, Kling",
+    year: "2026",
+    credits: null,
+    video: "https://youtu.be/Xlqg8Qoa9NY",
+    poster: "/proyectos/tmm-autumn-3d-visual/poster.webp",
+    cover: "/proyectos/tmm-autumn-3d-visual/poster.webp",
+    preview: "/proyectos/tmm-autumn-3d-visual/preview.mp4",
+  },
+  {
+    slug: "sitges-festival-motion-spot",
+    title: "*Sitges* Festival Motion Spot",
+    description: "A motion spot for the Sitges film festival, built around bold characters, colour and a cinematic tone.",
+    tagline: "Motion piece for the Sitges film festival.",
+    category: CATEGORY,
+    idea: "2D animations celebrating the cult community that defines the spirit of Sitges.",
+    challenge: "Sitges wanted Freaks reinterpreted as a mirror for its own audience — people who wear being different as a badge of honour. The piece needed a character that felt like it belonged to that crowd, screened in 2024 ahead of the film's restoration.",
+    client: "Sitges Film Festival",
+    industry: null,
+    role: "2D Animator & Rigger",
+    tools: "After Effects, Duik Angela",
+    year: YEAR,
+    credits: null,
+    video: "/proyectos/sitges-festival-motion-spot/sitges-festival-motion-spot-1080.mp4",
+    videoSmall: "/proyectos/sitges-festival-motion-spot/sitges-festival-motion-spot-720.mp4",
+    poster: "/proyectos/sitges-festival-motion-spot/poster.webp",
+    cover: "/proyectos/sitges-festival-motion-spot/poster.webp",
+    preview: "/proyectos/sitges-festival-motion-spot/preview.mp4",
   },
   {
     slug: "caprabo",
-    shortTitle: "Caprabo",
-    title: "Caprabo",
+    title: "*Caprabo*",
+    description: "Motion content designed for the screens inside Caprabo supermarkets, bringing fresh products and offers to life in store.",
     category: CATEGORY,
     idea: "Holographic 3D animations with a realistic floating effect.",
     challenge: "Supermarkets aren't built for excitement, and animating offers for in-store screens could easily have stayed that way. The one piece worth pushing further was the holographic display — a chance to make products stand out in a way a flat screen just can't.",
@@ -118,103 +202,14 @@ export const PROJECTS = [
     credits: null,
     video: "/projects/caprabo-tienda-1.mp4",
     poster: "/works/posters/caprabo.jpg",
-    frames: [
-      { video: "/proyectos/Caprabo/clips/clip-01.mp4", start: 0.6, duration: 5, original: "Caprabo/Caprabo Ventilador_Globos.mp4" },
-      { video: "/proyectos/Caprabo/clips/clip-02.mp4", start: 3, duration: 5, original: "Caprabo/Caprabo Ventilador_Cafe Així de bo.mp4" },
-      { video: "/proyectos/Caprabo/clips/clip-03.mp4", start: 1.7, duration: 5, original: "Caprabo/Caprabo Ventilador_Halloween.mp4" },
-      { video: "/proyectos/Caprabo/clips/clip-04.mp4", start: 1.95, duration: 5, original: "Caprabo/Caprabo Ventilador_Santa.mp4" },
-      { video: "/proyectos/Caprabo/clips/clip-05.mp4", start: 3, duration: 5, original: "Caprabo/Caprabo Ventilador_Tarjeta Soc del Club.mp4" },
-    ],
-    extraFrames: [],
     cover: "/works/covers/caprabo.jpg",
     preview: "/proyectos/Caprabo/Tienda/Tienda 1.mp4",
   },
   {
-    slug: "sitges-film-festival",
-    shortTitle: "Sitges",
-    title: "Sitges Film Festival",
-    category: CATEGORY,
-    idea: "2D animations celebrating the cult community that defines the spirit of Sitges.",
-    challenge: "Sitges wanted Freaks reinterpreted as a mirror for its own audience — people who wear being different as a badge of honour. The piece needed a character that felt like it belonged to that crowd, screened in 2024 ahead of the film's restoration.",
-    client: "Sitges",
-    industry: null,
-    role: "2D Animator & Rigger",
-    tools: "After Effects, Duik Angela",
-    year: YEAR,
-    credits: null,
-    video: "https://vimeo.com/978951441",
-    poster: "/works/posters/sitges-film-festival.jpg",
-    original: "Sitges/SITGES FILM FESTIVAL.mp4",
-    frames: [
-      { video: "/proyectos/Sitges/clips/clip-01.mp4", start: 1, duration: 3 },
-      { video: "/proyectos/Sitges/clips/clip-02.mp4", start: 5.7, duration: 4 },
-      { video: "/proyectos/Sitges/clips/clip-03.mp4", start: 10.7, duration: 4 },
-      { video: "/proyectos/Sitges/clips/clip-04.mp4", start: 15.95, duration: 4 },
-      { video: "/proyectos/Sitges/clips/clip-05.mp4", start: 22.2, duration: 3 },
-      { video: "/proyectos/Sitges/clips/clip-06.mp4", start: 25.3, duration: 4 },
-    ],
-    extraFrames: [],
-    cover: "/works/covers/sitges.jpg",
-    preview: "/proyectos/Sitges/Styleframes/Styleframes_SItges_1.2.mp4",
-  },
-  {
-    slug: "waapiti",
-    shortTitle: "Waapiti",
-    title: "Waapiti",
-    category: CATEGORY,
-    idea: "A kinetic typography spot explaining Waapiti's CMS platform for digital signage, built to communicate what it does in seconds.",
-    challenge: "Waapiti's CMS does a lot — automated content, full player control, different access levels for clients and integrators — and none of it is easy to show without a screen recording and a voiceover. The brief was to explain it fast, visually, with neither.",
-    client: "Waapiti",
-    industry: null,
-    role: "Motion Designer, Art Director",
-    tools: "After Effects",
-    year: YEAR,
-    credits: null,
-    video: "https://www.youtube.com/watch?v=ARgKpomcNoU",
-    poster: "/works/posters/waapiti.jpg",
-    original: "Capsulas SAAS/Waapiti/Waapiti_Kinetic/Stand/ISE 2026_Final.mp4",
-    frames: [
-      { video: "/proyectos/ISE/clips/clip-01.mp4", start: 0.57, duration: 3 },
-      { video: "/proyectos/ISE/clips/clip-02.mp4", start: 4.31, duration: 3 },
-      { video: "/proyectos/ISE/clips/clip-03.mp4", start: 8.06, duration: 3 },
-      { video: "/proyectos/ISE/clips/clip-04.mp4", start: 11.8, duration: 3 },
-      { video: "/proyectos/ISE/clips/clip-05.mp4", start: 15.54, duration: 3 },
-    ],
-    extraFrames: [],
-    cover: "/works/covers/ise.jpg",
-    preview: "/proyectos/ISE/Portada_thumb.mp4",
-  },
-  {
-    slug: "ron-barcelo",
-    shortTitle: "Barceló",
-    title: "Barceló",
-    category: CATEGORY,
-    idea: "A short promotional spot for Ron Barceló, capturing a vibrant, sun-soaked summer atmosphere through bold color and energetic motion.",
-    challenge: "Ron Barceló wanted something that feels like summer the second it starts playing — colour, movement, heat, no slow build-up.",
-    client: "TMM Group",
-    industry: null,
-    role: "Motion Design, Editing",
-    tools: "After Effects",
-    year: YEAR,
-    credits: null,
-    video: "https://www.youtube.com/watch?v=tjCd8-RYuJ4",
-    poster: "/works/posters/ron-barcelo.jpg",
-    original: "Barceló/Barceló carpeta/Barceló_4K_1.mp4",
-    frames: [
-      { video: "/proyectos/Estiu TMM/clips/clip-01.mp4", start: 0.2, duration: 3 },
-      { video: "/proyectos/Estiu TMM/clips/clip-02.mp4", start: 3.2, duration: 3 },
-      { video: "/proyectos/Estiu TMM/clips/clip-03.mp4", start: 6.2, duration: 3 },
-      { video: "/proyectos/Estiu TMM/clips/clip-04.mp4", start: 9.2, duration: 3 },
-      { video: "/proyectos/Estiu TMM/clips/clip-05.mp4", start: 12.2, duration: 3 },
-    ],
-    extraFrames: [],
-    cover: "/works/covers/estiu-tmm.jpg",
-    preview: "/proyectos/Estiu TMM/Portada_Estiu TMM.mp4",
-  },
-  {
-    slug: "fallas-valencia",
-    shortTitle: "Fallas",
-    title: "Fallas Valencia",
+    slug: "fallas-festival-motion-visuals",
+    title: "*Fallas* Festival Motion Visuals",
+    description: "A motion piece celebrating Valencia's Fallas, mixing fire, colour and craft into a festive visual rhythm.",
+    tagline: "Motion piece celebrating Valencia's festival of fire.",
     category: CATEGORY,
     idea: "2D animation recreating the Ofrenda, the Mascletà, and the Cremà in motion.",
     challenge: "Fallas is fire, music, colour and the whole city out in the street every March — it's not a subtle thing to animate. The challenge was turning key moments like the Ofrenda, the Mascletà and the Cremà into 2D animation without flattening them into decoration.",
@@ -224,114 +219,73 @@ export const PROJECTS = [
     tools: "After Effects",
     year: YEAR,
     credits: null,
-    video: "https://vimeo.com/926805770",
-    poster: "/works/posters/fallas-valencia.jpg",
-    original: "Fallas Valencia/Proyectos Fallas Valencia.mp4",
-    frames: [
-      { video: "/proyectos/Fallas/clips/clip-01.mp4", start: 7.45, duration: 5 },
-      { video: "/proyectos/Fallas/clips/clip-02.mp4", start: 20.2, duration: 5 },
-      { video: "/proyectos/Fallas/clips/clip-03.mp4", start: 27.95, duration: 5 },
-      { video: "/proyectos/Fallas/clips/clip-04.mp4", start: 36.95, duration: 5 },
-      { video: "/proyectos/Fallas/clips/clip-05.mp4", start: 42.45, duration: 5 },
-      { video: "/proyectos/Fallas/clips/clip-06.mp4", start: 48.2, duration: 5 },
-    ],
-    extraFrames: [],
-    cover: "/works/covers/fallas.jpg",
-    preview: "/proyectos/Fallas/Styleframes/Styleframes_5_1.mp4",
+    video: "/proyectos/fallas-festival-motion-visuals/fallas-festival-motion-visuals-1080.mp4",
+    videoSmall: "/proyectos/fallas-festival-motion-visuals/fallas-festival-motion-visuals-720.mp4",
+    poster: "/proyectos/fallas-festival-motion-visuals/poster.webp",
+    cover: "/proyectos/fallas-festival-motion-visuals/preview.webp",
+    preview: "/proyectos/fallas-festival-motion-visuals/preview.mp4",
   },
   {
-    slug: "gemini-3",
-    shortTitle: "Gemini",
-    title: "Gemini 3",
+    slug: "ron-barcelo-summer-spot",
+    title: "*Ron Barceló* Summer Spot",
+    description: "A summer spot for Ron Barceló designed to feel like heat, colour and movement from the very first frame.",
+    tagline: "A burst of colour, movement and heat built to feel like summer from the first frame.",
     category: CATEGORY,
-    idea: "A concept spot imagining how Gemini 3 could be introduced — blending real product UI with AI-generated payoff.",
-    challenge: "An open-ended one: what would a Gemini 3 launch film even look like, starting from the product's own interface instead of a script?",
-    client: "Gemini",
-    industry: null,
-    role: "Concept, Motion Design, Editing",
-    tools: "Gemini, After Effects",
-    year: YEAR,
-    credits: null,
-    video: "https://www.youtube.com/watch?v=WInNSqUsuc8",
-    poster: "/works/posters/gemini-3.jpg",
-    original: "Capsulas SAAS/Gemini/Gemini_1.mp4",
-    frames: [
-      { video: "/proyectos/Gemini/clips/clip-01.mp4", start: 1.8, duration: 3.5 },
-      { video: "/proyectos/Gemini/clips/clip-02.mp4", start: 5.57, duration: 3.5 },
-      { video: "/proyectos/Gemini/clips/clip-03.mp4", start: 10.31, duration: 3.5 },
-      { video: "/proyectos/Gemini/clips/clip-04.mp4", start: 14.8, duration: 3.5 },
-      { video: "/proyectos/Gemini/clips/clip-05.mp4", start: 18.4, duration: 3.5 },
-    ],
-    extraFrames: [],
-    cover: "/works/covers/gemini.jpg",
-    preview: "/proyectos/Gemini/Styleframes/Gemini_Styleframes 1.mp4",
-  },
-  {
-    slug: "bizlunch",
-    shortTitle: "Bizlunch",
-    title: "BizLunch",
-    category: CATEGORY,
-    idea: "A promo spot for BizLunch, an app that matches professionals for business lunches, cutting between a real meetup and the screens that make it happen.",
-    challenge: "Nobody's used an app like this before, so the video had to sell the idea itself — going from lunch alone at your desk to a matched meeting — and still show enough of the app (matching, booking, ratings) to make it feel real, not just a concept trailer.",
-    client: "Bizlunch",
+    idea: "A short promotional spot for Ron Barceló, capturing a vibrant, sun-soaked summer atmosphere through bold color and energetic motion.",
+    challenge: "Ron Barceló wanted something that feels like summer the second it starts playing — colour, movement, heat, no slow build-up.",
+    client: "Ron Barceló",
     industry: null,
     role: "Motion Design, Editing",
     tools: "After Effects",
     year: YEAR,
     credits: null,
-    video: "https://www.youtube.com/watch?v=DGfPLogHelQ",
-    poster: "/works/posters/bizlunch.jpg",
-    original: "Autonomo/Bizluch/Bizlunch_5.mp4",
-    frames: [
-      { video: "/proyectos/Bizlunch/clips/clip-01.mp4", start: 9.2, duration: 5 },
-      { video: "/proyectos/Bizlunch/clips/clip-02.mp4", start: 17.7, duration: 5 },
-      { video: "/proyectos/Bizlunch/clips/clip-03.mp4", start: 36.95, duration: 5 },
-      { video: "/proyectos/Bizlunch/clips/clip-04.mp4", start: 52.95, duration: 5 },
-      { video: "/proyectos/Bizlunch/clips/clip-05.mp4", start: 71.2, duration: 5 },
-      { video: "/proyectos/Bizlunch/clips/clip-06.mp4", start: 84, duration: 5 },
-    ],
-    extraFrames: [],
-    cover: "/works/covers/bizlunch.jpg",
-    preview: "/proyectos/Bizlunch/Portada_thumb.mp4",
+    video: "/proyectos/ron-barcelo-summer-spot/ron-barcelo-summer-spot-1080.mp4",
+    videoSmall: "/proyectos/ron-barcelo-summer-spot/ron-barcelo-summer-spot-720.mp4",
+    poster: "/proyectos/ron-barcelo-summer-spot/poster.webp",
+    cover: "/proyectos/ron-barcelo-summer-spot/poster.webp",
+    preview: "/proyectos/ron-barcelo-summer-spot/preview.mp4",
   },
   {
-    shortTitle: "Otoño TMM",
-    cover: "/works/covers/otono-tmm.jpg",
-    preview: "/proyectos/Otoño TMM/Portada_Tardor TMM.mp4",
-  },
-  {
-    slug: "sensory-sync",
-    shortTitle: "Sensory",
-    title: "Sensory Sync",
+    slug: "bizlunch-app-promo-spot",
+    title: "*BizLunch* App Promo Spot",
+    description: "A promo film for BizLunch, an app that matches professionals for business lunches, mixing live action and app screens.",
+    tagline: "Promo film for an app that matches professionals for business lunches.",
     category: CATEGORY,
-    idea: "Immersive screen content blending narrative, environment, and AI.",
-    challenge: "Sensory Sync hosts international clients, and every screen in the room is a different shape — curved panels, projectors, odd aspect ratios. The content had to look premium and consistent across all of them, and still flex for seasonal campaigns like Christmas or Sant Jordi.",
-    client: "Sensory",
+    idea: "A promo spot for BizLunch, an app that matches professionals for business lunches, cutting between a real meetup and the screens that make it happen.",
+    challenge: "Nobody's used an app like this before, so the video had to sell the idea itself — going from lunch alone at your desk to a matched meeting — and still show enough of the app (matching, booking, ratings) to make it feel real, not just a concept trailer.",
+    client: "BizLunch",
     industry: null,
-    role: "Motion Designer, Art Director",
-    tools: "Veo, Kling, Sora, After Effects",
+    role: "Motion Design, Editing",
+    tools: "After Effects",
     year: YEAR,
     credits: null,
-    video: "/projects/Proyector.mp4",
-    poster: "/works/posters/sensory-sync.jpg",
-    frames: [
-      { video: "/proyectos/Sensory/clips/clip-01.mp4", start: 0.2, duration: 4, original: "Sensory/VIdeo Resumen Sensory.mp4" },
-      { video: "/proyectos/Sensory/clips/clip-02.mp4", start: 2.2, duration: 5, original: "Sensory/Proyector_Full HD.mp4" },
-      { video: "/proyectos/Sensory/clips/clip-03.mp4", start: 5, duration: 5, original: "Sensory/Leaf & Soil.mp4" },
-      { video: "/proyectos/Sensory/clips/clip-04.mp4", start: 4.5, duration: 5, original: "Sensory/Queen Rose.mp4" },
-      { video: "/proyectos/Sensory/clips/clip-05.mp4", start: 2.95, duration: 5, original: "Sensory/Proyectos Media Columna LED/Sant Jordi_Media Columna LED_Portfolio.mp4" },
-      { video: "/proyectos/Sensory/clips/clip-06.mp4", start: 2.45, duration: 5, original: "Sensory/Proyectos Media Columna LED/Flor_Media Column LED_Portfolio.mp4" },
-    ],
-    extraFrames: [],
-    cover: "/works/covers/sensory.jpg",
-    preview: "/proyectos/Sensory/Pantallas/Proyector.mp4",
-  },
-  {
-    shortTitle: "TMM Esferas",
-    cover: "/works/covers/tmm-esferas.jpg",
-    preview: "/proyectos/TMM Esferas/Portada_TMM Esferas.mp4",
+    video: "/proyectos/bizlunch-app-promo-spot/bizlunch-app-promo-spot-1080.mp4",
+    videoSmall: "/proyectos/bizlunch-app-promo-spot/bizlunch-app-promo-spot-720.mp4",
+    poster: "/proyectos/bizlunch-app-promo-spot/poster.webp",
+    cover: "/proyectos/bizlunch-app-promo-spot/preview.webp",
+    preview: "/proyectos/bizlunch-app-promo-spot/preview.mp4",
   },
 ];
+
+// The old addresses of the projects that have a new one (work.html#<old>
+// goes on to work.html#<new>); one of a project that is gone, to the Works
+// page.
+export const MOVED = {
+  hummel: "hummel-kit-launch-campaign",
+  "hummel-betis": "hummel-kit-launch-campaign",
+  "hummel-valencia-basket": "hummel-kit-launch-campaign",
+  "spotify-daylist": "spotify-daylist-social-campaign",
+  spotify: "spotify-daylist-social-campaign",
+  "sitges-film-festival": "sitges-festival-motion-spot",
+  sitges: "sitges-festival-motion-spot",
+  waapiti: "waapiti-ai-3d-logo-reveal",
+  "ron-barcelo": "ron-barcelo-summer-spot",
+  "estiu-tmm": "ron-barcelo-summer-spot",
+  "fallas-valencia": "fallas-festival-motion-visuals",
+  bizlunch: "bizlunch-app-promo-spot",
+  "tmm-esferas": "tmm-3d-brand-reveal",
+  "otono-tmm": "tmm-autumn-3d-visual",
+};
 
 // A project's page (work.html#<slug>), or null: it has none ("Coming soon").
 export const projectUrl = (project) => (project.slug ? `work.html#${project.slug}` : null);

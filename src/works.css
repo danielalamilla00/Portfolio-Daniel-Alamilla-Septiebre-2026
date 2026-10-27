@@ -45,18 +45,25 @@ body.works #site-nav {
   height: 100%;
 }
 /* The rows fade out towards the top and the bottom of the screen: what goes
-   up does not mix with the nav, and what goes down is gone before the foot's
-   line (--wk-foot: the strip of the screen that line is in). */
+   up is gone before the nav (nothing in the nav's strip and 32px under it:
+   --wk-safe), and what goes down is gone before the foot's line (--wk-foot:
+   the strip of the screen that line is in). */
 .wk {
   --wk-foot-bottom: 2.6vh; /* the line's place, as in the home's Contact */
   --wk-foot: calc(var(--wk-foot-bottom) + 24px);
 }
 .wk-rows {
   --wk-rows-fade: 120px;
+  --wk-safe: calc(5.7rem + 32px); /* the nav (its padding and logo: style.css) and 32px under it: nothing there */
   position: absolute;
   inset: 0;
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--wk-rows-fade), #000 calc(100% - var(--wk-foot) - var(--wk-rows-fade)), transparent calc(100% - var(--wk-foot)));
-  mask-image: linear-gradient(to bottom, transparent, #000 var(--wk-rows-fade), #000 calc(100% - var(--wk-foot) - var(--wk-rows-fade)), transparent calc(100% - var(--wk-foot)));
+  -webkit-mask-image: linear-gradient(to bottom, transparent var(--wk-safe), #000 calc(var(--wk-safe) + var(--wk-rows-fade)), #000 calc(100% - var(--wk-foot) - var(--wk-rows-fade)), transparent calc(100% - var(--wk-foot)));
+  mask-image: linear-gradient(to bottom, transparent var(--wk-safe), #000 calc(var(--wk-safe) + var(--wk-rows-fade)), #000 calc(100% - var(--wk-foot) - var(--wk-rows-fade)), transparent calc(100% - var(--wk-foot)));
+}
+@media (max-width: 767px) {
+  .wk-rows {
+    --wk-safe: calc(4.2rem + 32px);
+  }
 }
 /* The foot's line (.site-credit, type.css), where the home's Contact has it:
    at the bottom, in line with the logo, under where the rows end. */
@@ -93,23 +100,56 @@ body.works #site-nav {
   height: 1px;
   background-color: rgba(246, 236, 221, 0.25);
 }
-/* The project's title, hanging from that line on the left margin: Catavalo,
-   as every title of the web, but in plain cream (over the aura its gradient
-   would not read). All the same size. --wk-name-ink (works.js) is what puts
-   the ink of its first letter, not its box, on the margin. works.js dims it
-   away from the middle. */
-.wk-name {
+/* The project's title, hanging from that line on the left margin, as wide as
+   works.js lets it be (the room beside the picture). works.js dims it away
+   from the middle, and its description with it. */
+.wk-text {
   position: absolute;
   left: var(--page-margin);
   top: 9px;
+  will-change: opacity;
+}
+/* The title, in the web's two letters (its brand in Catavalo, the rest in
+   Inter Tight: type.css), in plain cream. All the same size; on two lines if
+   it needs them — broken where they come out most even, never inside the
+   brand. --wk-name-ink (works.js) is what puts the ink of its first letter,
+   not its box, on the margin. */
+.wk-name {
+  display: block;
   margin-left: var(--wk-name-ink, 0px);
   font-family: var(--font-display);
   font-size: clamp(24px, 2vw, 38px);
   font-weight: 300;
   line-height: 1;
   color: var(--c-cream);
-  white-space: nowrap;
+  text-wrap: balance;
+}
+/* What it is: about three lines of Inter Tight, never more (cut short), at
+   the right margin, as far from the picture as its title (its width:
+   works.js; --wk-desc-width the most it can have) — or, where the words go
+   over the picture (.is-stacked), under the title at the left one (its top:
+   works.js). */
+.wk-desc {
+  position: absolute;
+  right: var(--page-margin);
+  top: 12px;
+  width: var(--wk-desc-width);
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.45;
+  letter-spacing: var(--tracking-sans);
+  color: rgba(246, 236, 221, 0.75);
   will-change: opacity;
+}
+.wk.is-stacked .wk-desc {
+  left: var(--page-margin);
+  right: auto;
 }
 /* The picture: 16:9, always. Its box is as big as it gets (in the row at the
    middle: --wk-thumb-width) and works.js scales it, whole, down from there.

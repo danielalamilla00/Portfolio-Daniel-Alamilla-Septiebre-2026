@@ -3,11 +3,9 @@
    page's margins (--page-margin), on the page's twelve columns.
      --pj-top    from the top of the screen to the category (under the nav)
      --pj-dim    the cream of the small labels
-     --pj-line   the cream of the facts' rules
-     --header-h  the nav's height: its padding (1.75rem, above and under)
-                 and its logo (2.2rem) — style.css, #site-nav */
+     --pj-line   the cream of the facts' rules */
 body.project {
-  --header-h: 5.7rem;
+  --nav-h: 5.7rem; /* the nav's height: its padding and its logo (style.css) */
   --pj-top: 8rem;
   --pj-dim: rgba(246, 236, 221, 0.6);
   --pj-line: rgba(246, 236, 221, 0.15);
@@ -23,7 +21,24 @@ body.project #site-nav {
   --nav-clock-ink: var(--c-cream);
 }
 .pj {
+  position: relative;
+  z-index: 1;
   padding: var(--pj-top) var(--page-margin) 0;
+}
+/* The aura behind the head: at the top of the page, going up with it; its
+   height and what is in it, project-aura.js. The page and its foot over it. */
+.pj-aura {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 110vh;
+  display: block;
+  pointer-events: none;
+}
+.pj-foot {
+  position: relative;
+  z-index: 1;
 }
 .pj p,
 .pj h1,
@@ -34,9 +49,9 @@ body.project #site-nav {
   margin: 0;
 }
 
-/* -- the head: the category, small, and the name, giant; centered. (Its
-   padding, .title-gradient's, leaves room for the strokes that reach past
-   the lines.) */
+/* -- the head, over the aura (project-aura.js): the category, small, the name
+   (its brand in Catavalo, the rest in Inter Tight: type.css) and what it is
+   in a line; centered, all in cream. */
 .pj-head {
   text-align: center;
 }
@@ -48,52 +63,41 @@ body.project #site-nav {
 .pj-title {
   display: block;
   margin: 0 auto;
-  font-size: 12vw;
-  line-height: 0.9;
+  font-family: var(--font-display);
+  font-size: clamp(48px, 6.5vw, 128px);
+  font-weight: 300;
+  line-height: 0.95;
+  text-wrap: balance;
+}
+/* What it is, in a line, under its name. */
+.pj .pj-tagline {
+  max-width: 44ch;
+  margin: 2rem auto 0;
+  font-size: clamp(17px, 1.3vw, 22px);
+  font-weight: 300;
+  line-height: 1.4;
+  color: var(--c-cream);
   text-wrap: balance;
 }
 
-/* -- the two columns: the facts on the left (4 of the 12), the video and its
-   frames on the right (8). The left one stays where it is while the right
-   one goes by (sticky; --pj-stick: project.js) until the end of the block.
-   At its start both stop for a while (project.js), their middles level, in
-   the middle of the screen under the nav: the video's column is as tall as
-   that, the video in its middle; the texts are lower in the page by as much
-   as they have to be to get there at the same time (--pj-info-shift); the
-   scroll the video is held for is room under its column (--pj-hold-room). */
+/* -- the two columns: the facts on the left (4 of the 12), the video on the
+   right (8), their middles level, in a block about a screen tall. */
 .pj-body {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   column-gap: var(--grid-gutter);
+  align-items: center;
+  min-height: 100vh;
   margin-top: 8vh;
 }
-.pj-video-slot {
+.pj-body > .pj-video {
   grid-column: 5 / -1;
   grid-row: 1;
-  display: flex;
-  align-items: center;
-  min-height: calc(100dvh - var(--header-h));
-  margin-bottom: var(--pj-hold-room, 0px);
-}
-.pj-video-slot > * {
-  flex: 1;
-  min-width: 0;
 }
 .pj-info {
   grid-column: 1 / span 4;
-  grid-row: 1 / span 2;
-  align-self: start;
-  position: sticky;
-  top: var(--pj-stick, 7.5rem);
-  margin-top: var(--pj-info-shift, 0px);
+  grid-row: 1;
   padding-right: clamp(1rem, 3vw, 4rem);
-}
-.pj-frames {
-  grid-column: 5 / -1;
-  grid-row: 2;
-  display: grid;
-  row-gap: var(--grid-gutter);
-  margin-top: var(--grid-gutter);
 }
 
 /* The texts and the facts. "Idea" and "Challenge" in the titles' letters
@@ -280,46 +284,29 @@ body.project #site-nav {
   object-fit: contain;
 }
 
-/* The frames: the clips, then any other pictures. Each one moves a little
-   inside its box as the page goes by (project.js). */
-.pj-frame {
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background-color: #000000;
-}
-.pj-frame > * {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  scale: 1.1; /* (room for its move) */
-}
-/* A clip: nothing to press, and none of the player's own buttons (an iPhone's
-   "play" over it, when it will not play by itself). */
-.pj-frame video {
-  pointer-events: none;
-  -webkit-touch-callout: none;
-  user-select: none;
-}
-.pj-frame video::-webkit-media-controls,
-.pj-frame video::-webkit-media-controls-start-playback-button {
-  display: none !important;
-  -webkit-appearance: none;
-}
-
-/* -- the end: "Next project", as big as the name; the next three projects;
-   the way back to all of them. */
+/* -- the end: "Next project" ("Next" in Inter Tight, "project" in Catavalo:
+   type.css); the next three projects; the way back to all of them; the
+   page's foot. At least a screen tall, its words starting at least 48px
+   under the nav's foot: at the very end of the page, all of it is under the
+   nav, never behind it. */
 .pj-end {
-  margin-top: 22vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding-top: max(15vh, calc(var(--nav-h) + 48px));
   text-align: center;
 }
-.pj-next-heading {
-  font-size: 12vw;
-  font-weight: 400;
-  line-height: 0.9;
+.pj-end > * {
+  width: 100%;
 }
-.pj-next-sans {
-  font-size: calc(1em * 1.055); /* (read as the same size as Catavalo's word: see .xp-title) */
+.pj-end > .pj-back {
+  width: auto;
+}
+.pj-next-heading {
+  font-size: clamp(36px, 4.5vw, 88px);
+  font-weight: 400;
+  line-height: 0.95;
 }
 .pj-next-row {
   display: grid;
@@ -357,6 +344,12 @@ body.project #site-nav {
   font-size: 13px;
   font-weight: 400;
 }
+/* (at this size Catavalo's hairlines read lighter, and so smaller, than its
+   x-height — which is Inter Tight's, measured — says: a tenth bigger reads
+   as one size with the rest) */
+.pj-card-name .title-display {
+  font-size: 1.1em;
+}
 .pj-card-more {
   flex: none;
   color: var(--pj-dim);
@@ -382,29 +375,24 @@ body.project #site-nav {
 .pj-foot {
   display: flex;
   justify-content: center;
-  padding: 4rem var(--page-margin) 2.5rem;
+  margin-top: auto;
+  padding: 4rem 0 2.5rem;
 }
 
 /* -- a phone: one column — the name, the video, the texts and the facts, the
-   frames, the end; the next three projects side by side, scrolled sideways. */
+   end; the next three projects side by side, scrolled sideways. */
 @media (max-width: 767px) {
   body.project {
+    --nav-h: 4.2rem;
     --pj-top: 6.5rem;
   }
   .pj-body {
     display: block;
-  }
-  .pj-video-slot {
-    display: block;
     min-height: 0;
   }
   .pj-info {
-    position: static;
     margin-top: 3rem;
     padding-right: 0;
-  }
-  .pj-frames {
-    margin-top: 3rem; /* (under the facts) */
   }
   .pj-controls {
     gap: 1rem;

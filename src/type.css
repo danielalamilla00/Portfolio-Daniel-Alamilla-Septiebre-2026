@@ -175,3 +175,21 @@
     color: transparent;
   }
 }
+/* A project's title in the web's two letters (src/title.js), both in cream
+   and on the same baseline: its brand in Catavalo, never broken between two
+   lines; the rest in Inter Tight, a little bigger than Catavalo so the two
+   read as one size (as "Next" and "project", .pj-next-sans). */
+.title-display {
+  font-family: var(--font-display);
+  font-weight: 300;
+  letter-spacing: normal;
+  color: var(--c-cream);
+  white-space: nowrap;
+}
+.title-sans {
+  font-family: var(--font-sans);
+  font-size: calc(1em * 1.055);
+  font-weight: 400;
+  letter-spacing: var(--tracking-sans);
+  color: var(--c-cream);
+}
