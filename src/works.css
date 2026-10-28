@@ -45,25 +45,18 @@ body.works #site-nav {
   height: 100%;
 }
 /* The rows fade out towards the top and the bottom of the screen: what goes
-   up is gone before the nav (nothing in the nav's strip and 32px under it:
-   --wk-safe), and what goes down is gone before the foot's line (--wk-foot:
-   the strip of the screen that line is in). */
+   up does not mix with the nav, and what goes down is gone before the foot's
+   line (--wk-foot: the strip of the screen that line is in). */
 .wk {
   --wk-foot-bottom: 2.6vh; /* the line's place, as in the home's Contact */
   --wk-foot: calc(var(--wk-foot-bottom) + 24px);
 }
 .wk-rows {
   --wk-rows-fade: 120px;
-  --wk-safe: calc(5.7rem + 32px); /* the nav (its padding and logo: style.css) and 32px under it: nothing there */
   position: absolute;
   inset: 0;
-  -webkit-mask-image: linear-gradient(to bottom, transparent var(--wk-safe), #000 calc(var(--wk-safe) + var(--wk-rows-fade)), #000 calc(100% - var(--wk-foot) - var(--wk-rows-fade)), transparent calc(100% - var(--wk-foot)));
-  mask-image: linear-gradient(to bottom, transparent var(--wk-safe), #000 calc(var(--wk-safe) + var(--wk-rows-fade)), #000 calc(100% - var(--wk-foot) - var(--wk-rows-fade)), transparent calc(100% - var(--wk-foot)));
-}
-@media (max-width: 767px) {
-  .wk-rows {
-    --wk-safe: calc(4.2rem + 32px);
-  }
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--wk-rows-fade), #000 calc(100% - var(--wk-foot) - var(--wk-rows-fade)), transparent calc(100% - var(--wk-foot)));
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--wk-rows-fade), #000 calc(100% - var(--wk-foot) - var(--wk-rows-fade)), transparent calc(100% - var(--wk-foot)));
 }
 /* The foot's line (.site-credit, type.css), where the home's Contact has it:
    at the bottom, in line with the logo, under where the rows end. */

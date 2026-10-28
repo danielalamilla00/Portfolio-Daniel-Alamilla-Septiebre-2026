@@ -4,8 +4,8 @@ import { applyPalette } from "./palette.js";
 import { applyGrain } from "./grain.js";
 import { startNavClock } from "./clock.js";
 import { setupMenu } from "./menu.js";
+import { onViewportChange } from "./viewport.js";
 import { setupProjectAura } from "./project-aura.js";
-import { setupNavVeil, anyUnder, NAV_SAFE_PX } from "./nav-veil.js";
 import { createYouTubePlayer } from "./youtube.js";
 import { PROJECTS, MOVED, nextProjects, projectUrl } from "./data/projects.js";
 import { plainTitle, titleParts } from "./title.js";
@@ -21,18 +21,28 @@ import { plainTitle, titleParts } from "./title.js";
 //     a table of facts; on the right (eight), the video, 16:9, with its
 //     poster and a few controls of its own over it. In the middle of the
 //     screen the block stops, all of it, for a while of scroll
-//     (PROJECT_HOLD_VH), and then goes on up, the video fading out as it
-//     leaves through the top of the screen;
+//     (PROJECT_HOLD_VH: holdBlock), and then goes on up, the video fading
+//     out as it leaves through the top of the screen;
 //   - "Next project", giant, and the next three projects of the Works page;
 //     a link back to all of them.
 // On a phone it is one column, and nothing stops: the name, the video, the
-// texts, the facts, the end.
+// texts, the facts, the end. The nav is at the top of the page, and goes up
+// with it (project.css).
 //   PROJECT_HOLD_VH   how long the block stays still, in scroll (a share of
 //                     the screen's height, in hundredths)
+//   PJ_HOLD_MARGIN_PX the least room between the held block and the screen's
+//                     top and foot
+//   PJ_HOLD_MIN_HEIGHT_PX  a screen less tall than this: no hold
+//   PJ_FIT_MIN_*      how small the block can be made to fit (fitBlock)
 //   PJ_FADE_S         how long the two columns take to come in
 //   PJ_FADE_FROM      where on the screen the video's top is when it starts
-//                     to fade out (it is gone when its foot reaches the nav)
+//                     to fade out (it is gone when its foot reaches the top)
 const PROJECT_HOLD_VH = 150;
+const PJ_HOLD_MARGIN_PX = 32;
+const PJ_HOLD_MIN_HEIGHT_PX = 650;
+const PJ_FIT_MIN_SPACE_PX = 16;
+const PJ_FIT_MIN_ROW_PX = 6;
+const PJ_FIT_MIN_TEXT_PX = 14;
 const PJ_FADE_S = 0.9;
 const PJ_FADE_FROM = 0.3;
 // YouTube puts its own interface over the picture for a few seconds each time
@@ -44,12 +54,6 @@ gsap.registerPlugin(ScrollTrigger);
 applyPalette();
 startNavClock();
 setupMenu();
-// (the veil behind the nav: off while the nav is over the aura and nothing
-// of the page is under it)
-const updateVeil = setupNavVeil((navFoot) => {
-  const aura = document.querySelector(".pj-aura").getBoundingClientRect();
-  return aura.bottom > navFoot + NAV_SAFE_PX && !anyUnder(Array.from(document.querySelectorAll(".pj-category, .pj-title, .pj-tagline, .pj-info, .pj-video, .pj-end > *")), navFoot + NAV_SAFE_PX);
-});
 applyGrain();
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -97,7 +101,6 @@ function render(project) {
 
   page.append(head, spacer, end);
   setupProjectAura(document.querySelector(".pj-aura"));
-  updateVeil();
   video.held = holdBlock(body, spacer, video.box);
   animate(body, video);
 }
@@ -348,48 +351,109 @@ function nextCard(project, index) {
   return card;
 }
 
-// -- the block, held: when it is in the middle of the screen it is pinned,
-// all of it, for PROJECT_HOLD_VH of scroll — nothing in it moves — and then
-// goes on up. The scroll it is held for is room added under it (its own
-// spacer: pinSpacing), so that nothing jumps. Not on a phone.
+// -- the block, held: it is pinned, all of it, PJ_HOLD_MARGIN_PX from the
+// top of the screen — or lower, so as to be in the middle of the screen,
+// PJ_HOLD_MARGIN_PX left above it and under it — for PROJECT_HOLD_VH of
+// scroll; nothing in it moves; then it goes on up. The scroll it is held for
+// is room added under it (its own spacer: pinSpacing), so that nothing
+// jumps. All of it has to be seen while it is held: if it is taller than
+// that room, it is made smaller until it fits (fitBlock). If it cannot be,
+// and on a phone or a screen under PJ_HOLD_MIN_HEIGHT_PX tall, it is not held.
 // What it gives back: while it holds the block, where on the screen the
 // video's top is (top) and until what scroll (end) — for the video's fade,
 // after it (animate).
 function holdBlock(body, spacer, box) {
   let hold = null;
-  gsap.matchMedia().add("(min-width: 768px)", () => {
-    hold = ScrollTrigger.create({
-      trigger: body,
-      start: "center center",
-      end: () => `+=${(window.innerHeight * PROJECT_HOLD_VH) / 100}`,
-      pin: true,
-      pinSpacer: spacer,
-      pinSpacing: true,
-      // (not anticipated: measured frame by frame, a wheel's scroll pinned it
-      // up to 48px early and let it go 24px late, a jump; it is pinned on the
-      // frame it gets there)
-      anticipatePin: 0,
-      refreshPriority: 1, // (before the video's fade, which starts at its end)
-    });
-    return () => (hold = null);
-  });
-  // (measured again once the video is in, and the fonts)
+  let holdTop = 0; // where the block's top is held
+  const arrange = () => {
+    const can = window.innerWidth >= 768 && window.innerHeight >= PJ_HOLD_MIN_HEIGHT_PX && fitBlock(body, box);
+    if (can) holdTop = PJ_HOLD_MARGIN_PX + Math.max((window.innerHeight - 2 * PJ_HOLD_MARGIN_PX - body.offsetHeight) / 2, 0);
+    if (can && !hold) {
+      hold = ScrollTrigger.create({
+        trigger: body,
+        start: () => `top top+=${holdTop}`,
+        end: () => `+=${(window.innerHeight * PROJECT_HOLD_VH) / 100}`,
+        pin: true,
+        pinSpacer: spacer,
+        pinSpacing: true,
+        // (not anticipated: measured frame by frame, a wheel's scroll pinned it
+        // up to 48px early and let it go 24px late, a jump; it is pinned on the
+        // frame it gets there)
+        anticipatePin: 0,
+        refreshPriority: 1, // (before the video's fade, which starts at its end)
+      });
+    } else if (!can && hold) {
+      hold.kill(true);
+      hold = null;
+    }
+    ScrollTrigger.refresh();
+  };
+  arrange();
+  // (again once the video is in, and the fonts, and on a new size)
   const embed = box.querySelector(".pj-embed");
   embed.addEventListener(embed.tagName === "IFRAME" ? "load" : "loadedmetadata", () => ScrollTrigger.refresh(), { once: true });
-  document.fonts.ready.then(() => ScrollTrigger.refresh());
-  return () => hold && { top: (window.innerHeight - body.offsetHeight) / 2 + (box.getBoundingClientRect().top - body.getBoundingClientRect().top), end: hold.end };
+  document.fonts.ready.then(arrange);
+  onViewportChange(arrange);
+  return () => hold && { top: holdTop + (box.getBoundingClientRect().top - body.getBoundingClientRect().top), end: hold.end };
+}
+
+// The block made to fit the room it is held in (the screen less
+// PJ_HOLD_MARGIN_PX above and under), never by cutting or hiding any of its
+// words: the video no taller than that room; then, as little as it takes, in
+// this order — the room between the texts (down to PJ_FIT_MIN_SPACE_PX), the
+// facts' rows (to PJ_FIT_MIN_ROW_PX each way), the texts' size (to
+// PJ_FIT_MIN_TEXT_PX). Each stage as little as it takes (halving, 12 times).
+// Whether it fits.
+const PJ_FIT_KNOBS = ["--pj-space", "--pj-fact-pad", "--pj-copy-size", "--pj-label-size", "--pj-video-max"];
+function fitBlock(body, box) {
+  PJ_FIT_KNOBS.forEach((name) => body.style.removeProperty(name));
+  const room = window.innerHeight - 2 * PJ_HOLD_MARGIN_PX;
+  const info = body.querySelector(".pj-info");
+  if (box.offsetHeight > room) body.style.setProperty("--pj-video-max", `${room}px`);
+  const fits = () => info.offsetHeight <= room - 2; // (and a little to spare: rounding)
+  if (fits()) return true;
+  const px = (selector, property) => parseFloat(getComputedStyle(body.querySelector(selector))[property]);
+  const from = {
+    space: px(".pj-copy + .pj-label", "marginTop") + px(".pj-label", "paddingTop"),
+    pad: px(".pj-fact", "paddingTop"),
+    copy: px(".pj-copy", "fontSize"),
+    label: px(".pj-label", "fontSize"),
+  };
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const stages = [
+    (t) => body.style.setProperty("--pj-space", `${lerp(from.space, Math.min(from.space, PJ_FIT_MIN_SPACE_PX), t)}px`),
+    (t) => body.style.setProperty("--pj-fact-pad", `${lerp(from.pad, Math.min(from.pad, PJ_FIT_MIN_ROW_PX), t)}px`),
+    (t) => {
+      body.style.setProperty("--pj-copy-size", `${lerp(from.copy, Math.min(from.copy, PJ_FIT_MIN_TEXT_PX), t)}px`);
+      body.style.setProperty("--pj-label-size", `${lerp(from.label, Math.min(from.label, PJ_FIT_MIN_TEXT_PX), t)}px`);
+    },
+  ];
+  for (const stage of stages) {
+    stage(1);
+    if (!fits()) continue; // (all of this one, and on to the next)
+    let low = 0;
+    let high = 1;
+    for (let k = 0; k < 12; k++) {
+      const mid = (low + high) / 2;
+      stage(mid);
+      if (fits()) high = mid;
+      else low = mid;
+    }
+    stage(high);
+    return true;
+  }
+  return false;
 }
 
 // -- coming in: the two columns fade in, once, as they get on screen.
 // -- going out: the video fades with the page, from whole while its top is
-// under PJ_FADE_FROM of the screen to gone when its foot reaches the nav —
+// under PJ_FADE_FROM of the screen to gone when its foot reaches the top —
 // and back, scrolling back (held, from where the block is let go: at once
 // if it was held above PJ_FADE_FROM). Gone while it plays, it stops; back on
 // screen, it plays again (only if it was playing).
 function animate(body, video) {
   if (reducedMotion) return;
   gsap.from(body, { autoAlpha: 0, duration: PJ_FADE_S, ease: "power2.out", scrollTrigger: { trigger: body, start: "top 92%", once: true } });
-  const navFoot = () => document.querySelector("#site-nav").getBoundingClientRect().bottom;
   const held = (whileHeld, otherwise) => () => (video.held() ? whileHeld(video.held()) : otherwise());
   let stopped = false;
   gsap.fromTo(video.box, { opacity: 1 }, {
@@ -399,7 +463,7 @@ function animate(body, video) {
     scrollTrigger: {
       trigger: video.box,
       start: held(({ top, end }) => end + Math.max(top - window.innerHeight * PJ_FADE_FROM, 0), () => `clamp(top ${PJ_FADE_FROM * 100}%)`),
-      end: held(({ top, end }) => end + top + video.box.offsetHeight - navFoot(), () => `bottom ${navFoot()}px`),
+      end: held(({ top, end }) => end + top + video.box.offsetHeight, () => "bottom top"),
       scrub: true,
       invalidateOnRefresh: true,
       onLeave: () => {

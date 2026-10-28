@@ -14,7 +14,6 @@ import { createAbout, ABOUT_SCROLL_VH } from "./about.js";
 import { createContact, CONTACT_SCROLL_VH, CONTACT_SHOWN_VH } from "./contact.js";
 import { onViewportChange, canvasPixelRatio, MOBILE_MAX_PX } from "./viewport.js";
 import { setupMenu } from "./menu.js";
-import { setupNavVeil, anyUnder, NAV_VEIL_FADE_PX } from "./nav-veil.js";
 
 gsap.registerPlugin(ScrollTrigger);
 // The window changing size is looked after here (viewport.js; the end of this
@@ -24,17 +23,6 @@ ScrollTrigger.config({ ignoreMobileResize: true, autoRefreshEvents: "visibilityc
 applyPalette(); // the palette as --c-* variables, for style.css
 if (new URLSearchParams(window.location.search).has("grid")) document.documentElement.classList.add("is-grid"); // the page's grid, drawn (style.css)
 setupMenu(); // the nav's links as a whole screen, on a tablet and a phone
-// The veil behind the nav (nav-veil.js): where the nav is over the black
-// panel (Experience, About me, Contact's top), and wherever one of the
-// projects' covers, the showreel or "Freshly Squeezed" goes under it — over
-// the hero's and the zoom's colour with nothing under it, off.
-// (asked again on every frame that moves something: the zoom and the panel
-// move with a damped scroll, after the last scroll event — syncZoom, animate)
-const veilCovers = Array.from(document.querySelectorAll(".zp-media, .ft-line"));
-const updateVeil = setupNavVeil((navFoot) => {
-  const over = (el) => { if (!el) return false; const box = el.getBoundingClientRect(); return box.top <= 0 && box.bottom >= navFoot + NAV_VEIL_FADE_PX; };
-  return !(over(document.querySelector(".more")) || over(document.querySelector(".ct")) || anyUnder(veilCovers, navFoot));
-});
 
 // Webfonts and video metadata can still change layout after the first
 // ScrollTrigger measurement; re-measure once everything has loaded so the
@@ -2102,7 +2090,6 @@ function setupZoomParallax() {
     if (moreScroll !== moreScrollDamped) requestFrame();
     syncReelSound(); // (the panel starting up over the reel takes its button and its sound away)
     updateNavContrast();
-    updateVeil();
     // The size the showreel's player is laid out for: the card's at the end.
     zoomCenterCover.style.setProperty("--reel-res", coverScale.toFixed(3));
   };
@@ -2256,7 +2243,6 @@ function gradientNoise1D(x) {
 
 function animate() {
   frameRequested = false;
-  updateVeil();
   // Clamped: THREE.Clock's first getDelta() call returns the time elapsed
   // since the clock was constructed (and, after an idle pause, since the
   // last frame) — without this clamp that shows up as one large, visible

@@ -5,7 +5,6 @@
      --pj-dim    the cream of the small labels
      --pj-line   the cream of the facts' rules */
 body.project {
-  --nav-h: 5.7rem; /* the nav's height: its padding and its logo (style.css) */
   --pj-top: 8rem;
   --pj-dim: rgba(246, 236, 221, 0.6);
   --pj-line: rgba(246, 236, 221, 0.15);
@@ -19,6 +18,7 @@ body.project {
 body.project #site-nav {
   --nav-ink: var(--c-cream);
   --nav-clock-ink: var(--c-cream);
+  position: absolute; /* at the top of the page, going up with it: nothing goes under it */
 }
 .pj {
   position: relative;
@@ -81,18 +81,21 @@ body.project #site-nav {
 }
 
 /* -- the two columns: the facts on the left (4 of the 12), the video on the
-   right (8), their middles level, in a block about a screen tall. */
+   right (8), their middles level. Held, the block is made to fit the screen
+   (project.js, fitBlock: the --pj-* below — the video never taller than
+   --pj-video-max, at the right of its column). */
 .pj-body {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   column-gap: var(--grid-gutter);
   align-items: center;
-  min-height: 100vh;
   margin-top: 8vh;
 }
 .pj-body > .pj-video {
   grid-column: 5 / -1;
   grid-row: 1;
+  justify-self: end;
+  width: min(100%, calc(var(--pj-video-max, 100vh) * 16 / 9));
 }
 .pj-info {
   grid-column: 1 / span 4;
@@ -106,18 +109,18 @@ body.project #site-nav {
    off what is under them, 12px down. */
 .pj .pj-label {
   margin: calc(var(--title-room) * -1) calc(var(--title-room) * -1) calc(12px - var(--title-room));
-  font-size: clamp(22px, 1.9vw, 32px);
+  font-size: var(--pj-label-size, clamp(22px, 1.9vw, 32px));
   line-height: 1;
 }
 .pj-copy {
-  font-size: clamp(17px, 1.15vw, 20px);
+  font-size: var(--pj-copy-size, clamp(17px, 1.15vw, 20px));
   font-weight: 300;
   line-height: 1.5;
   color: var(--c-cream);
   text-wrap: pretty;
 }
 .pj .pj-copy + .pj-label {
-  margin-top: calc(2.25rem - var(--title-room));
+  margin-top: calc(var(--pj-space, 2.25rem) - var(--title-room));
 }
 .pj-facts {
   margin-top: 2.75rem;
@@ -128,7 +131,7 @@ body.project #site-nav {
   justify-content: space-between;
   align-items: baseline;
   gap: 1.5rem;
-  padding: 0.85rem 0;
+  padding: var(--pj-fact-pad, 0.85rem) 0;
   border-bottom: 1px solid var(--pj-line);
 }
 .pj-fact-name {
@@ -286,15 +289,14 @@ body.project #site-nav {
 
 /* -- the end: "Next project" ("Next" in Inter Tight, "project" in Catavalo:
    type.css); the next three projects; the way back to all of them; the
-   page's foot. At least a screen tall, its words starting at least 48px
-   under the nav's foot: at the very end of the page, all of it is under the
-   nav, never behind it. */
+   page's foot. At least a screen tall: at the very end of the page all of it
+   is on the screen. */
 .pj-end {
   display: flex;
   flex-direction: column;
   align-items: center;
   min-height: 100vh;
-  padding-top: max(15vh, calc(var(--nav-h) + 48px));
+  padding-top: 15vh;
   text-align: center;
 }
 .pj-end > * {
@@ -344,11 +346,11 @@ body.project #site-nav {
   font-size: 13px;
   font-weight: 400;
 }
-/* (at this size Catavalo's hairlines read lighter, and so smaller, than its
-   x-height — which is Inter Tight's, measured — says: a tenth bigger reads
-   as one size with the rest) */
+/* (at this size the Light's hairlines read smaller than its x-height —
+   Inter Tight's, measured — says: the brand in Catavalo's SemiBold, the same
+   size, reads as one with the rest) */
 .pj-card-name .title-display {
-  font-size: 1.1em;
+  font-weight: 600;
 }
 .pj-card-more {
   flex: none;
@@ -383,7 +385,6 @@ body.project #site-nav {
    end; the next three projects side by side, scrolled sideways. */
 @media (max-width: 767px) {
   body.project {
-    --nav-h: 4.2rem;
     --pj-top: 6.5rem;
   }
   .pj-body {
