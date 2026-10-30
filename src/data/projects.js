@@ -31,9 +31,12 @@
 //                null or missing one is not shown); display: the screens it
 //                was made for
 //   credits      who else made it: [{ role, name }], or null
-//   video        the project itself: a YouTube address, or an MP4 (its web
-//                version: <slug>-1080.mp4)
-//   videoSmall   (an MP4's) a lighter one of it for a phone (<slug>-720.mp4)
+//   video        the project itself: its web version, an MP4 of the web's
+//                own (<slug>-1080.mp4: H.264, faststart, AAC)
+//   videoSmall   a lighter one of it, for a screen under 768px wide
+//                (<slug>-720.mp4)
+//   youtube      where it is on YouTube: kept for reference; the page plays
+//                it from there only if it has no video
 //   poster       what shows until it plays (poster.webp: a frame of it)
 // (The three projects at the end of the page are the next three of this list
 // that have a page — after the last, the first ones again.)
@@ -59,7 +62,9 @@ export const PROJECTS = [
     tools: "Cinema 4D, After Effects, Kling",
     year: "2026",
     credits: null,
-    video: "https://youtu.be/hiAC1CUjSS0",
+    video: "/proyectos/waapiti-ai-3d-logo-reveal/waapiti-ai-3d-logo-reveal-1080.mp4",
+    videoSmall: "/proyectos/waapiti-ai-3d-logo-reveal/waapiti-ai-3d-logo-reveal-720.mp4",
+    youtube: "https://youtu.be/hiAC1CUjSS0",
     poster: "/proyectos/waapiti-ai-3d-logo-reveal/poster-v2.webp",
     cover: "/proyectos/waapiti-ai-3d-logo-reveal/poster-v2.webp",
     preview: "/proyectos/waapiti-ai-3d-logo-reveal/preview-v2.mp4",
@@ -79,7 +84,9 @@ export const PROJECTS = [
     tools: "Cinema 4D, After Effects, Kling",
     year: "2026",
     credits: null,
-    video: "https://youtu.be/FabgEQtwm-Y",
+    video: "/proyectos/hummel-kit-launch-campaign/hummel-kit-launch-campaign-1080.mp4",
+    videoSmall: "/proyectos/hummel-kit-launch-campaign/hummel-kit-launch-campaign-720.mp4",
+    youtube: "https://youtu.be/FabgEQtwm-Y",
     poster: "/proyectos/hummel-kit-launch-campaign/poster.webp",
     cover: "/proyectos/hummel-kit-launch-campaign/poster.webp",
     preview: "/proyectos/hummel-kit-launch-campaign/preview.mp4",
@@ -100,7 +107,9 @@ export const PROJECTS = [
     tools: "Cinema 4D, After Effects, Kling",
     year: "2026",
     credits: null,
-    video: "https://youtu.be/7pxdlWAiUOQ",
+    video: "/proyectos/tmm-3d-brand-reveal/tmm-3d-brand-reveal-1080.mp4",
+    videoSmall: "/proyectos/tmm-3d-brand-reveal/tmm-3d-brand-reveal-720.mp4",
+    youtube: "https://youtu.be/7pxdlWAiUOQ",
     poster: "/proyectos/tmm-3d-brand-reveal/poster.webp",
     cover: "/proyectos/tmm-3d-brand-reveal/poster.webp",
     preview: "/proyectos/tmm-3d-brand-reveal/preview.mp4",
@@ -121,7 +130,9 @@ export const PROJECTS = [
     tools: "Cinema 4D, After Effects, Kling",
     year: "2026",
     credits: null,
-    video: "https://youtu.be/-u5k984d138",
+    video: "/proyectos/tmm-halloween-spot/tmm-halloween-spot-1080.mp4",
+    videoSmall: "/proyectos/tmm-halloween-spot/tmm-halloween-spot-720.mp4",
+    youtube: "https://youtu.be/-u5k984d138",
     poster: "/proyectos/tmm-halloween-spot/poster.webp",
     cover: "/proyectos/tmm-halloween-spot/poster.webp",
     preview: "/proyectos/tmm-halloween-spot/preview.mp4",
@@ -162,7 +173,9 @@ export const PROJECTS = [
     tools: "Cinema 4D, After Effects, Kling",
     year: "2026",
     credits: null,
-    video: "https://youtu.be/Xlqg8Qoa9NY",
+    video: "/proyectos/tmm-autumn-3d-visual/tmm-autumn-3d-visual-1080.mp4",
+    videoSmall: "/proyectos/tmm-autumn-3d-visual/tmm-autumn-3d-visual-720.mp4",
+    youtube: "https://youtu.be/Xlqg8Qoa9NY",
     poster: "/proyectos/tmm-autumn-3d-visual/poster.webp",
     cover: "/proyectos/tmm-autumn-3d-visual/poster.webp",
     preview: "/proyectos/tmm-autumn-3d-visual/preview.mp4",

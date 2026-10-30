@@ -45,10 +45,6 @@ const PJ_FIT_MIN_ROW_PX = 6;
 const PJ_FIT_MIN_TEXT_PX = 14;
 const PJ_FADE_S = 0.9;
 const PJ_FADE_FROM = 0.3;
-// YouTube puts its own interface over the picture for a few seconds each time
-// its video starts to move (title, buttons; measured: gone 3.7 to 4.2 s in):
-// its poster stays over it until then.
-const PJ_YOUTUBE_UI_S = 4.6;
 
 gsap.registerPlugin(ScrollTrigger);
 applyPalette();
@@ -84,15 +80,15 @@ function render(project) {
   const video = videoBlock(project);
   body.append(video.box, info);
   // (and round it, what holds its place while it is pinned: one of the
-  // page's own, so that the video — an iframe, for YouTube's and Vimeo's —
-  // is never moved in the page, which would load it again)
+  // page's own, so that the video is never moved in the page, which would
+  // load it again)
   const spacer = element("div", "pj-hold");
   spacer.appendChild(body);
 
   // -- the end
   const end = element("section", "pj-end");
   const heading = element("h2", "pj-next-heading");
-  heading.append(...titleParts("Next *project*"));
+  heading.append(...titleParts("Next *project*", "title-gradient"));
   const row = element("div", "pj-next-row");
   nextProjects(project, 3).forEach((next, index) => row.appendChild(nextCard(next, index)));
   const back = element("a", "pj-back", "← Back to all");
@@ -101,7 +97,7 @@ function render(project) {
 
   page.append(head, spacer, end);
   setupProjectAura(document.querySelector(".pj-aura"));
-  video.held = holdBlock(body, spacer, video.box);
+  video.held = holdBlock(body, spacer, video.box, video.stop);
   animate(body, video);
 }
 
@@ -134,16 +130,26 @@ function factsTable(project) {
 }
 
 // -- the video ---------------------------------------------------------------------------
-// Its poster over it until it plays. It waits, stopped, until someone
-// presses play (and then plays with its sound); its controls are the
-// page's: play / pause, where it is (and where to go: the bar), sound, full
-// screen — and, in its middle while it is not being watched, "Click to watch
-// project" (watchButton). Whatever plays it — a <video>, YouTube's player, Vimeo's — is
-// behind one small interface: play(), pause(), seek(share), setMuted(),
-// and it says when it plays or stops and how far in it is (onState, onTime).
-// What it gives back: its box, its player, and whether it is playing.
+// Until it is watched: its poster, and over it its preview (projects.js:
+// preview), muted and in a loop. "Click to watch project" (watchButton) plays
+// it, from the start the first time, with its sound, in that same click: it
+// is the page's own MP4 (projects.js: video; videoSmall on a screen under
+// 768px wide), which is loaded whole from when the block is a screen away
+// (PJ_PRELOAD_MARGIN), so that it is ready. The poster and the preview fade
+// (in 0.2 s: project.css) only once it is moving — nothing black is ever
+// seen. Its controls are the page's: play / pause, where it is (and where to
+// go: the bar), sound (what it says is what it is), full screen. Out of the
+// hold or off the screen it stops, and stays stopped (holdBlock; stop()).
+// A project with no MP4 plays from YouTube (projects.js: youtube) —
+// youTubePlayer. Either is behind one small interface: load(), watch(),
+// play(), pause(), seek(share), setMuted(); it says when it plays or stops,
+// when it moves, how far in it is and whether it is muted (onState,
+// onMoving, onTime, onMuted).
+// What it gives back: its box, and stop().
+//   PJ_PRELOAD_MARGIN   how far from the screen the block is when the
+//                       video starts to load
+const PJ_PRELOAD_MARGIN = "100% 0px";
 const youTubeId = (url) => (url.match(/(?:youtu\.be\/|[?&]v=|\/embed\/)([\w-]{11})/) || [])[1];
-const vimeoId = (url) => (url.match(/vimeo\.com\/(?:video\/)?(\d+)/) || [])[1];
 function videoBlock(project) {
   const box = element("div", "pj-video");
   box.setAttribute("aria-label", `${plainTitle(project.title)}: the video`);
@@ -153,6 +159,19 @@ function videoBlock(project) {
   poster.alt = "";
   poster.fetchPriority = "high";
   stage.appendChild(poster);
+  let preview = null;
+  if (project.preview) {
+    preview = element("video", "pj-preview");
+    preview.defaultMuted = true;
+    preview.muted = true;
+    preview.loop = true;
+    preview.playsInline = true;
+    preview.setAttribute("aria-hidden", "true");
+    preview.src = encodeURI(project.preview);
+    // (it comes in over the poster once it moves)
+    preview.addEventListener("playing", () => preview.classList.add("is-in"), { once: true });
+    stage.appendChild(preview);
+  }
 
   const controls = element("div", "pj-controls");
   const playButton = element("button", "pj-control", "Play");
@@ -168,9 +187,10 @@ function videoBlock(project) {
   const fullButton = element("button", "pj-control", "Full screen");
   [playButton, soundButton, fullButton].forEach((button) => (button.type = "button"));
   controls.append(playButton, bar, soundButton, fullButton);
+  let started = false;
   const watch = watchButton(() => {
-    setSound(true);
-    player.play();
+    player.watch(!started);
+    started = true;
   });
   box.append(stage, controls, watch.button);
 
@@ -178,43 +198,53 @@ function videoBlock(project) {
   let muted = false;
   // (watched: playing, with its sound)
   const watched = () => watch.show(!playing || muted);
+  // The poster and the preview over the video (on), or gone (off); the
+  // preview moving only while it is seen.
+  let covered = true;
+  let seen = false;
+  const runPreview = () => preview && (covered && seen ? preview.play().catch(() => {}) : preview.pause());
+  const cover = (on) => {
+    covered = on;
+    box.classList.toggle("is-playing", !on);
+    runPreview();
+  };
   let share = 0; // how far in, 0..1
-  const show = (on) => box.classList.toggle("is-playing", on);
-  // (YouTube's: the poster stays over its first seconds, from the first time
-  // it moves: PJ_YOUTUBE_UI_S)
-  let posterHeld = Boolean(youTubeId(project.video));
-  let started = false;
   const onState = (on) => {
     playing = on;
     playButton.textContent = on ? "Pause" : "Play";
-    if (on && !started) {
-      started = true;
-      if (posterHeld)
-        setTimeout(() => {
-          posterHeld = false;
-          show(true);
-        }, PJ_YOUTUBE_UI_S * 1000);
-    }
-    if (on && !posterHeld) show(true);
+    if (!on && player.coverWhenStopped) cover(true);
     watched();
   };
+  const onMoving = () => cover(false);
   const onTime = (at) => {
     share = at;
     fill.style.transform = `scaleX(${at.toFixed(4)})`;
     bar.setAttribute("aria-valuenow", String(Math.round(at * 100)));
   };
-  // (an MP4 that has a lighter one for a phone: that one, on a phone)
-  const small = project.videoSmall && window.matchMedia("(max-width: 767px)").matches;
-  const player = makePlayer(small ? project.videoSmall : project.video, stage, poster, { onState, onTime });
-
-  const setSound = (on) => {
-    muted = !on;
-    player.setMuted(muted);
-    soundButton.textContent = muted ? "Sound on" : "Sound off";
+  const onMuted = (on) => {
+    muted = on;
+    soundButton.textContent = on ? "Sound on" : "Sound off";
     watched();
   };
-  playButton.addEventListener("click", () => (playing ? player.pause() : player.play()));
-  soundButton.addEventListener("click", () => setSound(muted));
+  const small = project.videoSmall && window.matchMedia("(max-width: 767px)").matches;
+  const callbacks = { onState, onMoving, onTime, onMuted };
+  const player = project.video ? localPlayer(small ? project.videoSmall : project.video, stage, callbacks) : youTubePlayer(youTubeId(project.youtube), stage, callbacks);
+
+  // (loaded from a screen away; off the screen, stopped)
+  new IntersectionObserver(([entry]) => entry.isIntersecting && player.load(), { rootMargin: PJ_PRELOAD_MARGIN }).observe(box);
+  const stop = () => playing && player.pause();
+  new IntersectionObserver(([entry]) => {
+    seen = entry.isIntersecting;
+    if (!seen) stop();
+    runPreview();
+  }).observe(box);
+
+  playButton.addEventListener("click", () => {
+    if (playing) player.pause();
+    else player.play();
+    started = true;
+  });
+  soundButton.addEventListener("click", () => player.setMuted(!muted));
   const seekTo = (event) => {
     const rect = bar.getBoundingClientRect();
     player.seek(Math.min(Math.max((event.clientX - rect.left) / rect.width, 0), 1));
@@ -242,7 +272,7 @@ function videoBlock(project) {
     });
     document.addEventListener("fullscreenchange", () => (fullButton.textContent = document.fullscreenElement ? "Exit full screen" : "Full screen"));
   } else fullButton.hidden = true;
-  return { box, player, playing: () => playing };
+  return { box, stop };
 }
 
 // "Click to watch project": over a project's video, in its middle, while it
@@ -259,77 +289,74 @@ function watchButton(onWatch) {
   return { button, show: (on) => button.classList.toggle("is-hidden", !on) };
 }
 
-function makePlayer(url, stage, poster, { onState, onTime }) {
-  // YouTube's player: its own controls off; how far in, asked for while it plays.
-  if (youTubeId(url)) {
-    const id = youTubeId(url);
-    const frame = element("iframe", "pj-embed");
-    frame.allow = "autoplay; encrypted-media; picture-in-picture";
-    frame.title = "Video";
-    frame.src = `https://www.youtube-nocookie.com/embed/${id}?${new URLSearchParams({ enablejsapi: 1, origin: window.location.origin, autoplay: 0, mute: 0, controls: 0, loop: 1, playlist: id, playsinline: 1, rel: 0, modestbranding: 1, iv_load_policy: 3, disablekb: 1, fs: 0 })}`;
-    stage.appendChild(frame);
-    let duration = 0;
-    let ticking = 0;
-    const youTube = createYouTubePlayer(frame, (on) => {
-      onState(on);
-      clearInterval(ticking);
-      if (!on) return;
-      youTube.duration().then((d) => (duration = d));
-      ticking = setInterval(() => youTube.time().then((t) => duration && onTime(t / duration)), 250);
-    });
-    return {
-      play: () => youTube.play(),
-      pause: () => youTube.pause(),
-      seek: (at) => youTube.duration().then((d) => youTube.seek(at * d)),
-      setMuted: (muted) => youTube.setMuted(muted),
-    };
-  }
-  // Vimeo's: told what to do, and listened to, through its frame's messages.
-  if (vimeoId(url)) {
-    const frame = element("iframe", "pj-embed");
-    frame.allow = "autoplay; fullscreen; picture-in-picture";
-    frame.title = "Video";
-    frame.src = `https://player.vimeo.com/video/${vimeoId(url)}?${new URLSearchParams({ autoplay: 0, muted: 0, loop: 1, controls: 0, title: 0, byline: 0, portrait: 0, dnt: 1, playsinline: 1 })}`;
-    stage.appendChild(frame);
-    const origin = "https://player.vimeo.com";
-    const post = (method, value) => frame.contentWindow.postMessage(JSON.stringify(value === undefined ? { method } : { method, value }), origin);
-    let duration = 0;
-    window.addEventListener("message", (event) => {
-      if (event.origin !== origin || event.source !== frame.contentWindow) return;
-      const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-      if (data.event === "ready") ["play", "pause", "timeupdate"].forEach((name) => post("addEventListener", name));
-      else if (data.event === "play") onState(true);
-      else if (data.event === "pause") onState(false);
-      else if (data.event === "timeupdate" || data.event === "playProgress") { // (what it answers "timeupdate" with)
-        duration = data.data.duration;
-        onTime(data.data.percent);
-        onState(true);
-      }
-    });
-    return {
-      play: () => post("play"),
-      pause: () => post("pause"),
-      seek: (at) => duration && post("setCurrentTime", at * duration),
-      setMuted: (muted) => post("setMuted", muted),
-    };
-  }
-  // An MP4: a <video> of the page's own.
+// The project's MP4: a <video> of the page's own, under the poster. Nothing
+// of it is loaded until load() (then all of it); watch() is called in the
+// click itself, so that it may play with its sound.
+function localPlayer(url, stage, { onState, onMoving, onTime, onMuted }) {
   const video = element("video", "pj-embed");
   video.loop = true;
   video.playsInline = true;
-  video.preload = "metadata";
-  video.poster = poster.src;
+  video.preload = "none";
   video.src = encodeURI(url);
-  stage.appendChild(video);
+  stage.prepend(video);
   video.addEventListener("play", () => onState(true));
   video.addEventListener("pause", () => onState(false));
+  // (moving: playing, and its frame on the screen — where the browser can
+  // say so —, never the box's black under it)
+  video.addEventListener("playing", () => (video.requestVideoFrameCallback ? video.requestVideoFrameCallback(onMoving) : onMoving()));
+  video.addEventListener("volumechange", () => onMuted(video.muted));
   video.addEventListener("timeupdate", () => video.duration && onTime(video.currentTime / video.duration));
   return {
-    play: () => video.play(),
+    load: () => (video.preload = "auto"),
+    watch: (fromStart) => {
+      if (fromStart && video.currentTime) video.currentTime = 0;
+      video.muted = false;
+      video.play().catch(() => {});
+    },
+    play: () => video.play().catch(() => {}),
     pause: () => video.pause(),
     seek: (at) => video.duration && (video.currentTime = at * video.duration),
-    setMuted: (muted) => (video.muted = muted),
+    setMuted: (on) => (video.muted = on),
     nativeFullscreen: video.webkitEnterFullscreen ? () => video.webkitEnterFullscreen() : null,
+  };
+}
+
+// YouTube's player, for a project with no MP4: made as the page loads (its
+// own controls, its suggestions and notes off), under the poster, which goes
+// only while it plays and is back over it when it stops — none of YouTube's
+// own screens is seen.
+function youTubePlayer(id, stage, { onState, onMoving, onTime, onMuted }) {
+  const frame = element("iframe", "pj-embed");
+  frame.allow = "autoplay; encrypted-media; picture-in-picture";
+  frame.title = "Video";
+  frame.src = `https://www.youtube-nocookie.com/embed/${id}?${new URLSearchParams({ enablejsapi: 1, origin: window.location.origin, autoplay: 0, controls: 0, rel: 0, modestbranding: 1, playsinline: 1, iv_load_policy: 3, disablekb: 1, fs: 0, loop: 1, playlist: id })}`;
+  stage.prepend(frame);
+  let duration = 0;
+  let ticking = 0;
+  const youTube = createYouTubePlayer(frame, (on) => {
+    onState(on);
+    clearInterval(ticking);
+    if (!on) return;
+    onMoving();
+    youTube.duration().then((d) => (duration = d));
+    ticking = setInterval(() => youTube.time().then((t) => duration && onTime(t / duration)), 250);
+  });
+  const setMuted = (on) => {
+    youTube.setMuted(on);
+    onMuted(on);
+  };
+  return {
+    coverWhenStopped: true,
+    load: () => {},
+    watch: (fromStart) => {
+      setMuted(false);
+      if (fromStart) youTube.seek(0);
+      youTube.play();
+    },
+    play: () => youTube.play(),
+    pause: () => youTube.pause(),
+    seek: (at) => youTube.duration().then((d) => youTube.seek(at * d)),
+    setMuted,
   };
 }
 
@@ -359,10 +386,11 @@ function nextCard(project, index) {
 // jumps. All of it has to be seen while it is held: if it is taller than
 // that room, it is made smaller until it fits (fitBlock). If it cannot be,
 // and on a phone or a screen under PJ_HOLD_MIN_HEIGHT_PX tall, it is not held.
+// Out of the hold, either way, the video stops (onLeave).
 // What it gives back: while it holds the block, where on the screen the
 // video's top is (top) and until what scroll (end) — for the video's fade,
 // after it (animate).
-function holdBlock(body, spacer, box) {
+function holdBlock(body, spacer, box, onLeave) {
   let hold = null;
   let holdTop = 0; // where the block's top is held
   const arrange = () => {
@@ -381,6 +409,8 @@ function holdBlock(body, spacer, box) {
         // frame it gets there)
         anticipatePin: 0,
         refreshPriority: 1, // (before the video's fade, which starts at its end)
+        onLeave,
+        onLeaveBack: onLeave,
       });
     } else if (!can && hold) {
       hold.kill(true);
@@ -389,11 +419,18 @@ function holdBlock(body, spacer, box) {
     ScrollTrigger.refresh();
   };
   arrange();
-  // (again once the video is in, and the fonts, and on a new size)
+  // (again once the video is in, on a new size, and whenever the block's
+  // height changes — its words wrapping anew as a font comes in, even after
+  // the page has loaded: measured, a block held 12px off its middle)
   const embed = box.querySelector(".pj-embed");
   embed.addEventListener(embed.tagName === "IFRAME" ? "load" : "loadedmetadata", () => ScrollTrigger.refresh(), { once: true });
-  document.fonts.ready.then(arrange);
   onViewportChange(arrange);
+  let height = body.offsetHeight;
+  new ResizeObserver(() => {
+    if (body.offsetHeight === height) return; // (fitBlock gives it back as it was: no change)
+    height = body.offsetHeight;
+    arrange();
+  }).observe(body);
   return () => hold && { top: holdTop + (box.getBoundingClientRect().top - body.getBoundingClientRect().top), end: hold.end };
 }
 
@@ -404,7 +441,7 @@ function holdBlock(body, spacer, box) {
 // facts' rows (to PJ_FIT_MIN_ROW_PX each way), the texts' size (to
 // PJ_FIT_MIN_TEXT_PX). Each stage as little as it takes (halving, 12 times).
 // Whether it fits.
-const PJ_FIT_KNOBS = ["--pj-space", "--pj-fact-pad", "--pj-copy-size", "--pj-label-size", "--pj-video-max"];
+const PJ_FIT_KNOBS = ["--pj-space", "--pj-facts-space", "--pj-fact-pad", "--pj-copy-size", "--pj-label-size", "--pj-video-max"];
 function fitBlock(body, box) {
   PJ_FIT_KNOBS.forEach((name) => body.style.removeProperty(name));
   const room = window.innerHeight - 2 * PJ_HOLD_MARGIN_PX;
@@ -415,13 +452,17 @@ function fitBlock(body, box) {
   const px = (selector, property) => parseFloat(getComputedStyle(body.querySelector(selector))[property]);
   const from = {
     space: px(".pj-copy + .pj-label", "marginTop") + px(".pj-label", "paddingTop"),
+    facts: px(".pj-facts", "marginTop"),
     pad: px(".pj-fact", "paddingTop"),
     copy: px(".pj-copy", "fontSize"),
     label: px(".pj-label", "fontSize"),
   };
   const lerp = (a, b, t) => a + (b - a) * t;
   const stages = [
-    (t) => body.style.setProperty("--pj-space", `${lerp(from.space, Math.min(from.space, PJ_FIT_MIN_SPACE_PX), t)}px`),
+    (t) => {
+      body.style.setProperty("--pj-space", `${lerp(from.space, Math.min(from.space, PJ_FIT_MIN_SPACE_PX), t)}px`);
+      body.style.setProperty("--pj-facts-space", `${lerp(from.facts, Math.min(from.facts, PJ_FIT_MIN_SPACE_PX), t)}px`);
+    },
     (t) => body.style.setProperty("--pj-fact-pad", `${lerp(from.pad, Math.min(from.pad, PJ_FIT_MIN_ROW_PX), t)}px`),
     (t) => {
       body.style.setProperty("--pj-copy-size", `${lerp(from.copy, Math.min(from.copy, PJ_FIT_MIN_TEXT_PX), t)}px`);
@@ -449,13 +490,11 @@ function fitBlock(body, box) {
 // -- going out: the video fades with the page, from whole while its top is
 // under PJ_FADE_FROM of the screen to gone when its foot reaches the top —
 // and back, scrolling back (held, from where the block is let go: at once
-// if it was held above PJ_FADE_FROM). Gone while it plays, it stops; back on
-// screen, it plays again (only if it was playing).
+// if it was held above PJ_FADE_FROM).
 function animate(body, video) {
   if (reducedMotion) return;
   gsap.from(body, { autoAlpha: 0, duration: PJ_FADE_S, ease: "power2.out", scrollTrigger: { trigger: body, start: "top 92%", once: true } });
   const held = (whileHeld, otherwise) => () => (video.held() ? whileHeld(video.held()) : otherwise());
-  let stopped = false;
   gsap.fromTo(video.box, { opacity: 1 }, {
     opacity: 0,
     ease: "power1.in",
@@ -466,14 +505,6 @@ function animate(body, video) {
       end: held(({ top, end }) => end + top + video.box.offsetHeight, () => "bottom top"),
       scrub: true,
       invalidateOnRefresh: true,
-      onLeave: () => {
-        stopped = video.playing();
-        if (stopped) video.player.pause();
-      },
-      onEnterBack: () => {
-        if (stopped) video.player.play();
-        stopped = false;
-      },
     },
   });
 }

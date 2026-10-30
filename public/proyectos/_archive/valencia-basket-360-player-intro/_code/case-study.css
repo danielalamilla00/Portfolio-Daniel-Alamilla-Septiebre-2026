@@ -1,0 +1,185 @@
+/* A project's case study (src/case-study.js): its sections between the held
+   block and "Next project", each a screen at most, inside the page's margins
+   (--page-margin) like the block, --cs-gap between them. All in cream, the
+   web's two letters.
+     --cs-gap    the room between two sections
+     --cs-line   the cream of the fine lines
+     --cs-room   the room between a section's text and what it shows */
+.cs {
+  --cs-gap: 10vh;
+  --cs-line: rgba(246, 236, 221, 0.2);
+  --cs-room: 2.5rem;
+  padding-top: var(--cs-gap);
+}
+/* (no list marks: margins are none already, style.css. Every rule here has
+   the case's class in front, to be over project.css's ".pj p, .pj figure",
+   which take every margin away) */
+.cs ol {
+  list-style: none;
+}
+
+/* -- a section: it comes in once, fading and rising (case-study.js) */
+.cs .cs-section + .cs-section {
+  margin-top: var(--cs-gap);
+}
+.cs .cs-section {
+  opacity: 0;
+  translate: 0 48px;
+  transition: opacity 0.9s ease, translate 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cs .cs-section.is-in {
+  opacity: 1;
+  translate: 0 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cs .cs-section {
+    translate: none;
+    transition: opacity 0.4s ease;
+  }
+}
+.cs .cs-label {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--pj-dim);
+}
+.cs .cs-title {
+  margin-top: 0.75rem;
+  font-size: clamp(40px, 4vw, 80px);
+  font-weight: 400;
+  line-height: 0.95;
+  white-space: nowrap;
+}
+.cs .cs-text {
+  margin-top: 1.25rem;
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+/* -- the videowall: three figures in a row; the canvas, as wide as the
+   page's content */
+.cs .cs-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 4rem;
+  margin-top: 2rem;
+}
+.cs .cs-figure-value {
+  font-size: 32px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.cs .cs-figure-label {
+  margin-top: 0.5rem;
+  font-size: 12px;
+  color: var(--pj-dim);
+}
+.cs .cs-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: var(--cs-room);
+  background-color: #000000;
+}
+
+/* -- the player: its name; its four steps in a row, the same height, joined
+   by fine arrows */
+.cs .cs-player-name {
+  margin-top: var(--cs-room);
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--cs-line);
+  font-size: 12px;
+  color: var(--pj-dim);
+}
+.cs .cs-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 3rem;
+  margin-top: 1.5rem;
+}
+.cs .cs-step {
+  position: relative;
+}
+/* (the arrow: in the room between two steps, level with their middles) */
+.cs .cs-step + .cs-step::before {
+  content: "";
+  position: absolute;
+  top: calc((100% - 2.2rem) / 2);
+  left: -2.4rem;
+  width: 1.8rem;
+  height: 9px;
+  translate: 0 -50%;
+  background: center / 100% 100% no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 9'%3E%3Cpath d='M0 4.5h26.5M22.5 1l4 3.5-4 3.5' fill='none' stroke='%23f6ecdd' stroke-opacity='.6'/%3E%3C/svg%3E");
+}
+.cs .cs-step-media {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background-color: #000000;
+}
+.cs .cs-step-name {
+  display: flex;
+  gap: 0.6rem;
+  height: 2.2rem;
+  align-items: flex-end;
+  font-size: 14px;
+  font-weight: 400;
+}
+.cs .cs-step-number {
+  color: var(--pj-dim);
+}
+.cs .cs-prompt {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--cs-line);
+  background-color: transparent;
+  overflow: hidden;
+}
+.cs .cs-prompt-text {
+  font-size: clamp(12px, 0.8vw, 15px);
+  font-style: italic;
+  font-weight: 300;
+  line-height: 1.45;
+}
+.cs .cs-pill {
+  align-self: flex-start;
+  padding: 0.25em 0.8em;
+  border: 1px solid var(--cs-line);
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+/* -- a phone: the title and text wrap; the steps two by two, square (the
+   prompt's words fit), no arrows */
+@media (max-width: 767px) {
+  .cs .cs-title {
+    white-space: normal;
+  }
+  .cs .cs-figures {
+    gap: 1.25rem 2rem;
+  }
+  .cs .cs-figure-value {
+    font-size: 26px;
+  }
+  .cs .cs-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem var(--grid-gutter);
+  }
+  .cs .cs-step + .cs-step::before {
+    display: none;
+  }
+  .cs .cs-step-media {
+    aspect-ratio: 1;
+  }
+  .cs .cs-prompt {
+    padding: 0.6rem 0.7rem;
+  }
+  .cs .cs-prompt-text {
+    font-size: 11px;
+  }
+}

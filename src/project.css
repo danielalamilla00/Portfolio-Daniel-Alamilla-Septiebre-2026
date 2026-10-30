@@ -122,8 +122,9 @@ body.project #site-nav {
 .pj .pj-copy + .pj-label {
   margin-top: calc(var(--pj-space, 2.25rem) - var(--title-room));
 }
-.pj-facts {
-  margin-top: 2.75rem;
+/* (40px under the texts: over ".pj dl", which takes every margin away) */
+.pj .pj-facts {
+  margin-top: var(--pj-facts-space, 40px);
   border-top: 1px solid var(--pj-line);
 }
 .pj-fact {
@@ -151,8 +152,10 @@ body.project #site-nav {
    same box: 16:9, as wide as the column, one on top of another with the
    grid's gutter between them. What is in each fills it (cover), centered unless the project
    says where to look (projects.js: focus). */
-/* The video: its poster over it until it plays (.is-playing); its controls
-   over its foot, on a shade — words, in cream, and the bar of where it is. */
+/* The video: its poster over it, and its preview over the poster (once that
+   moves: .is-in), until it plays (.is-playing: both fade, quickly); its
+   controls over its foot, on a shade — words, in cream, and the bar of where
+   it is. */
 .pj-video {
   position: relative;
   aspect-ratio: 16 / 9;
@@ -164,6 +167,7 @@ body.project #site-nav {
   inset: 0;
 }
 .pj-poster,
+.pj-preview,
 .pj-embed {
   position: absolute;
   inset: 0;
@@ -172,11 +176,20 @@ body.project #site-nav {
   border: 0;
   object-fit: cover;
 }
-.pj-poster {
+.pj-poster,
+.pj-preview {
   z-index: 1;
-  transition: opacity 0.6s ease;
+  transition: opacity 0.2s ease;
 }
-.pj-video.is-playing .pj-poster {
+.pj-preview {
+  opacity: 0;
+  pointer-events: none;
+}
+.pj-preview.is-in {
+  opacity: 1;
+}
+.pj-video.is-playing .pj-poster,
+.pj-video.is-playing .pj-preview {
   opacity: 0;
   pointer-events: none;
 }
@@ -346,11 +359,10 @@ body.project #site-nav {
   font-size: 13px;
   font-weight: 400;
 }
-/* (at this size the Light's hairlines read smaller than its x-height —
-   Inter Tight's, measured — says: the brand in Catavalo's SemiBold, the same
-   size, reads as one with the rest) */
+/* (the brand in Catavalo's Light, as everywhere: never a bold the browser
+   makes up) */
 .pj-card-name .title-display {
-  font-weight: 600;
+  font-synthesis: none;
 }
 .pj-card-more {
   flex: none;
