@@ -57,39 +57,42 @@ export function upgrade(video, project, pixels, adopt) {
   setSource(next, project, pixels);
   video.before(next);
   // (it waits a little ahead, VS_LEAD_S, on its frame, and takes the place
-  // when the one playing gets there: never a step back in time)
+  // when the one playing gets there: never a step back in time. If the one
+  // playing jumps back meanwhile — started again, gone round its loop —, it
+  // aims again)
+  const put = () => {
+    next.muted = video.muted;
+    adopt(next);
+    const playing = !video.paused;
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
+    video.remove();
+    if (playing) next.play().catch(() => {});
+  };
+  const aim = () => {
+    // (stopped: where it is)
+    const at = video.paused ? video.currentTime : Math.min(video.currentTime + VS_LEAD_S, (video.duration || Infinity) - 0.05);
+    next.addEventListener(
+      "seeked",
+      () => {
+        let last = video.currentTime;
+        const wait = () => {
+          const now = video.currentTime;
+          if (video.paused || (now >= at && now < at + VS_LEAD_S)) put();
+          else if (now < last - 0.05 || now < at - VS_LEAD_S - 0.25 || now >= at + VS_LEAD_S) aim();
+          else requestAnimationFrame(wait);
+          last = now;
+        };
+        wait();
+      },
+      { once: true }
+    );
+    next.currentTime = at;
+  };
   next.addEventListener(
     "canplay",
-    () => {
-      // (stopped: where it is)
-      const at = video.paused ? video.currentTime : Math.min(video.currentTime + VS_LEAD_S, (video.duration || Infinity) - 0.05);
-      next.addEventListener(
-        "seeked",
-        () => {
-          const put = () => {
-            next.muted = video.muted;
-            adopt(next);
-            const playing = !video.paused;
-            video.pause();
-            video.removeAttribute("src");
-            video.load();
-            video.remove();
-            if (playing) next.play().catch(() => {});
-          };
-          let last = video.currentTime;
-          const wait = () => {
-            const now = video.currentTime;
-            // (there, paused, or gone round to its start)
-            if (now >= at || video.paused || now < last) put();
-            else requestAnimationFrame(wait);
-            last = now;
-          };
-          wait();
-        },
-        { once: true }
-      );
-      next.currentTime = at;
-    },
+    aim,
     { once: true }
   );
 }

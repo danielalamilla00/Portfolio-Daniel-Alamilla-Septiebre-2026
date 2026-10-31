@@ -17,8 +17,9 @@ import { setSource, upgrade } from "./video-source.js";
 //   - its video, playing muted in a loop, in the middle at SC_VIDEO_FROM_VW of
 //     the screen's width, 16:9; held there (pinned), it grows with the scroll
 //     (SC_VIDEO_GROW_VH) until it is the whole screen, and stays so for
-//     SHOWCASE_VIDEO_HOLD_VH of scroll — its sound only if it was asked for
-//     (its button, always on it);
+//     SHOWCASE_VIDEO_HOLD_VH of scroll, starting again from its beginning
+//     there (restart()) each time the hold is come into — its sound only if
+//     it was asked for (its button, always on it);
 //   - the second sheet comes up over the whole-screen video: the concept (a
 //     title and a text), two pictures of it in use side by side, the
 //     challenge, a third picture whole with its caption, the result;
@@ -38,6 +39,8 @@ import { setSource, upgrade } from "./video-source.js";
 //   SC_VIDEO_FROM_VW         how wide the video is before it grows (a phone's:
 //                            SC_VIDEO_FROM_PHONE_VW)
 //   SC_PRELOAD_MARGIN        how far from the screen the video starts to load
+//   SC_RESTART_FADE_S        the dip to black (out and back) as the video
+//                            starts again from its beginning, whole-screen
 //   SC_REVEAL_*              how words and pictures come in (comeIn)
 //   SHOWCASE_INTRO_BG        the first sheet's colour, and the video's ground
 //                            under it — one, with no edge between them (a
@@ -66,6 +69,7 @@ const SC_REVEAL_RISE_PX = 40;
 const SC_REVEAL_SCALE = 1.04;
 const SHOWCASE_INTRO_BG = "#0a0a0a"; // (the page's black; tried: var(--c-orange))
 const SC_END_AURA_SCALE = 1.4;
+const SC_RESTART_FADE_S = 0.15;
 const SC_END_AURA_INTENSITY = 0.42;
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -262,8 +266,21 @@ function filmBlock(project) {
     covered = on;
     run();
   };
+  // From its start again (restart()): a quick dip to black, and back once it
+  // is at 0 — its sound as it was. (A bigger file still coming in follows it
+  // there, and takes over at the same moment: video-source.js.)
+  const show = () => gsap.to(frame, { opacity: 1, duration: SC_RESTART_FADE_S / 2, ease: "power1.out", overwrite: true });
+  const fromStart = (v) => {
+    v.addEventListener("seeked", show, { once: true });
+    v.currentTime = 0;
+    v.play().catch(() => {});
+  };
+  const restart = () => {
+    if (reducedMotion) return fromStart(video);
+    gsap.to(frame, { opacity: 0, duration: SC_RESTART_FADE_S / 2, ease: "power1.in", overwrite: true, onComplete: () => fromStart(video) });
+  };
   const grow = () => sourced && upgrade(video, project, Math.round(window.innerWidth * window.devicePixelRatio), (next) => (video = next));
-  return { hold, screen, frame, sound, cover, grow };
+  return { hold, screen, frame, sound, cover, grow, restart };
 }
 
 // The scroll's moves: the cover held while the first sheet comes up over it
@@ -303,6 +320,16 @@ function move(cover, film) {
     invalidateOnRefresh: true,
     onLeave: () => film.cover(true),
     onEnterBack: () => film.cover(false),
+  });
+  // (whole-screen: the hold, after it has grown — the video from its start,
+  // each time it is come into, from above or from below)
+  ScrollTrigger.create({
+    trigger: film.hold,
+    start: () => `top top-=${grow()}`,
+    end: () => `+=${stay()}`,
+    invalidateOnRefresh: true,
+    onEnter: film.restart,
+    onEnterBack: film.restart,
   });
   // The frame is the whole screen, the video covering it; before it grows it
   // is cut (clip-path) to the biggest 16:9 that fits the screen and made
