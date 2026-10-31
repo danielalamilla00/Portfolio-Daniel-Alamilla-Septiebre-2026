@@ -66,18 +66,11 @@ body.is-showcase .pj-aura {
   background-color: #0a0a0a;
   padding: 18vh var(--page-margin);
 }
-/* (the first one in its own colour, showcase.js: SHOWCASE_INTRO_BG — and
-   in the dark over it its words, its facts' names at 60% and their lines at
-   20%; the rest of the page stays black) */
+/* (the first one in its own colour, showcase.js: SHOWCASE_INTRO_BG — the
+   page's black, its words in cream as everywhere) */
 .sc .sc-intro {
-  --pj-dim: rgba(20, 20, 20, 0.6);
-  --pj-line: rgba(20, 20, 20, 0.2);
   min-height: 100svh;
   background-color: var(--sc-intro-bg, #0a0a0a);
-  color: #141414;
-}
-.sc .sc-intro .sc-label {
-  color: #141414;
 }
 /* (the second one starts a screen higher: it comes up over the held video,
    showcase.js) */
