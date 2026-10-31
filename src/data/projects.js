@@ -96,7 +96,7 @@ export const PROJECTS = [
       ],
       gallery: [
         { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-02", alt: "Guests in front of the reveal on an event screen" },
-        { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-04", alt: "The reveal on the screen of a meeting room" },
+        { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-04", alt: "The reveal on a vertical screen in the showroom's window, seen from the street" },
         { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-03", alt: "The reveal on a curved LED column at an entrance" },
       ],
       caption: "The reveal across Sensory Sync during AfterISE: main LED wall, LED column and meeting rooms.",
