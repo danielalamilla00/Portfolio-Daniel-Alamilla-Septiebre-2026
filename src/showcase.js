@@ -54,7 +54,7 @@ import { setSource, upgrade } from "./video-source.js";
 const SHOWCASE_VIDEO_HOLD_VH = 150;
 const SC_VIDEO_HOLD_PHONE_VH = 80;
 const SC_VIDEO_GROW_VH = 100;
-const SC_VIDEO_FROM_VW = 60;
+const SC_VIDEO_FROM_VW = 70;
 const SC_VIDEO_FROM_PHONE_VW = 90;
 const SC_PRELOAD_MARGIN = "100% 0px";
 const SC_ANTICIPATE_PIN = 0;
