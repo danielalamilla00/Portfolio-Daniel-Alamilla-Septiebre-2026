@@ -13,7 +13,8 @@ import { setSource, upgrade } from "./video-source.js";
 //     bottom left, over a shade; "← All works" at the top left, under the
 //     nav. The cover stays (pinned) while
 //   - the first sheet, black, comes up over it from below: "Details", what it
-//     was for, and its facts (client, role, tools, year, event, venue);
+//     was for, and its facts (client, display, role, tools, year, event,
+//     venue);
 //   - its video, playing muted in a loop, in the middle at SC_VIDEO_FROM_VW of
 //     the screen's width, 16:9; held there (pinned), it grows with the scroll
 //     (SC_VIDEO_GROW_VH) until it is the whole screen, and stays so for
@@ -43,9 +44,13 @@ import { setSource, upgrade } from "./video-source.js";
 //                            starts again from its beginning, whole-screen
 //   SC_REVEAL_*              how words and pictures come in (comeIn)
 //   SHOWCASE_INTRO_BG        the first sheet's colour, and the video's ground
-//                            under it — one, with no edge between them (a
-//                            colour of the palette's, palette.js: the words and
-//                            lines over it in the dark, showcase.css)
+//                            under it — one, with no edge between them —
+//                            unless the project gives its own (projects.js:
+//                            showcase.introBg, a colour of the palette's,
+//                            palette.js; introInk "dark": its words and lines
+//                            in the dark, showcase.css)
+//   SC_PICTURE_SIZE          its pictures' width and height, unless the
+//                            project gives theirs (showcase.pictureSize)
 //   SC_END_AURA_SCALE        the end's aura, in times the usual one's size
 //   SC_END_AURA_INTENSITY    ...and its light (project-end.js: bigger, more
 //                            of it is under the words — measured, WCAG AA)
@@ -67,7 +72,8 @@ const SC_REVEAL_S = 0.9;
 const SC_REVEAL_STAGGER_S = 0.08;
 const SC_REVEAL_RISE_PX = 40;
 const SC_REVEAL_SCALE = 1.04;
-const SHOWCASE_INTRO_BG = "#0a0a0a"; // (the page's black; tried: var(--c-orange))
+const SHOWCASE_INTRO_BG = "#0a0a0a"; // (the page's black)
+const SC_PICTURE_SIZE = [2752, 1536];
 const SC_END_AURA_SCALE = 1.4;
 const SC_RESTART_FADE_S = 0.15;
 const SC_END_AURA_INTENSITY = 0.42;
@@ -82,14 +88,15 @@ function element(tag, className, text) {
 const phone = () => window.innerWidth <= MOBILE_MAX_PX;
 
 // A picture of the project's (its two sizes: <base>-1280.webp, -2400.webp).
-function picture({ src, alt }, sizes, className, eager) {
+function picture({ src, alt }, sizes, className, eager, [width, height] = SC_PICTURE_SIZE) {
   const image = element("img", className);
   image.src = encodeURI(`${src}-1280.webp`);
   image.srcset = `${encodeURI(`${src}-1280.webp`)} 1280w, ${encodeURI(`${src}-2400.webp`)} 2400w`;
   image.sizes = sizes;
   image.alt = alt;
-  image.width = 2400;
-  image.height = 1340;
+  // (its shape, from which its box is made before it comes in)
+  image.width = width;
+  image.height = height;
   if (eager) image.fetchPriority = "high";
   else image.loading = "lazy";
   image.decoding = "async";
@@ -104,11 +111,12 @@ export function renderShowcase(project) {
   page.classList.add("sc");
   // (the first sheet's colour, and the video's under it: one ground, before
   // their grain is made of it)
-  page.style.setProperty("--sc-intro-bg", SHOWCASE_INTRO_BG);
+  page.style.setProperty("--sc-intro-bg", data.introBg || SHOWCASE_INTRO_BG);
+  page.classList.toggle("is-intro-dark", data.introInk === "dark");
 
   // -- the cover
   const cover = element("section", "sc-cover");
-  cover.appendChild(picture(data.cover, "100vw", "sc-cover-picture", true));
+  cover.appendChild(picture(data.cover, "100vw", "sc-cover-picture", true, data.pictureSize));
   cover.appendChild(element("div", "sc-cover-shade"));
   const back = element("a", "sc-back", "← All works");
   back.href = "works.html";
@@ -122,6 +130,7 @@ export function renderShowcase(project) {
   const facts = element("dl", "pj-facts sc-facts");
   [
     ["Client", project.client],
+    ["Display", project.display],
     ["Role", project.role],
     ["Tools", project.tools],
     ["Year", project.year],
@@ -154,7 +163,7 @@ export function renderShowcase(project) {
   const gallery = (pictures, caption) => {
     const figure = element("figure", "sc-gallery");
     const grid = element("div", "sc-gallery-grid");
-    pictures.forEach((one) => grid.appendChild(picture(one, pictures.length > 1 && !phone() ? "45vw" : "92vw", `sc-gallery-picture${pictures.length > 1 ? "" : " is-wide"}`)));
+    pictures.forEach((one) => grid.appendChild(picture(one, pictures.length > 1 && !phone() ? "45vw" : "92vw", `sc-gallery-picture${pictures.length > 1 ? "" : " is-wide"}`, false, data.pictureSize)));
     figure.appendChild(grid);
     if (caption) figure.appendChild(element("figcaption", "sc-caption", caption));
     return figure;

@@ -46,6 +46,11 @@
 //                (src/showcase.js), with what it needs in `showcase`:
 //                  cover          the picture of its cover ({ src, alt }: src
 //                                 without its "-1280.webp" / "-2400.webp")
+//                  pictureSize    its pictures' [width, height] (optional:
+//                                 2752 x 1536)
+//                  introBg        (optional) the first sheet's colour, and
+//                                 the video's ground (a palette's var)
+//                  introInk       (optional) "dark": its words in the dark
 //                  blocks         the second sheet's: { label, title
 //                                 (*keyword*), text } (no text: its
 //                                 challenge)
@@ -131,15 +136,14 @@ export const PROJECTS = [
   {
     slug: "tmm-3d-brand-reveal",
     title: "*TMM* 3D Brand Reveal",
-    description: "A 3D brand reveal for The Multisensory Makers where glowing spheres gather and settle into the TMM logo, for TMM's Sensory Sync showroom screens.",
-    tagline: "Glowing spheres that gather to form The Multisensory Makers' logo.",
+    description: "A 3D brand reveal for TMM where a single light becomes glowing spheres that gather into the logo, designed for every screen of the Sensory Sync showroom.",
+    tagline: "A 3D brand reveal for TMM's Sensory Sync showroom.",
     category: CATEGORY,
-    // DRAFT (idea, challenge): written from what the video shows — to be checked
-    idea: "A 3D brand reveal for The Multisensory Makers: glowing spheres drift out of the dark, pile into one mass and gather into the TMM letters, which settle into the logo. Created for Sensory Sync, the immersive screens of TMM's showroom.",
-    challenge: "A crowd of soft, glowing spheres had to move as one — loose enough to feel alive, ordered enough that the letters read clearly before they resolve into the flat logo.",
+    idea: "Sensory Sync is TMM's immersive showroom in Barcelona: a space where clients experience screens, light and sound before they reach their own stores and events. It needed a brand piece of its own — one that could welcome visitors and run across every display in the room, from the main LED wall to the curved LED column and the window screens facing the street.",
+    challenge: "The piece had to work in very different formats at the same time — a wide LED wall, a curved column and vertical window displays — and fit a space where people work and meet. It needed to feel calm enough for the room, yet striking enough to stop people walking past the window.",
     client: "TMM",
     industry: null,
-    display: "Sensory Sync · TMM showroom screens",
+    display: "Sensory Sync · TMM showroom",
     role: "Motion Designer",
     tools: "Cinema 4D, After Effects, Kling",
     year: "2026",
@@ -147,6 +151,26 @@ export const PROJECTS = [
     video: "/proyectos/tmm-3d-brand-reveal/tmm-3d-brand-reveal",
     videoSizes: [1440, 1080, 720],
     youtube: "https://youtu.be/7pxdlWAiUOQ",
+    layout: "showcase",
+    showcase: {
+      pictureSize: [2730, 1536],
+      cover: { src: "/proyectos/tmm-3d-brand-reveal/mockups/mockup-04", alt: "The reveal on the main LED wall of TMM's Sensory Sync showroom, a meeting in front of it" },
+      blocks: [
+        {
+          label: "Concept",
+          title: "Born from *light*",
+          text: "The Multisensory Makers bring many senses together into one experience. The reveal tells exactly that: a single point of light multiplies into soft, glowing spheres that drift, gather and finally settle into the TMM letters. Many parts, one brand.",
+        },
+        { label: "Challenge", title: "Calm, but *magnetic*" },
+      ],
+      gallery: [
+        { src: "/proyectos/tmm-3d-brand-reveal/mockups/mockup-02", alt: "The reveal on the curved LED column of the showroom" },
+        { src: "/proyectos/tmm-3d-brand-reveal/mockups/mockup-03", alt: "The reveal's single light on a window screen facing the street" },
+        { src: "/proyectos/tmm-3d-brand-reveal/mockups/mockup-01", alt: "The showroom's workspace, the reveal on the LED wall at its end" },
+      ],
+      caption: "The reveal across Sensory Sync: main LED wall, LED column and window displays.",
+      result: "A brand loop that runs across the whole showroom, turning Sensory Sync into a living expression of TMM — from the street to the meeting table.",
+    },
     poster: "/proyectos/tmm-3d-brand-reveal/poster.webp",
     cover: "/proyectos/tmm-3d-brand-reveal/poster.webp",
     preview: "/proyectos/tmm-3d-brand-reveal/preview.mp4",

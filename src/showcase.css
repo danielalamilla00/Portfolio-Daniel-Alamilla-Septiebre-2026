@@ -66,11 +66,20 @@ body.is-showcase .pj-aura {
   background-color: #0a0a0a;
   padding: 18vh var(--page-margin);
 }
-/* (the first one in its own colour, showcase.js: SHOWCASE_INTRO_BG — the
-   page's black, its words in cream as everywhere) */
+/* (the first one in its own colour, showcase.js: SHOWCASE_INTRO_BG or the
+   project's — its words in cream as everywhere; over a light one, in the
+   dark: its facts' names at 60%, their lines at 20%) */
 .sc .sc-intro {
   min-height: 100svh;
   background-color: var(--sc-intro-bg, #0a0a0a);
+}
+.sc.is-intro-dark .sc-intro {
+  --pj-dim: rgba(20, 20, 20, 0.6);
+  --pj-line: rgba(20, 20, 20, 0.2);
+  color: #141414;
+}
+.sc.is-intro-dark .sc-intro .sc-label {
+  color: #141414;
 }
 /* (the second one starts a screen higher: it comes up over the held video,
    showcase.js) */
@@ -128,8 +137,7 @@ body.is-showcase .pj-aura {
 .sc .sc-gallery-picture {
   display: block;
   width: 100%;
-  height: auto;
-  aspect-ratio: 2752 / 1536;
+  height: auto; /* (its shape: its width and height, showcase.js) */
   object-fit: cover;
   background-color: #000000;
 }
