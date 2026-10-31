@@ -1,4 +1,11 @@
-node_modules 
-dist 
-.vercel 
+node_modules
+dist
+.vercel
 source-videos/
+/archive/
+/source-videos/
+/review/
+**/_archive/
+*-2160.mp4
+*-before-*.mp4
+*.mov

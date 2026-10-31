@@ -1,0 +1,232 @@
+/* A project's page as a showcase (src/showcase.js): its cover, the black
+   sheets that come up over it and over the video, the video that grows to
+   the whole screen, the end. The web's black (#0a0a0a) with its grain, the
+   web's two letters, all in cream; the nav at the top of the page, going up
+   with it (project.css). Every rule here has the showcase's class in front:
+   over project.css's own (".pj p", ".pj" padding…). */
+.pj.sc {
+  padding: 0;
+}
+body.is-showcase .pj-aura {
+  display: none;
+}
+
+/* -- the cover: the picture, the whole screen; a soft black at the bottom
+   left, under the name */
+.sc .sc-cover {
+  position: relative;
+  z-index: 1;
+  height: 100svh;
+  overflow: hidden;
+  background-color: #0a0a0a;
+}
+.sc .sc-cover-picture {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: 50% 40%;
+}
+.sc .sc-cover-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 0% 100%, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.4) 38%, rgba(0, 0, 0, 0) 65%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 22%);
+}
+.sc .sc-back {
+  position: absolute;
+  top: 7rem;
+  left: var(--page-margin);
+  font-size: 13px;
+  color: var(--c-cream);
+  text-decoration: none;
+}
+.sc .sc-back:hover {
+  opacity: 0.6;
+}
+.sc .sc-title {
+  position: absolute;
+  left: var(--page-margin);
+  bottom: calc(var(--page-margin) + var(--browser-bar));
+  margin: 0;
+  font-size: clamp(56px, 7vw, 150px);
+  font-weight: 400;
+  line-height: 0.95;
+}
+.sc .sc-title > span {
+  display: block;
+}
+
+/* -- a sheet: black with the grain, square edges, over what was before it */
+.sc .sc-sheet {
+  position: relative;
+  z-index: 2;
+  background-color: #0a0a0a;
+  padding: 18vh var(--page-margin);
+}
+/* (the first one in its own colour, showcase.js: SHOWCASE_INTRO_BG — and
+   in the dark over it its words, its facts' names at 60% and their lines at
+   20%; the rest of the page stays black) */
+.sc .sc-intro {
+  --pj-dim: rgba(20, 20, 20, 0.6);
+  --pj-line: rgba(20, 20, 20, 0.2);
+  min-height: 100svh;
+  background-color: var(--sc-intro-bg, #0a0a0a);
+  color: #141414;
+}
+.sc .sc-intro .sc-label {
+  color: #141414;
+}
+/* (the second one starts a screen higher: it comes up over the held video,
+   showcase.js) */
+.sc .sc-project {
+  margin-top: calc(var(--sc-screen, 100vh) * -1);
+  padding-bottom: 6vh; /* (the end comes in right after the result) */
+}
+.sc .sc-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 45%);
+  column-gap: var(--grid-gutter);
+}
+.sc .sc-row + .sc-row,
+.sc .sc-gallery + .sc-row {
+  margin-top: 16vh;
+}
+.sc .sc-label {
+  font-size: 12px;
+  color: rgba(246, 236, 221, 0.6);
+}
+.sc .sc-lead {
+  font-size: 22px;
+  font-weight: 300;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+.sc .sc-facts {
+  margin-top: 3rem;
+}
+.sc .sc-heading {
+  font-size: clamp(36px, 3.6vw, 68px);
+  font-weight: 400;
+  line-height: 1;
+}
+.sc .sc-copy {
+  margin-top: 1.75rem;
+  font-size: 18px;
+  font-weight: 300;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.sc .sc-row-content > .sc-copy:first-child {
+  margin-top: 0;
+}
+
+/* -- its pictures in use: two side by side, one whole under them */
+.sc .sc-gallery {
+  margin: 14vh 0 0;
+}
+.sc .sc-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--grid-gutter);
+}
+.sc .sc-gallery-picture {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2752 / 1536;
+  object-fit: cover;
+  background-color: #000000;
+}
+.sc .sc-gallery-picture.is-wide {
+  grid-column: 1 / -1;
+}
+.sc .sc-caption {
+  margin-top: 1rem;
+  font-size: 13px;
+  color: rgba(246, 236, 221, 0.6);
+}
+
+/* -- the video: a screen, held; the frame on it the whole screen, cut and
+   made smaller until it grows (showcase.js); its button inside its corner.
+   Its ground the first sheet's colour: the two one ground, the video small
+   on it, until the second sheet (black) comes up over it. */
+.sc .sc-film {
+  position: relative;
+  z-index: 2; /* (over the cover, held at its foot: one of its rows showed through) */
+  height: var(--sc-screen, 100vh);
+  overflow: hidden;
+  background-color: var(--sc-intro-bg, #0a0a0a);
+}
+.sc .sc-frame {
+  position: absolute;
+  inset: 0;
+  will-change: transform, clip-path;
+}
+/* (filling the frame, one over another while a bigger file takes over:
+   video-source.js) */
+.sc .sc-video {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background-color: #000000;
+}
+.sc .sc-sound {
+  position: absolute;
+  right: 1.25rem;
+  bottom: 1rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  background-color: rgba(10, 10, 10, 0.35);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--c-cream);
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: var(--tracking-sans);
+  cursor: pointer;
+}
+.sc .sc-sound:focus-visible,
+.sc .sc-back:focus-visible {
+  outline: 1px solid var(--c-cream);
+  outline-offset: 3px;
+}
+
+/* -- the end, in the page's margins */
+.sc .pj-end {
+  --pj-end-gap: 0px;
+  padding-inline: var(--page-margin);
+}
+
+/* -- a phone: the sheets' words in one column, the pictures one under the
+   other */
+@media (max-width: 767px) {
+  .sc .sc-back {
+    top: 5.5rem;
+  }
+  .sc .sc-sheet {
+    padding: 12vh var(--page-margin);
+  }
+  .sc .sc-project {
+    padding-bottom: 6vh;
+  }
+  .sc .sc-row {
+    grid-template-columns: 1fr;
+    row-gap: 1.25rem;
+  }
+  .sc .sc-lead {
+    font-size: 19px;
+  }
+  .sc .sc-copy {
+    font-size: 17px;
+  }
+  .sc .sc-gallery-grid {
+    grid-template-columns: 1fr;
+  }
+}

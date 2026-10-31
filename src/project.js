@@ -7,8 +7,11 @@ import { setupMenu } from "./menu.js";
 import { onViewportChange } from "./viewport.js";
 import { setupProjectAura } from "./project-aura.js";
 import { createYouTubePlayer } from "./youtube.js";
-import { PROJECTS, MOVED, nextProjects, projectUrl } from "./data/projects.js";
+import { PROJECTS, MOVED } from "./data/projects.js";
 import { plainTitle, titleParts } from "./title.js";
+import { renderShowcase } from "./showcase.js";
+import { projectEnd } from "./project-end.js";
+import { setSource, upgrade } from "./video-source.js";
 
 // ---- A project's page --------------------------------------------------------------
 // One template for every project, filled in from its entry in
@@ -24,7 +27,8 @@ import { plainTitle, titleParts } from "./title.js";
 //     (PROJECT_HOLD_VH: holdBlock), and then goes on up, the video fading
 //     out as it leaves through the top of the screen;
 //   - "Next project", giant, and the next three projects of the Works page;
-//     a link back to all of them.
+//     a link back to all of them — over the aura coming up from below
+//     (project-end.js, as the showcase's end).
 // On a phone it is one column, and nothing stops: the name, the video, the
 // texts, the facts, the end. The nav is at the top of the page, and goes up
 // with it (project.css).
@@ -61,6 +65,8 @@ function element(tag, className, text) {
 }
 
 function render(project) {
+  // (a project shown the other way: showcase.js)
+  if (project.layout === "showcase") return renderShowcase(project);
   document.title = `alamilla | ${plainTitle(project.title)}`;
   const page = document.querySelector(".pj");
 
@@ -85,17 +91,9 @@ function render(project) {
   const spacer = element("div", "pj-hold");
   spacer.appendChild(body);
 
-  // -- the end
-  const end = element("section", "pj-end");
-  const heading = element("h2", "pj-next-heading");
-  heading.append(...titleParts("Next *project*", "title-gradient"));
-  const row = element("div", "pj-next-row");
-  nextProjects(project, 3).forEach((next, index) => row.appendChild(nextCard(next, index)));
-  const back = element("a", "pj-back", "← Back to all");
-  back.href = "works.html";
-  end.append(heading, row, back, document.querySelector(".pj-foot"));
-
-  page.append(head, spacer, end);
+  page.append(head, spacer);
+  // -- the end: the next three projects, over the aura (project-end.js)
+  projectEnd(project, page, "Next *project*");
   setupProjectAura(document.querySelector(".pj-aura"));
   video.held = holdBlock(body, spacer, video.box, video.stop);
   animate(body, video);
@@ -133,8 +131,9 @@ function factsTable(project) {
 // Until it is watched: its poster, and over it its preview (projects.js:
 // preview), muted and in a loop. "Click to watch project" (watchButton) plays
 // it, from the start the first time, with its sound, in that same click: it
-// is the page's own MP4 (projects.js: video; videoSmall on a screen under
-// 768px wide), which is loaded whole from when the block is a screen away
+// is the page's own MP4 — of the size its box asks for, and a bigger one
+// when it is shown bigger (video-source.js) —, which is loaded whole from
+// when the block is a screen away
 // (PJ_PRELOAD_MARGIN), so that it is ready. The poster and the preview fade
 // (in 0.2 s: project.css) only once it is moving — nothing black is ever
 // seen. Its controls are the page's: play / pause, where it is (and where to
@@ -226,9 +225,8 @@ function videoBlock(project) {
     soundButton.textContent = on ? "Sound on" : "Sound off";
     watched();
   };
-  const small = project.videoSmall && window.matchMedia("(max-width: 767px)").matches;
   const callbacks = { onState, onMoving, onTime, onMuted };
-  const player = project.video ? localPlayer(small ? project.videoSmall : project.video, stage, callbacks) : youTubePlayer(youTubeId(project.youtube), stage, callbacks);
+  const player = project.video ? localPlayer(project, stage, box, callbacks) : youTubePlayer(youTubeId(project.youtube), stage, callbacks);
 
   // (loaded from a screen away; off the screen, stopped)
   new IntersectionObserver(([entry]) => entry.isIntersecting && player.load(), { rootMargin: PJ_PRELOAD_MARGIN }).observe(box);
@@ -289,31 +287,61 @@ function watchButton(onWatch) {
   return { button, show: (on) => button.classList.toggle("is-hidden", !on) };
 }
 
-// The project's MP4: a <video> of the page's own, under the poster. Nothing
-// of it is loaded until load() (then all of it); watch() is called in the
-// click itself, so that it may play with its sound.
-function localPlayer(url, stage, { onState, onMoving, onTime, onMuted }) {
-  const video = element("video", "pj-embed");
+// The project's MP4: a <video> of the page's own, under the poster — the
+// file its box asks for (its width in device pixels: video-source.js), and a
+// bigger one, put in its place without a stop, when it is shown bigger (a
+// bigger window; full screen). Nothing of it is loaded until load() (then
+// all of it); watch() is called in the click itself, so that it may play
+// with its sound.
+function localPlayer(project, stage, box, { onState, onMoving, onTime, onMuted }) {
+  let video = element("video", "pj-embed");
   video.loop = true;
   video.playsInline = true;
   video.preload = "none";
-  video.src = encodeURI(url);
   stage.prepend(video);
-  video.addEventListener("play", () => onState(true));
-  video.addEventListener("pause", () => onState(false));
-  // (moving: playing, and its frame on the screen — where the browser can
-  // say so —, never the box's black under it)
-  video.addEventListener("playing", () => (video.requestVideoFrameCallback ? video.requestVideoFrameCallback(onMoving) : onMoving()));
-  video.addEventListener("volumechange", () => onMuted(video.muted));
-  video.addEventListener("timeupdate", () => video.duration && onTime(video.currentTime / video.duration));
+  // (what it says, the one playing says: a new one takes over the listening)
+  let listening = null;
+  const listen = (v) => {
+    if (listening) listening.abort();
+    listening = new AbortController();
+    const on = (name, run) => v.addEventListener(name, run, { signal: listening.signal });
+    on("play", () => onState(true));
+    on("pause", () => onState(false));
+    // (moving: playing, and its frame on the screen — where the browser can
+    // say so —, never the box's black under it)
+    on("playing", () => (v.requestVideoFrameCallback ? v.requestVideoFrameCallback(onMoving) : onMoving()));
+    on("volumechange", () => onMuted(v.muted));
+    on("timeupdate", () => v.duration && onTime(v.currentTime / v.duration));
+  };
+  listen(video);
+  const shown = () => Math.round(box.getBoundingClientRect().width * window.devicePixelRatio);
+  let sourced = false;
+  const source = () => {
+    if (sourced) return;
+    sourced = true;
+    video.preload = "auto";
+    setSource(video, project, shown());
+  };
+  const bigger = (pixels) =>
+    sourced &&
+    upgrade(video, project, pixels, (next) => {
+      listen(next);
+      video = next;
+    });
+  onViewportChange(() => bigger(shown()));
+  document.addEventListener("fullscreenchange", () => document.fullscreenElement === box && bigger(Math.round(window.screen.width * window.devicePixelRatio)));
   return {
-    load: () => (video.preload = "auto"),
+    load: source,
     watch: (fromStart) => {
+      source();
       if (fromStart && video.currentTime) video.currentTime = 0;
       video.muted = false;
       video.play().catch(() => {});
     },
-    play: () => video.play().catch(() => {}),
+    play: () => {
+      source();
+      video.play().catch(() => {});
+    },
     pause: () => video.pause(),
     seek: (at) => video.duration && (video.currentTime = at * video.duration),
     setMuted: (on) => (video.muted = on),
@@ -358,24 +386,6 @@ function youTubePlayer(id, stage, { onState, onMoving, onTime, onMuted }) {
     seek: (at) => youTube.duration().then((d) => youTube.seek(at * d)),
     setMuted,
   };
-}
-
-// -- the end: the next three projects ------------------------------------------------------
-function nextCard(project, index) {
-  const card = element("a", "pj-card");
-  card.href = projectUrl(project);
-  const thumb = element("span", "pj-card-thumb");
-  const image = element("img");
-  image.src = encodeURI(project.poster);
-  image.alt = "";
-  image.loading = "lazy";
-  thumb.appendChild(image);
-  const line = element("span", "pj-card-line");
-  const name = element("span", "pj-card-name", `${String(index + 1).padStart(2, "0")} `);
-  name.append(...titleParts(project.title));
-  line.append(name, element("span", "pj-card-more", "Full project ↗"));
-  card.append(thumb, line);
-  return card;
 }
 
 // -- the block, held: it is pinned, all of it, PJ_HOLD_MARGIN_PX from the

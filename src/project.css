@@ -36,10 +36,7 @@ body.project #site-nav {
   display: block;
   pointer-events: none;
 }
-.pj-foot {
-  position: relative;
-  z-index: 1;
-}
+
 .pj p,
 .pj h1,
 .pj h2,
@@ -303,20 +300,33 @@ body.project #site-nav {
 /* -- the end: "Next project" ("Next" in Inter Tight, "project" in Catavalo:
    type.css); the next three projects; the way back to all of them; the
    page's foot. At least a screen tall: at the very end of the page all of it
-   is on the screen. */
+   is on the screen. Over the aura coming up from below (project-end.js: its
+   canvas at the section's foot, as wide as the screen), all in cream. */
 .pj-end {
+  --pj-end-gap: 30vh; /* the black before it: what is before it ends in black */
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   min-height: 100vh;
+  margin-top: var(--pj-end-gap);
   padding-top: 15vh;
   text-align: center;
 }
 .pj-end > * {
+  position: relative;
+  z-index: 1;
   width: 100%;
 }
 .pj-end > .pj-back {
   width: auto;
+}
+.pj-end > .pj-end-aura {
+  position: absolute;
+  z-index: 0;
+  bottom: 0;
+  display: block;
+  pointer-events: none;
 }
 .pj-next-heading {
   font-size: clamp(36px, 4.5vw, 88px);
@@ -364,9 +374,10 @@ body.project #site-nav {
 .pj-card-name .title-display {
   font-synthesis: none;
 }
+/* (in cream, as everything over the aura) */
 .pj-card-more {
   flex: none;
-  color: var(--pj-dim);
+  color: var(--c-cream);
 }
 .pj-card:focus-visible {
   outline: 1px solid var(--c-cream);
@@ -383,6 +394,37 @@ body.project #site-nav {
 }
 .pj-back:hover {
   opacity: 0.6;
+}
+
+/* (its block on a screen of its own, project-end.js: the aura's fade first,
+   then the last screen of the page — the block in its middle, the foot at
+   its bottom) */
+.pj-end.is-screen {
+  min-height: 0;
+  padding-top: var(--pj-end-lead, 0px);
+}
+.pj-end-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100svh;
+}
+.pj-end-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+.pj-end-block > .pj-next-row {
+  width: 100%;
+}
+.pj-end-screen > .pj-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 /* -- the foot */

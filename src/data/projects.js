@@ -4,7 +4,8 @@
 // (work.html#<slug>: one template for all of them, src/project.js) carry what
 // that page shows; one that does not would be "Coming soon" on the Works page,
 // with no link. Each one's files are in public/proyectos/<slug>/ (Caprabo's,
-// in its old folder); the old projects', in public/proyectos/_archive/.
+// in its old folder); the old projects' and old versions, in archive/ at
+// the project's root (not published, not in git).
 //
 //   title        its name: on its page (giant, at the top), its row on the
 //                Works page and its card at the end of the others. In the
@@ -31,13 +32,29 @@
 //                null or missing one is not shown); display: the screens it
 //                was made for
 //   credits      who else made it: [{ role, name }], or null
-//   video        the project itself: its web version, an MP4 of the web's
-//                own (<slug>-1080.mp4: H.264, faststart, AAC)
-//   videoSmall   a lighter one of it, for a screen under 768px wide
-//                (<slug>-720.mp4)
+//   video        the project itself, its web version: the path of its files
+//                up to their size (src/video-source.js: <video>-<size>.mp4,
+//                H.264, made from its original in source-videos/) — or, with
+//                no videoSizes, one MP4 of the web's own
+//   videoSizes   the heights it is in (1440, 1080, 720: none bigger than its
+//                original's); the one played is the one the size it is shown
+//                at asks for
 //   youtube      where it is on YouTube: kept for reference; the page plays
 //                it from there only if it has no video
 //   poster       what shows until it plays (poster.webp: a frame of it)
+//   layout       (optional) "showcase": its page is the other template
+//                (src/showcase.js), with what it needs in `showcase`:
+//                  cover          the picture of its cover ({ src, alt }: src
+//                                 without its "-1280.webp" / "-2400.webp")
+//                  blocks         the second sheet's: { label, title
+//                                 (*keyword*), text } (no text: its
+//                                 challenge)
+//                  gallery        three pictures of it in use (the first two
+//                                 side by side after the first block, the
+//                                 third whole after the second) and caption
+//                                 (under the third)
+//                  result         a line of what came of it
+//   event, venue (optional) where it was shown, in a showcase's facts
 // (The three projects at the end of the page are the next three of this list
 // that have a page — after the last, the first ones again.)
 // TO FILL IN: industry (none is known but Hummel's), credits, and the year
@@ -50,21 +67,41 @@ export const PROJECTS = [
   {
     slug: "waapiti-ai-3d-logo-reveal",
     title: "*Waapiti AI* 3D Logo Reveal",
-    description: "A 3D logo reveal for Waapiti AI where thousands of glowing filaments pull the camera into the void before the brand appears.",
-    tagline: "Particle-driven 3D animation for Waapiti AI's brand reveal.",
+    description: "A 3D logo reveal for Waapiti AI at AfterISE 2026: a technological eye made of light filaments, designed to play across every screen of TMM's Sensory Sync showroom.",
+    tagline: "A technological eye for Waapiti AI, created for AfterISE at TMM's Sensory Sync showroom.",
     category: CATEGORY,
-    // DRAFT (idea, challenge): written from what the video shows — to be checked
-    idea: "A logo reveal for Waapiti AI built from particles: streaks of violet and pink light pull into a glowing ring, and the Waapiti logo appears at its centre.",
-    challenge: "Making a field of particles read as one controlled move in under ten seconds — light that gathers rather than scatters — so the logo lands as the payoff instead of getting lost in the effect.",
+    idea: "During ISE 2026 in Barcelona, TMM hosted an AfterISE at Sensory Sync, its immersive showroom. For the night, Waapiti AI — a digital signage company — needed a brand moment that could live across every screen in the space, from the main LED wall to columns and meeting-room displays.",
+    challenge: "The piece had to work on very different displays in the same room — a large LED wall, a curved LED column and standard screens — and hold attention in a busy networking event. That meant a strong, centred composition that reads at any size or shape, and a loop short enough to catch people as they walk past.",
     client: "Waapiti AI",
     industry: null,
     role: "Motion Designer",
     tools: "Cinema 4D, After Effects, Kling",
     year: "2026",
+    event: "AfterISE · ISE 2026, Barcelona",
+    venue: "Sensory Sync · TMM showroom",
     credits: null,
-    video: "/proyectos/waapiti-ai-3d-logo-reveal/waapiti-ai-3d-logo-reveal-1080.mp4",
-    videoSmall: "/proyectos/waapiti-ai-3d-logo-reveal/waapiti-ai-3d-logo-reveal-720.mp4",
+    video: "/proyectos/waapiti-ai-3d-logo-reveal/waapiti-ai-3d-logo-reveal",
+    videoSizes: [1440, 1080, 720],
     youtube: "https://youtu.be/hiAC1CUjSS0",
+    layout: "showcase",
+    showcase: {
+      cover: { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-01", alt: "The Waapiti AI reveal on a large screen at an evening event" },
+      blocks: [
+        {
+          label: "Concept",
+          title: "A digital *eye*",
+          text: "Digital signage is, above all, about being seen. The idea was to turn the brand into a technological eye: thousands of filaments of violet and pink light pull towards a single point, open like an iris and reveal Waapiti AI at its centre. A screen that looks back at you.",
+        },
+        { label: "Challenge", title: "Made for *every* screen" },
+      ],
+      gallery: [
+        { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-02", alt: "Guests in front of the reveal on an event screen" },
+        { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-04", alt: "The reveal on the screen of a meeting room" },
+        { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-03", alt: "The reveal on a curved LED column at an entrance" },
+      ],
+      caption: "The reveal across Sensory Sync during AfterISE: main LED wall, LED column and meeting rooms.",
+      result: "A ten-second loop that turned the whole showroom into Waapiti AI's stage for the night — one visual identity, adapted to every screen in the space.",
+    },
     poster: "/proyectos/waapiti-ai-3d-logo-reveal/poster-v2.webp",
     cover: "/proyectos/waapiti-ai-3d-logo-reveal/poster-v2.webp",
     preview: "/proyectos/waapiti-ai-3d-logo-reveal/preview-v2.mp4",
@@ -84,8 +121,8 @@ export const PROJECTS = [
     tools: "Cinema 4D, After Effects, Kling",
     year: "2026",
     credits: null,
-    video: "/proyectos/hummel-kit-launch-campaign/hummel-kit-launch-campaign-1080.mp4",
-    videoSmall: "/proyectos/hummel-kit-launch-campaign/hummel-kit-launch-campaign-720.mp4",
+    video: "/proyectos/hummel-kit-launch-campaign/hummel-kit-launch-campaign",
+    videoSizes: [1080, 720],
     youtube: "https://youtu.be/FabgEQtwm-Y",
     poster: "/proyectos/hummel-kit-launch-campaign/poster.webp",
     cover: "/proyectos/hummel-kit-launch-campaign/poster.webp",
@@ -107,8 +144,8 @@ export const PROJECTS = [
     tools: "Cinema 4D, After Effects, Kling",
     year: "2026",
     credits: null,
-    video: "/proyectos/tmm-3d-brand-reveal/tmm-3d-brand-reveal-1080.mp4",
-    videoSmall: "/proyectos/tmm-3d-brand-reveal/tmm-3d-brand-reveal-720.mp4",
+    video: "/proyectos/tmm-3d-brand-reveal/tmm-3d-brand-reveal",
+    videoSizes: [1440, 1080, 720],
     youtube: "https://youtu.be/7pxdlWAiUOQ",
     poster: "/proyectos/tmm-3d-brand-reveal/poster.webp",
     cover: "/proyectos/tmm-3d-brand-reveal/poster.webp",
@@ -130,8 +167,8 @@ export const PROJECTS = [
     tools: "Cinema 4D, After Effects, Kling",
     year: "2026",
     credits: null,
-    video: "/proyectos/tmm-halloween-spot/tmm-halloween-spot-1080.mp4",
-    videoSmall: "/proyectos/tmm-halloween-spot/tmm-halloween-spot-720.mp4",
+    video: "/proyectos/tmm-halloween-spot/tmm-halloween-spot",
+    videoSizes: [1440, 1080, 720],
     youtube: "https://youtu.be/-u5k984d138",
     poster: "/proyectos/tmm-halloween-spot/poster.webp",
     cover: "/proyectos/tmm-halloween-spot/poster.webp",
@@ -151,8 +188,8 @@ export const PROJECTS = [
     tools: "After Effects",
     year: YEAR,
     credits: null,
-    video: "/proyectos/spotify-daylist-social-campaign/spotify-daylist-social-campaign-1080.mp4",
-    videoSmall: "/proyectos/spotify-daylist-social-campaign/spotify-daylist-social-campaign-720.mp4",
+    video: "/proyectos/spotify-daylist-social-campaign/spotify-daylist-social-campaign",
+    videoSizes: [1080, 720],
     poster: "/proyectos/spotify-daylist-social-campaign/poster.webp",
     cover: "/proyectos/spotify-daylist-social-campaign/poster.webp",
     preview: "/proyectos/spotify-daylist-social-campaign/preview.mp4",
@@ -173,8 +210,8 @@ export const PROJECTS = [
     tools: "Cinema 4D, After Effects, Kling",
     year: "2026",
     credits: null,
-    video: "/proyectos/tmm-autumn-3d-visual/tmm-autumn-3d-visual-1080.mp4",
-    videoSmall: "/proyectos/tmm-autumn-3d-visual/tmm-autumn-3d-visual-720.mp4",
+    video: "/proyectos/tmm-autumn-3d-visual/tmm-autumn-3d-visual",
+    videoSizes: [1440, 1080, 720],
     youtube: "https://youtu.be/Xlqg8Qoa9NY",
     poster: "/proyectos/tmm-autumn-3d-visual/poster.webp",
     cover: "/proyectos/tmm-autumn-3d-visual/poster.webp",
@@ -194,8 +231,8 @@ export const PROJECTS = [
     tools: "After Effects, Duik Angela",
     year: YEAR,
     credits: null,
-    video: "/proyectos/sitges-festival-motion-spot/sitges-festival-motion-spot-1080.mp4",
-    videoSmall: "/proyectos/sitges-festival-motion-spot/sitges-festival-motion-spot-720.mp4",
+    video: "/proyectos/sitges-festival-motion-spot/sitges-festival-motion-spot",
+    videoSizes: [1080, 720],
     poster: "/proyectos/sitges-festival-motion-spot/poster.webp",
     cover: "/proyectos/sitges-festival-motion-spot/poster.webp",
     preview: "/proyectos/sitges-festival-motion-spot/preview.mp4",
@@ -232,8 +269,8 @@ export const PROJECTS = [
     tools: "After Effects",
     year: YEAR,
     credits: null,
-    video: "/proyectos/fallas-festival-motion-visuals/fallas-festival-motion-visuals-1080.mp4",
-    videoSmall: "/proyectos/fallas-festival-motion-visuals/fallas-festival-motion-visuals-720.mp4",
+    video: "/proyectos/fallas-festival-motion-visuals/fallas-festival-motion-visuals",
+    videoSizes: [1080, 720],
     poster: "/proyectos/fallas-festival-motion-visuals/poster.webp",
     cover: "/proyectos/fallas-festival-motion-visuals/preview.webp",
     preview: "/proyectos/fallas-festival-motion-visuals/preview.mp4",
@@ -252,8 +289,8 @@ export const PROJECTS = [
     tools: "After Effects",
     year: YEAR,
     credits: null,
-    video: "/proyectos/ron-barcelo-summer-spot/ron-barcelo-summer-spot-1080.mp4",
-    videoSmall: "/proyectos/ron-barcelo-summer-spot/ron-barcelo-summer-spot-720.mp4",
+    video: "/proyectos/ron-barcelo-summer-spot/ron-barcelo-summer-spot",
+    videoSizes: [720],
     poster: "/proyectos/ron-barcelo-summer-spot/poster.webp",
     cover: "/proyectos/ron-barcelo-summer-spot/poster.webp",
     preview: "/proyectos/ron-barcelo-summer-spot/preview.mp4",
@@ -272,8 +309,8 @@ export const PROJECTS = [
     tools: "After Effects",
     year: YEAR,
     credits: null,
-    video: "/proyectos/bizlunch-app-promo-spot/bizlunch-app-promo-spot-1080.mp4",
-    videoSmall: "/proyectos/bizlunch-app-promo-spot/bizlunch-app-promo-spot-720.mp4",
+    video: "/proyectos/bizlunch-app-promo-spot/bizlunch-app-promo-spot",
+    videoSizes: [1080, 720],
     poster: "/proyectos/bizlunch-app-promo-spot/poster.webp",
     cover: "/proyectos/bizlunch-app-promo-spot/preview.webp",
     preview: "/proyectos/bizlunch-app-promo-spot/preview.mp4",
