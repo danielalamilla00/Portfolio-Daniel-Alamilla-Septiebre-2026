@@ -10,6 +10,7 @@ import { createYouTubePlayer } from "./youtube.js";
 import { PROJECTS, MOVED } from "./data/projects.js";
 import { plainTitle, titleParts } from "./title.js";
 import { renderShowcase } from "./showcase.js";
+import { renderCase } from "./case.js";
 import { projectEnd } from "./project-end.js";
 import { setSource, upgrade } from "./video-source.js";
 
@@ -67,6 +68,7 @@ function element(tag, className, text) {
 function render(project) {
   // (a project shown the other way: showcase.js)
   if (project.layout === "showcase") return renderShowcase(project);
+  if (project.layout === "case") return renderCase(project);
   document.title = `alamilla | ${plainTitle(project.title)}`;
   const page = document.querySelector(".pj");
 

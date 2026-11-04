@@ -42,10 +42,14 @@
 //   youtube      where it is on YouTube: kept for reference; the page plays
 //                it from there only if it has no video
 //   poster       what shows until it plays (poster.webp: a frame of it)
-//   layout       (optional) "showcase": its page is the other template
+//   layout       (optional) "case": its page is a case study (src/case.js),
+//                with what it needs in `case` (see Waapiti's); "showcase":
+//                its page is the other template
 //                (src/showcase.js), with what it needs in `showcase`:
 //                  cover          the picture of its cover ({ src, alt }: src
 //                                 without its "-1280.webp" / "-2400.webp")
+//                  coverVideo     (optional) the cover's video ({ video,
+//                                 videoSizes }), if not the project's own
 //                  pictureSize    its pictures' [width, height] (optional:
 //                                 2752 x 1536)
 //                  introBg        (optional) the first sheet's colour, and
@@ -88,24 +92,33 @@ export const PROJECTS = [
     video: "/proyectos/waapiti-ai-3d-logo-reveal/waapiti-ai-3d-logo-reveal",
     videoSizes: [1440, 1080, 720],
     youtube: "https://youtu.be/hiAC1CUjSS0",
-    layout: "showcase",
-    showcase: {
-      cover: { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-01", alt: "The Waapiti AI reveal on a large screen at an evening event" },
-      blocks: [
-        {
-          label: "Concept",
-          title: "A digital *eye*",
-          text: "Digital signage is, above all, about being seen. The idea was to turn the brand into a technological eye: thousands of filaments of violet and pink light pull towards a single point, open like an iris and reveal Waapiti AI at its centre. A screen that looks back at you.",
-        },
-        { label: "Challenge", title: "Made for *every* screen" },
-      ],
-      gallery: [
+    layout: "case",
+    case: {
+      pictureSize: [2752, 1536],
+      coverTitle: ["*Waapiti AI*", "3D Logo Reveal"],
+      coverKicker: "Waapiti AI · Barcelona",
+      statement: "A technological eye for Waapiti AI, created for AfterISE 2026 at TMM's Sensory Sync showroom.",
+      tags: ["Waapiti AI", "ISE 2026", "Sensory Sync", "3D Logo Reveal"],
+      picture: { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-01", alt: "The Waapiti AI reveal on a large screen at an evening event" },
+      creative: {
+        statement: "*Thousands of light filaments* open like an iris and reveal the brand at its centre — a screen that looks back at you.",
+        paragraphs: [
+          "Digital signage is, above all, about being seen. The idea was to turn the brand into a technological eye: thousands of filaments of violet and pink light pull towards a single point, open like an iris and reveal Waapiti AI at its centre. A screen that looks back at you.",
+          "A ten-second loop that turned the whole showroom into Waapiti AI's stage for the night — one visual identity, adapted to every screen in the space.",
+        ],
+        pictures: [
+          { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-02", alt: "Guests in front of the reveal on an event screen" },
+          { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-04", alt: "The reveal on a vertical screen in the showroom's window, seen from the street" },
+        ],
+      },
+      final: {
+        label: "(Final result)",
+        title: "The final *reveal*",
+        videos: [{ line: "10s loop · Sensory Sync, AfterISE 2026", poster: "/proyectos/waapiti-ai-3d-logo-reveal/final-poster.webp" }],
+      },
+      carousel: [
         { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-02", alt: "Guests in front of the reveal on an event screen" },
-        { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-04", alt: "The reveal on a vertical screen in the showroom's window, seen from the street" },
-        { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-03", alt: "The reveal on a curved LED column at an entrance" },
       ],
-      caption: "The reveal across Sensory Sync during AfterISE: main LED wall, LED column and meeting rooms.",
-      result: "A ten-second loop that turned the whole showroom into Waapiti AI's stage for the night — one visual identity, adapted to every screen in the space.",
     },
     poster: "/proyectos/waapiti-ai-3d-logo-reveal/poster-v2.webp",
     cover: "/proyectos/waapiti-ai-3d-logo-reveal/poster-v2.webp",
@@ -117,9 +130,8 @@ export const PROJECTS = [
     description: "A joint campaign for Hummel uniting Valencia Basket and Real Betis, presenting both new kits under one shared visual story.",
     tagline: "Joint campaign uniting Valencia Basket and Real Betis under one brand.",
     category: "Sports Campaign",
-    // DRAFT (idea, challenge): written from what the video shows — to be checked
-    idea: "A Hummel sports campaign that brings two of its clubs into one piece: Real Betis's green-and-white football shirt and Valencia Basket's orange jersey, ending on one line — Two clubs, one brand.",
-    challenge: "Two clubs, two sports and two colour worlds in thirteen seconds. Each kit needed its own moment — the stripes and \"Somos Balompié\" for Betis, \"Taronja\" for Valencia Basket — while the whole still read as one Hummel campaign.",
+    idea: "Hummel dresses two of Spain's most passionate clubs: Valencia Basket and Real Betis. For the launch of their new kits, the brand needed a single campaign that could present both shirts together, with a shared visual language that respected each club's identity.",
+    challenge: "Telling two clubs — and two different sports — in a single piece, giving each team its own moment without losing a common campaign look.",
     client: "Hummel",
     industry: "Sportswear",
     role: "Motion Designer",
@@ -129,51 +141,97 @@ export const PROJECTS = [
     video: "/proyectos/hummel-kit-launch-campaign/hummel-kit-launch-campaign",
     videoSizes: [1080, 720],
     youtube: "https://youtu.be/FabgEQtwm-Y",
+    layout: "case",
+    case: {
+      pictureSize: [1920, 1080],
+      coverTitle: ["*Hummel*", "Kit Launch Campaign"],
+      coverKicker: "Hummel · Valencia Basket × Real Betis",
+      coverPlay: true,
+      statement: "One brand, two clubs: a joint campaign presenting the new Hummel kits of Valencia Basket and Real Betis.",
+      tags: ["Hummel", "Valencia Basket", "Real Betis", "Kit Launch"],
+      // (the main video's frame at 0:06, exactly: mid-shot, sharp)
+      picture: { src: "/proyectos/hummel-kit-launch-campaign/mockups/frame-6s", alt: "Real Betis's new Hummel shirt, its crest and stripes under a hard light" },
+      creative: {
+        statement: "Two shirts, one *story*: the kits take the stage as the hero of every shot.",
+        paragraphs: ["The campaign puts the kits at the centre: dramatic light, close-up details of fabric and crest, and bold Hummel typography that ties both clubs together in one rhythm."],
+        more: [{ label: "(Challenge)", text: "Telling two clubs — and two different sports — in a single piece, giving each team its own moment without losing a common campaign look." }],
+      },
+      final: {
+        label: "(Final result)",
+        title: "The final *spot*",
+        videos: [{ line: "Kit launch spot · Valencia Basket × Real Betis", poster: "/proyectos/hummel-kit-launch-campaign/poster.webp" }],
+      },
+      // TO FILL IN: the three 9:16 cut-downs (not in source-videos yet) — each
+      // { line, video: "/proyectos/hummel-kit-launch-campaign/social-0N",
+      // videoSizes: [1080, 720] (by width: 1080x1920, 720x1280), poster }
+      social: {
+        label: "(Social media)",
+        title: "Made for *social*",
+        text: "The campaign was also designed for social media, with three vertical 9:16 cut-downs built for Instagram and TikTok.",
+        videos: [],
+      },
+      carousel: [],
+    },
     poster: "/proyectos/hummel-kit-launch-campaign/poster.webp",
     cover: "/proyectos/hummel-kit-launch-campaign/poster.webp",
     preview: "/proyectos/hummel-kit-launch-campaign/preview.mp4",
   },
   {
-    slug: "tmm-3d-brand-reveal",
-    title: "*TMM* 3D Brand Reveal",
-    description: "A 3D brand reveal for TMM where a single light becomes glowing spheres that gather into the logo, designed for every screen of the Sensory Sync showroom.",
-    tagline: "A 3D brand reveal for TMM's Sensory Sync showroom.",
+    slug: "tmm-sensory-sync-content",
+    title: "*TMM* Sensory Sync Content",
+    description: "3D videos created for every screen of TMM's Sensory Sync showroom — a brand reveal made of glowing spheres and a seasonal autumn piece.",
+    tagline: "Videos for TMM's Sensory Sync immersive showroom.",
     category: CATEGORY,
-    idea: "Sensory Sync is TMM's immersive showroom in Barcelona: a space where clients experience screens, light and sound before they reach their own stores and events. It needed a brand piece of its own — one that could welcome visitors and run across every display in the room, from the main LED wall to the curved LED column and the window screens facing the street.",
-    challenge: "The piece had to work in very different formats at the same time — a wide LED wall, a curved column and vertical window displays — and fit a space where people work and meet. It needed to feel calm enough for the room, yet striking enough to stop people walking past the window.",
+    idea: "Sensory Sync is TMM's immersive showroom in Barcelona, where clients experience screens, light and sound before they reach their own stores and events. I create the videos that bring the space to life — from TMM's own brand reveal to seasonal pieces that keep the showroom changing through the year — designed to play across the main LED wall, the curved LED column and the window displays facing the street.",
+    challenge: "Every video had to work at once on a wide LED wall, a curved column and vertical window screens, and fit a space where people work and meet: calm enough for the room, striking enough to stop people walking past the window.",
     client: "TMM",
     industry: null,
-    display: "Sensory Sync · TMM showroom",
+    display: "Sensory Sync",
     role: "Motion Designer",
     tools: "Cinema 4D, After Effects, Kling",
     year: "2026",
     credits: null,
-    video: "/proyectos/tmm-3d-brand-reveal/tmm-3d-brand-reveal",
+    // (the spheres' video: the cover's; the autumn one, in the final result)
+    video: "/proyectos/tmm-sensory-sync-content/spheres",
     videoSizes: [1440, 1080, 720],
     youtube: "https://youtu.be/7pxdlWAiUOQ",
-    layout: "showcase",
-    showcase: {
+    layout: "case",
+    case: {
       pictureSize: [2730, 1536],
-      cover: { src: "/proyectos/tmm-3d-brand-reveal/mockups/mockup-04", alt: "The reveal on the main LED wall of TMM's Sensory Sync showroom, a meeting in front of it" },
-      blocks: [
-        {
-          label: "Concept",
-          title: "Born from *light*",
-          text: "The Multisensory Makers bring many senses together into one experience. The reveal tells exactly that: a single point of light multiplies into soft, glowing spheres that drift, gather and finally settle into the TMM letters. Many parts, one brand.",
-        },
-        { label: "Challenge", title: "Calm, but *magnetic*" },
-      ],
-      gallery: [
-        { src: "/proyectos/tmm-3d-brand-reveal/mockups/mockup-02", alt: "The reveal on the curved LED column of the showroom" },
-        { src: "/proyectos/tmm-3d-brand-reveal/mockups/mockup-03", alt: "The reveal's single light on a window screen facing the street" },
-        { src: "/proyectos/tmm-3d-brand-reveal/mockups/mockup-01", alt: "The showroom's workspace, the reveal on the LED wall at its end" },
-      ],
-      caption: "The reveal across Sensory Sync: main LED wall, LED column and window displays.",
-      result: "A brand loop that runs across the whole showroom, turning Sensory Sync into a living expression of TMM — from the street to the meeting table.",
+      coverTitle: ["*TMM*", "Sensory Sync Content"],
+      coverKicker: "TMM · Barcelona",
+      coverPlay: true,
+      // (the cover's video: a teaser of the two, not the project's own)
+      coverVideo: { video: "/proyectos/tmm-sensory-sync-content/tmm-sensory-sync-teaser", videoSizes: [1440, 1080, 720] },
+      statement: "Videos created for Sensory Sync, TMM's immersive showroom, where every screen in the space tells the same story.",
+      tags: ["TMM", "Sensory Sync", "3D", "Digital Signage"],
+      picture: { src: "/proyectos/tmm-sensory-sync-content/mockups/spheres-04", alt: "The spheres on the main LED wall of TMM's Sensory Sync showroom, a meeting at the round table in front of it" },
+      creative: {
+        statement: "One brand, many senses: light that gathers into a logo, and leaves that rise with the wind.",
+        paragraphs: [
+          "The Multisensory Makers bring many senses together into one experience. The brand reveal tells exactly that: a single point of light multiplies into soft, glowing spheres that drift and gather into the TMM letters.",
+          "For autumn, the same idea turns seasonal: a carpet of 3D leaves is lifted by the wind and swirls into the logo, while the copy speaks to the senses — 'Es veu en cada color. S'escolta en cada fulla.'",
+        ],
+        more: [{ label: "(Challenge)", text: "Every video had to work at once on a wide LED wall, a curved column and vertical window screens, and fit a space where people work and meet: calm enough for the room, striking enough to stop people walking past the window." }],
+        // (there is no picture of the autumn piece on the LED column: its window display)
+        pictures: [
+          { src: "/proyectos/tmm-sensory-sync-content/mockups/spheres-02", alt: "The spheres on the curved LED column of the showroom" },
+          { src: "/proyectos/tmm-sensory-sync-content/mockups/autumn-02", alt: "The autumn leaves on a window display facing the street" },
+        ],
+      },
+      final: {
+        label: "(Final result)",
+        title: "The final *videos*",
+        videos: [
+          { line: "Brand reveal — Born from light", poster: "/proyectos/tmm-sensory-sync-content/spheres-final-poster.webp" },
+          { line: "Seasonal — Autumn for every sense", video: "/proyectos/tmm-sensory-sync-content/autumn", videoSizes: [1440, 1080, 720], poster: "/proyectos/tmm-sensory-sync-content/autumn-final-poster.webp" },
+        ],
+      },
+      carousel: [],
     },
-    poster: "/proyectos/tmm-3d-brand-reveal/poster.webp",
-    cover: "/proyectos/tmm-3d-brand-reveal/poster.webp",
-    preview: "/proyectos/tmm-3d-brand-reveal/preview.mp4",
+    poster: "/proyectos/tmm-sensory-sync-content/tmm-sensory-sync-teaser-poster.webp",
+    cover: "/proyectos/tmm-sensory-sync-content/tmm-sensory-sync-teaser-poster.webp",
+    preview: "/proyectos/tmm-sensory-sync-content/tmm-sensory-sync-teaser-720.mp4",
   },
   {
     slug: "tmm-halloween-spot",
@@ -217,29 +275,6 @@ export const PROJECTS = [
     poster: "/proyectos/spotify-daylist-social-campaign/poster.webp",
     cover: "/proyectos/spotify-daylist-social-campaign/poster.webp",
     preview: "/proyectos/spotify-daylist-social-campaign/preview.mp4",
-  },
-  {
-    slug: "tmm-autumn-3d-visual",
-    title: "*TMM* Autumn 3D Visual",
-    description: "A seasonal 3D visual for TMM where a still carpet of autumn leaves is lifted by the wind and swirls towards the camera, for TMM's Sensory Sync showroom screens.",
-    tagline: "Seasonal 3D piece where a carpet of leaves rises into the air.",
-    category: CATEGORY,
-    // DRAFT (idea, challenge): written from what the video shows — to be checked
-    idea: "A seasonal 3D visual for TMM: a still carpet of autumn leaves lifts off the ground, flies towards the camera and gathers into the TMM logo — \"La tardor ja està aquí\". Made for Sensory Sync, the immersive screens of TMM's showroom.",
-    challenge: "Making a whole carpet of leaves move as one: heavy and still on the ground before the wind takes it, then a swirl that stays readable enough for the leaves to settle into the logo.",
-    client: "TMM",
-    industry: null,
-    display: "Sensory Sync · TMM showroom screens",
-    role: "Motion Designer",
-    tools: "Cinema 4D, After Effects, Kling",
-    year: "2026",
-    credits: null,
-    video: "/proyectos/tmm-autumn-3d-visual/tmm-autumn-3d-visual",
-    videoSizes: [1440, 1080, 720],
-    youtube: "https://youtu.be/Xlqg8Qoa9NY",
-    poster: "/proyectos/tmm-autumn-3d-visual/poster.webp",
-    cover: "/proyectos/tmm-autumn-3d-visual/poster.webp",
-    preview: "/proyectos/tmm-autumn-3d-visual/preview.mp4",
   },
   {
     slug: "sitges-festival-motion-spot",
@@ -357,8 +392,10 @@ export const MOVED = {
   "estiu-tmm": "ron-barcelo-summer-spot",
   "fallas-valencia": "fallas-festival-motion-visuals",
   bizlunch: "bizlunch-app-promo-spot",
-  "tmm-esferas": "tmm-3d-brand-reveal",
-  "otono-tmm": "tmm-autumn-3d-visual",
+  "tmm-esferas": "tmm-sensory-sync-content",
+  "otono-tmm": "tmm-sensory-sync-content",
+  "tmm-3d-brand-reveal": "tmm-sensory-sync-content",
+  "tmm-autumn-3d-visual": "tmm-sensory-sync-content",
 };
 
 // A project's page (work.html#<slug>), or null: it has none ("Coming soon").

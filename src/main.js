@@ -1589,11 +1589,11 @@ heroScrollTimeline
 // where the whole reel takes over (see "Showreel" below).
 const ZOOM_PARALLAX_PROJECTS = [
   { slug: "showreel", title: "Showreel 2026", src: "/proyectos/Reel/Portada_Reel.mp4", alt: "Daniel Alamilla Showreel", href: null },
-  { slug: "tmm-autumn-3d-visual", title: "TMM Autumn 3D Visual", src: "/proyectos/tmm-autumn-3d-visual/preview.mp4", alt: "TMM Autumn 3D Visual project cover" },
+  { slug: "tmm-sensory-sync-content", title: "TMM Sensory Sync Content", src: "/proyectos/tmm-sensory-sync-content/autumn-preview.mp4", alt: "TMM Sensory Sync Content project cover" },
   { slug: "sitges-festival-motion-spot", title: "Sitges Festival Motion Spot", src: "/proyectos/sitges-festival-motion-spot/preview.mp4", alt: "Sitges Festival Motion Spot project cover" },
   { slug: "spotify-daylist-social-campaign", title: "Spotify Daylist Social Campaign", src: "/proyectos/spotify-daylist-social-campaign/zoom.mp4", alt: "Spotify Daylist Social Campaign project cover" },
   { slug: "hummel-kit-launch-campaign", title: "Hummel Kit Launch Campaign", src: "/proyectos/hummel-kit-launch-campaign/zoom.mp4", alt: "Hummel Kit Launch Campaign project cover" },
-  { slug: "tmm-3d-brand-reveal", title: "TMM 3D Brand Reveal", src: "/proyectos/tmm-3d-brand-reveal/zoom.mp4", alt: "TMM 3D Brand Reveal project cover" },
+  { slug: "tmm-sensory-sync-content", title: "TMM Sensory Sync Content", src: "/proyectos/tmm-sensory-sync-content/tmm-sensory-sync-teaser-720.mp4", alt: "TMM Sensory Sync Content project cover" },
   { slug: "ron-barcelo-summer-spot", title: "Ron Barceló Summer Spot", src: "/proyectos/ron-barcelo-summer-spot/preview.mp4", alt: "Ron Barceló Summer Spot project cover" },
 ].map((project) => ({ href: `work.html#${project.slug}`, ...project }));
 const ZOOM_PARALLAX_SCALES = [4, 5, 6, 5, 6, 8, 9]; // relative to one another (the reference's values)

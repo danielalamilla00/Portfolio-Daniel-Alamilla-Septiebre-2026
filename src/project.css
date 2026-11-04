@@ -427,6 +427,12 @@ body.project #site-nav {
   bottom: 0;
 }
 
+/* (the aura and the foot alone, project-end.js: footOnly) */
+.pj-end.is-foot-only {
+  justify-content: flex-end;
+  padding-top: 0;
+}
+
 /* -- the foot */
 .pj-foot {
   display: flex;

@@ -1,0 +1,627 @@
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { applyGrain } from "./grain.js";
+import { onViewportChange, MOBILE_MAX_PX } from "./viewport.js";
+import { plainTitle } from "./title.js";
+import { nextProjects, projectUrl } from "./data/projects.js";
+import { projectEnd } from "./project-end.js";
+import { setSource, upgrade } from "./video-source.js";
+import { picture } from "./showcase.js";
+
+// ---- A project's page, as a case study (projects.js: layout: "case") ---------------
+// The third template for a project's page (work.html), in sections that take
+// turns on two grounds — dark (the page's black, words in cream) and light
+// (cream, words in #141414), each with the web's grain — and that come up
+// over the one before as the page is scrolled, a straight edge: each held
+// (pinned) while the next comes up over it and covers it. In order:
+//   - the cover (dark): the video, the whole screen, muted, in a loop, clean
+//     (a soft shade at the bottom left only); the name at the bottom left,
+//     small over it the client and the city (and, if the project asks for it,
+//     a round "Play" at its bottom right). Held (from its top, CS_STACK_VH
+//     of scroll), the next section
+//     covers it; nothing on it moves by itself;
+//   - the statement (light): a big sentence whose words light up one after
+//     another as it crosses the screen; on the right, lower, "(About the
+//     project)" and its text; its tags and its facts; a picture, at
+//     CS_WIDEN_FROM of the width, held once in the screen's middle — one
+//     timeline on that hold: it widens to all of it (CS_HOLD_WIDEN_VH of
+//     scroll), stays whole and still (CS_HOLD_STILL_VH), and only then
+//   - one dark layer, to the end, comes up over it: the creative response (a
+//     big sentence lighting up the same way; the concept and the result; two
+//     pictures out of line, each moving at its own pace, if it has any); the
+//     final result (its videos, still — a poster and a round "Play" — until
+//     one is pressed); its cut-downs for social media, if it has them
+//     (vertical videos in a row, played one at a time); a carousel of its
+//     pictures
+//     (CS_CAROUSEL_MAX at the most, none under two: arrows, dragged, swiped);
+//     and at its end the aura of the home's Contact, growing up from its
+//     foot, with the related projects over it (three, in a row scrolled
+//     sideways, dots) and the page's foot (project-end.js) — all one black,
+//     no edge in it.
+// Over all of it but the cover, the aura and the foot, a bar fixed at the
+// screen's foot:
+// back, the project's name, the related projects, "Contact us" — in the
+// colours of the ground under it. Labels, texts and facts come in fading and
+// rising; pictures fading in from a little bigger, moving gently inside their
+// frame with the scroll.
+//   CS_STACK_VH          how long a section is held while the next one comes
+//                        up over it, in hundredths of the screen's height
+//   CS_LIT_FROM          how lit a big sentence's words are before the scroll
+//                        lights them up (their opacity)
+//   CS_WIDEN_FROM        how much of the width the held picture is at first
+//   CS_HOLD_WIDEN_VH     the scroll the held picture widens over, and
+//   CS_HOLD_STILL_VH     ...the scroll it then stays whole and still, before
+//                        the dark layer comes up (hundredths of the screen)
+//   CS_REVEAL_*          how words and pictures come in (once, at
+//                        CS_REVEAL_START): from CS_REVEAL_RISE_PX lower, in
+//                        CS_REVEAL_S, one CS_REVEAL_STAGGER_S after another;
+//                        pictures from CS_REVEAL_SCALE
+//   CS_INNER_PARALLAX    how far a picture moves inside its frame (% of it)
+//   CS_PAIR_PARALLAX_VH  how far the two pictures out of line move, each
+//   CS_SCRUB             the scroll-driven moves' damping (the web's: scrub 1)
+//   CS_DRAG_PX           how far a drag goes to change the carousel's picture
+//   CS_CAROUSEL_MAX      how many pictures the carousel has at the most
+const CS_STACK_VH = 100;
+const CS_LIT_FROM = 0.15;
+const CS_WIDEN_FROM = 0.6;
+const CS_HOLD_WIDEN_VH = 70;
+const CS_HOLD_STILL_VH = 30;
+const CS_REVEAL_START = "top 85%";
+const CS_REVEAL_S = 0.9;
+const CS_REVEAL_STAGGER_S = 0.08;
+const CS_REVEAL_RISE_PX = 40;
+const CS_REVEAL_SCALE = 1.04;
+const CS_INNER_PARALLAX = 5;
+const CS_PAIR_PARALLAX_VH = [6, 18];
+const CS_SCRUB = 1;
+const CS_DRAG_PX = 60;
+const CS_CAROUSEL_MAX = 3;
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const phone = () => window.innerWidth <= MOBILE_MAX_PX;
+
+function element(tag, className, text) {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  if (text) el.textContent = text;
+  return el;
+}
+
+// A sentence in the web's two letters, a word at a time (so that its words
+// can light up one by one): its *words between asterisks* in Catavalo
+// (`displayClass`: in the gradient on the dark, .title-display on the light),
+// the rest in Inter Tight.
+function phrase(text, displayClass) {
+  const nodes = [];
+  text.split("*").forEach((part, index) => {
+    part.split(/(\s+)/).forEach((word) => {
+      if (!word) return;
+      if (/^\s+$/.test(word)) return nodes.push(document.createTextNode(" "));
+      nodes.push(element("span", `cs-word ${index % 2 ? displayClass : "title-sans"}`, word));
+    });
+  });
+  return nodes;
+}
+const highlight = (tone) => (tone === "dark" ? "title-gradient" : "title-display");
+
+export function renderCase(project) {
+  const data = project.case;
+  const size = data.pictureSize;
+  document.title = `alamilla | ${plainTitle(project.title)}`;
+  document.body.classList.add("is-case");
+  const page = document.querySelector(".pj");
+  page.classList.add("cs");
+  const sections = [];
+  const section = (tone, name) => {
+    const box = element("section", `cs-section cs-${name} grain`);
+    box.dataset.tone = tone;
+    sections.push(box);
+    return box;
+  };
+  const label = (text) => element("p", "cs-label", text);
+  const statement = (text, tone) => {
+    const big = element("p", "cs-statement");
+    big.append(...phrase(text, highlight(tone)));
+    return big;
+  };
+  const frame = (one, sizes, className = "") => {
+    const box = element("figure", `cs-frame ${className}`);
+    box.style.aspectRatio = `${size[0]} / ${size[1]}`;
+    box.appendChild(picture(one, sizes, "cs-picture", false, size));
+    return box;
+  };
+
+  // -- the cover
+  const cover = section("dark", "cover");
+  const coverVideo = element("video", "cs-cover-video");
+  coverVideo.muted = true;
+  coverVideo.defaultMuted = true;
+  coverVideo.loop = true;
+  coverVideo.playsInline = true;
+  coverVideo.autoplay = true;
+  coverVideo.poster = encodeURI(project.poster);
+  coverVideo.setAttribute("aria-hidden", "true");
+  // (its own video, or the one the project gives its cover)
+  const coverFiles = { title: project.title, ...(data.coverVideo || { video: project.video, videoSizes: project.videoSizes }) };
+  setSource(coverVideo, coverFiles, Math.round(window.innerWidth * window.devicePixelRatio));
+  const heading = element("div", "cs-cover-heading");
+  const name = element("h1", "cs-cover-title");
+  data.coverTitle.forEach((line) => {
+    const one = element("span", "cs-cover-line");
+    one.append(...phrase(line, "title-gradient"));
+    name.appendChild(one);
+  });
+  heading.append(element("p", "cs-kicker", data.coverKicker), name);
+  cover.append(coverVideo, element("div", "cs-cover-shade"), heading);
+  if (data.coverPlay) playable(coverFiles, { box: cover, video: coverVideo, playHost: cover, watchHost: cover });
+
+  // -- the statement
+  const intro = section("light", "intro");
+  const about = element("div", "cs-aside");
+  about.append(label("(About the project)"), element("p", "cs-copy", project.idea));
+  const tags = element("ul", "cs-tags");
+  data.tags.forEach((tag) => tags.appendChild(element("li", "", `#${tag}`)));
+  const facts = element("dl", "cs-facts");
+  [
+    ["Client", project.client],
+    ["Display", project.display],
+    ["Role", project.role],
+    ["Tools", project.tools],
+    ["Year", project.year],
+  ].forEach(([key, value]) => {
+    if (!value) return;
+    const item = element("div", "cs-fact");
+    item.append(element("dt", "", key), element("dd", "", value));
+    facts.appendChild(item);
+  });
+  const meta = element("div", "cs-meta");
+  meta.append(tags, facts);
+  const wide = frame(data.picture, "92vw", "cs-wide");
+  intro.append(statement(data.statement, "light"), about, meta, wide);
+
+  // -- the dark layer, to the end: the creative response and the result…
+  const creative = section("dark", "creative");
+  const concept = element("div", "cs-aside");
+  concept.append(label("(Creative response)"), ...data.creative.paragraphs.map((text) => element("p", "cs-copy", text)));
+  (data.creative.more || []).forEach(({ label: name, text }) => concept.append(label(name), element("p", "cs-copy", text)));
+  creative.append(statement(data.creative.statement, "dark"), concept);
+  // …its two pictures out of line, if it has them…
+  const pairFrames = (data.creative.pictures || []).map((one, index) => frame(one, phone() ? "92vw" : "45vw", `cs-pair-${index + 1}`));
+  if (pairFrames.length) {
+    const pair = element("div", "cs-pair");
+    pair.append(...pairFrames);
+    creative.appendChild(pair);
+  }
+  // …the final result…
+  const final = finalBlock(project, data.final);
+  creative.appendChild(final.block);
+  // …its cut-downs for social media, if it has them…
+  if (data.social && data.social.videos.length) creative.appendChild(socialBlock(project, data.social));
+
+  // …the carousel (two pictures at the least)…
+  const carouselPictures = data.carousel.slice(0, CS_CAROUSEL_MAX);
+  if (carouselPictures.length >= 2) creative.appendChild(carouselBlock(carouselPictures, size).box);
+  // (room under the statement, where its picture widens and stays: the dark
+  // layer comes after it — holdPicture())
+  const room = element("div", "cs-hold-room");
+  room.setAttribute("aria-hidden", "true");
+  page.append(cover, intro, room, creative);
+  // …and the aura, with the page's foot, at its end (in it: no edge) — and
+  // over it, the related projects
+  const end = projectEnd(project, creative, "", { footOnly: true }).end;
+  const related = relatedBlock(project);
+  related.id = "related";
+  end.insertBefore(related, end.querySelector(".pj-foot"));
+
+  const bar = barBlock(project);
+  document.body.appendChild(bar);
+
+  applyGrain();
+  stack(sections);
+  watchTones(sections, end, bar);
+  playWhileSeen(coverVideo, cover);
+  document.fonts.ready.then(() => {
+    page.querySelectorAll(".cs-statement").forEach(lightUp);
+    holdPicture(intro, wide, room);
+    comeIn(page);
+    drift(pairFrames);
+    ScrollTrigger.refresh();
+  });
+  // (measured again once the videos and pictures are in)
+  let soon = 0;
+  const later = () => {
+    clearTimeout(soon);
+    soon = setTimeout(() => ScrollTrigger.refresh(), 200);
+  };
+  page.querySelectorAll("img").forEach((image) => image.addEventListener("load", later, { once: true }));
+  page.querySelectorAll("video").forEach((video) => video.addEventListener("loadedmetadata", later, { once: true }));
+  onViewportChange(() => ScrollTrigger.refresh());
+}
+
+// The cover held from its top, for CS_STACK_VH of scroll, while the
+// statement — over it — comes up and covers it.
+function stack(boxes) {
+  boxes.forEach((box, index) => (box.style.zIndex = String(index + 1)));
+  ScrollTrigger.create({
+    trigger: boxes[0],
+    start: "top top",
+    end: () => `+=${(window.innerHeight * CS_STACK_VH) / 100}`,
+    pin: true,
+    pinSpacing: false,
+    // (not anticipated: measured frame by frame under a wheel, 1 made the
+    // sections jump 72 to 104px as they were pinned; 0, none)
+    anticipatePin: 0,
+    invalidateOnRefresh: true,
+  });
+}
+
+// The statement held once its picture is in the screen's middle, on one
+// timeline: the picture widens from CS_WIDEN_FROM of its width to all of it
+// (CS_HOLD_WIDEN_VH of scroll), stays whole and still (CS_HOLD_STILL_VH),
+// and the dark layer — after the room those two take (`room`) — comes up
+// over it until its top gets to the screen's. Made again on a new size.
+function holdPicture(statement, picture, room) {
+  const cut = ((1 - CS_WIDEN_FROM) / 2) * 100;
+  const set = (inset) => (picture.style.clipPath = `inset(0% ${inset.toFixed(3)}% 0% ${inset.toFixed(3)}%)`);
+  let timeline = null;
+  const make = () => {
+    if (timeline) timeline.scrollTrigger.kill(true), timeline.kill();
+    const vh = window.innerHeight / 100;
+    const widenPx = CS_HOLD_WIDEN_VH * vh;
+    const stillPx = CS_HOLD_STILL_VH * vh;
+    room.style.height = `${widenPx + stillPx}px`;
+    if (reducedMotion) return set(0);
+    // (the dark layer's way up: from under the statement's foot, after the
+    // room, to the screen's top — measured with the picture in the middle)
+    const coverPx = statement.offsetHeight - (picture.offsetTop + picture.offsetHeight / 2) + window.innerHeight / 2;
+    const state = { inset: cut };
+    set(cut);
+    timeline = gsap.timeline({
+      scrollTrigger: {
+        trigger: picture,
+        start: "center center",
+        end: `+=${widenPx + stillPx + coverPx}`,
+        pin: statement,
+        pinSpacing: false,
+        anticipatePin: 0,
+        scrub: CS_SCRUB,
+      },
+    });
+    timeline.to(state, { inset: 0, ease: "none", duration: widenPx, onUpdate: () => set(state.inset) }).to({}, { duration: stillPx + coverPx });
+  };
+  make();
+  onViewportChange(make);
+}
+
+// A big sentence's words, from CS_LIT_FROM to whole, one after another, as it
+// crosses the screen (with the scroll, both ways).
+function lightUp(big) {
+  const words = big.querySelectorAll(".cs-word");
+  if (reducedMotion) return;
+  gsap.set(words, { opacity: CS_LIT_FROM });
+  gsap.to(words, { opacity: 1, ease: "none", duration: 1, stagger: 1, scrollTrigger: { trigger: big, start: "top 85%", end: "bottom 35%", scrub: CS_SCRUB } });
+}
+
+// What ground is under the bar (the last box over its line: the ones after
+// are over the ones before), and so its colours; hidden over the cover, and
+// over the aura and the foot (`end`).
+function watchTones(boxes, end, bar) {
+  let queued = false;
+  const look = () => {
+    queued = false;
+    const y = window.innerHeight - bar.offsetHeight / 2;
+    let top = null;
+    for (const box of boxes) {
+      const r = box.getBoundingClientRect();
+      if (r.top <= y && r.bottom >= y) top = box;
+    }
+    const tone = top ? top.dataset.tone : "dark";
+    bar.classList.toggle("is-hidden", !top || top === boxes[0] || end.getBoundingClientRect().top <= y);
+    bar.classList.toggle("is-light", tone === "light");
+  };
+  const ask = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(look);
+  };
+  window.addEventListener("scroll", ask, { passive: true });
+  ScrollTrigger.addEventListener("refresh", ask);
+  look();
+}
+
+// The cover's video: a muted loop moving only while it is seen.
+function playWhileSeen(video, box) {
+  new IntersectionObserver(([entry]) => (entry.isIntersecting ? video.play().catch(() => {}) : video.pause())).observe(box);
+}
+
+// Coming in, once: labels, texts, tags, facts and cards fading and rising,
+// one after another in their block; pictures fading in from a little bigger,
+// and moving inside their frame with the scroll.
+function comeIn(page) {
+  if (reducedMotion) return;
+  const from = { opacity: 0, y: CS_REVEAL_RISE_PX, duration: CS_REVEAL_S, ease: "power3.out" };
+  page.querySelectorAll(".cs-aside, .cs-tags, .cs-facts, .cs-related-row, .cs-final-head, .cs-social-head").forEach((block) => {
+    gsap.from(Array.from(block.children), { ...from, stagger: CS_REVEAL_STAGGER_S, scrollTrigger: { trigger: block, start: CS_REVEAL_START, once: true } });
+  });
+  page.querySelectorAll(".cs-frame").forEach((frame) => {
+    const image = frame.querySelector(".cs-picture");
+    gsap.from(frame, { opacity: 0, duration: CS_REVEAL_S, ease: "power3.out", scrollTrigger: { trigger: frame, start: CS_REVEAL_START, once: true } });
+    gsap.from(image, { scale: CS_REVEAL_SCALE, duration: CS_REVEAL_S * 1.4, ease: "power3.out", scrollTrigger: { trigger: frame, start: CS_REVEAL_START, once: true } });
+    if (!frame.closest(".cs-carousel")) gsap.fromTo(image, { yPercent: -CS_INNER_PARALLAX }, { yPercent: CS_INNER_PARALLAX, ease: "none", scrollTrigger: { trigger: frame, start: "top bottom", end: "bottom top", scrub: CS_SCRUB } });
+  });
+}
+
+// The two pictures out of line, each moving up at its own pace.
+function drift(frames) {
+  if (reducedMotion || phone()) return;
+  frames.forEach((frame, index) => {
+    const vh = CS_PAIR_PARALLAX_VH[index] || CS_PAIR_PARALLAX_VH[0];
+    gsap.fromTo(frame, { y: () => (window.innerHeight * vh) / 100 }, { y: () => (-window.innerHeight * vh) / 100, ease: "none", scrollTrigger: { trigger: frame.parentElement, start: "top bottom", end: "bottom top", scrub: CS_SCRUB, invalidateOnRefresh: true } });
+  });
+}
+
+// A video played: a round "Play" (in `playHost`) — pressed, from its start,
+// in a loop, with its sound and controls of its own (play / pause, where it
+// is, sound, full screen: of `box`), `watchHost` marked .is-watching; a
+// bigger file in full screen (video-source.js). What it gives back: the
+// "Play".
+function playable(project, { box: cover, video: first, playHost, watchHost }) {
+  let video = first;
+  const play = element("button", "cs-play", "Play");
+  play.type = "button";
+  const controls = element("div", "pj-controls cs-controls");
+  const toggle = element("button", "pj-control", "Pause");
+  const bar = element("div", "pj-bar");
+  const fill = element("span", "pj-bar-fill");
+  bar.appendChild(fill);
+  bar.setAttribute("role", "slider");
+  bar.setAttribute("aria-label", "Where the video is");
+  bar.tabIndex = 0;
+  const sound = element("button", "pj-control", "Sound off");
+  const full = element("button", "pj-control", "Full screen");
+  [toggle, sound, full].forEach((button) => (button.type = "button"));
+  controls.append(toggle, bar, sound, full);
+  cover.appendChild(controls);
+  playHost.appendChild(play);
+  // (what the one playing says — a bigger file takes over: video-source.js —,
+  // heard at the cover: a video's events come through it on their way down)
+  const mine = (event) => event.target === video;
+  cover.addEventListener("play", (event) => mine(event) && (toggle.textContent = "Pause"), true);
+  cover.addEventListener("pause", (event) => mine(event) && (toggle.textContent = "Play"), true);
+  cover.addEventListener("volumechange", (event) => mine(event) && (sound.textContent = video.muted ? "Sound on" : "Sound off"), true);
+  cover.addEventListener("timeupdate", (event) => mine(event) && video.duration && (fill.style.transform = `scaleX(${(video.currentTime / video.duration).toFixed(4)})`), true);
+  play.addEventListener("click", () => {
+    watchHost.classList.add("is-watching");
+    video.loop = true;
+    video.currentTime = 0;
+    video.muted = false;
+    video.play().catch(() => {});
+  });
+  toggle.addEventListener("click", () => (video.paused ? video.play().catch(() => {}) : video.pause()));
+  sound.addEventListener("click", () => (video.muted = !video.muted));
+  const seekTo = (event) => {
+    const r = bar.getBoundingClientRect();
+    if (video.duration) video.currentTime = Math.min(Math.max((event.clientX - r.left) / r.width, 0), 1) * video.duration;
+  };
+  bar.addEventListener("pointerdown", (event) => {
+    bar.setPointerCapture(event.pointerId);
+    seekTo(event);
+    const move = (e) => seekTo(e);
+    bar.addEventListener("pointermove", move);
+    bar.addEventListener("pointerup", () => bar.removeEventListener("pointermove", move), { once: true });
+  });
+  if (document.fullscreenEnabled) {
+    full.addEventListener("click", () => (document.fullscreenElement ? document.exitFullscreen() : cover.requestFullscreen()));
+    document.addEventListener("fullscreenchange", () => {
+      full.textContent = document.fullscreenElement ? "Exit full screen" : "Full screen";
+      if (document.fullscreenElement === cover) upgrade(video, project, Math.round(window.screen.width * window.devicePixelRatio), (next) => (video = next));
+    });
+  } else full.hidden = true;
+  return play;
+}
+
+// The final result: its label and title (coming in as the others); its
+// videos (case.final.videos: each its files — the project's, if it gives
+// none — its poster and a line), one under another, each in the margins,
+// still — a sharp frame of it and a round "Play" in its middle — until it,
+// or the video, is pressed: then from its start, with its sound, its
+// controls (playable()), in a loop. Only what it needs to start is loaded
+// until then (preload "metadata"); off the screen it stops; a line under
+// it. What it gives back: the block.
+function finalBlock(project, { label: text, title, videos }) {
+  const block = element("div", "cs-final");
+  const head = element("div", "cs-final-head");
+  const heading = element("h2", "cs-final-title");
+  heading.append(...phrase(title, "title-gradient"));
+  head.append(element("p", "cs-label", text), heading);
+  block.appendChild(head);
+  videos.forEach((one) => {
+    const files = { title: project.title, video: one.video || project.video, videoSizes: one.videoSizes || project.videoSizes };
+    const wrap = element("div", "cs-final-wrap");
+    const box = element("div", "cs-final-box");
+    const video = element("video", "cs-final-video");
+    video.playsInline = true;
+    video.preload = "metadata";
+    video.poster = encodeURI(one.poster || project.poster);
+    video.setAttribute("aria-label", `${plainTitle(project.title)}: ${one.line}`);
+    setSource(video, files, Math.round(window.innerWidth * 0.92 * window.devicePixelRatio));
+    box.appendChild(video);
+    wrap.appendChild(box);
+    const play = playable(files, { box, video, playHost: wrap, watchHost: wrap });
+    const start = () => {
+      if (wrap.classList.contains("is-watching")) return;
+      play.click();
+    };
+    video.addEventListener("click", start);
+    wrap.addEventListener("click", (event) => event.target === play || (!event.target.closest(".cs-controls") && start()));
+    const foot = element("div", "cs-final-line");
+    foot.appendChild(element("p", "cs-caption", one.line));
+    block.append(wrap, foot);
+    new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) return;
+      const now = box.querySelector(".cs-final-video:last-of-type") || video;
+      now.pause();
+    }).observe(box);
+  });
+  return { block };
+}
+
+// The cut-downs for social media: a label, a title and a line of text (coming
+// in as the others); the vertical videos (case.social.videos: each its files,
+// <video>-<width>.mp4: 1080 is 1080x1920, 720 is 720x1280 — its poster and a
+// line), a row of
+// them (a phone: scrolled sideways, snapping), each still — its poster and a
+// small round "Play" — until it, or the video, is pressed: then from its
+// start, with its sound and controls (playable()); one plays at a time (the
+// others stop). Off the screen they stop. What it gives back: the block.
+function socialBlock(project, { label: text, title, text: words, videos }) {
+  const block = element("div", "cs-social");
+  const head = element("div", "cs-social-head");
+  const heading = element("h2", "cs-final-title");
+  heading.append(...phrase(title, "title-gradient"));
+  head.append(element("p", "cs-label", text), heading, element("p", "cs-copy cs-social-text", words));
+  const row = element("div", "cs-social-row");
+  const wraps = videos.map((one) => {
+    const files = { title: project.title, video: one.video, videoSizes: one.videoSizes };
+    const item = element("figure", "cs-social-item");
+    const wrap = element("div", "cs-social-wrap");
+    const box = element("div", "cs-social-box");
+    const video = element("video", "cs-social-video");
+    video.playsInline = true;
+    video.preload = "metadata";
+    video.poster = encodeURI(one.poster);
+    video.setAttribute("aria-label", `${plainTitle(project.title)}: ${one.line}`);
+    // (its file by its width on the screen: a third of the row's, or most of a phone's)
+    setSource(video, files, Math.round(window.innerWidth * (phone() ? 0.72 : 0.3) * window.devicePixelRatio));
+    box.appendChild(video);
+    wrap.appendChild(box);
+    const play = playable(files, { box, video, playHost: wrap, watchHost: wrap });
+    play.classList.add("is-small");
+    video.addEventListener("click", () => wrap.classList.contains("is-watching") || play.click());
+    item.append(wrap, element("figcaption", "cs-caption", one.line));
+    row.appendChild(item);
+    new IntersectionObserver(([entry]) => entry.isIntersecting || box.querySelector("video").pause()).observe(box);
+    return wrap;
+  });
+  // (one at a time: one starting stops the others — whichever file each plays)
+  row.addEventListener(
+    "play",
+    (event) => wraps.forEach((wrap) => wrap.contains(event.target) || wrap.querySelector("video").pause()),
+    true
+  );
+  block.append(head, row);
+  return block;
+}
+
+// The carousel: one picture at a time, sliding; arrows at its foot, on the
+// right; dragged with a mouse, swiped with a finger.
+function carouselBlock(pictures, size) {
+  const box = element("div", "cs-carousel");
+  const view = element("div", "cs-carousel-view");
+  const track = element("div", "cs-track");
+  pictures.forEach((one) => {
+    const slide = element("figure", "cs-frame cs-slide");
+    slide.style.aspectRatio = `${size[0]} / ${size[1]}`;
+    const image = picture(one, "92vw", "cs-picture", false, size);
+    image.draggable = false;
+    slide.appendChild(image);
+    track.appendChild(slide);
+  });
+  view.appendChild(track);
+  const arrows = element("div", "cs-arrows");
+  const back = element("button", "cs-arrow", "←");
+  const on = element("button", "cs-arrow", "→");
+  back.type = on.type = "button";
+  back.setAttribute("aria-label", "Previous picture");
+  on.setAttribute("aria-label", "Next picture");
+  arrows.append(back, on);
+  box.append(view, arrows);
+  let at = 0;
+  const place = (dx = 0) => (track.style.transform = `translateX(calc(${-at} * (100% + var(--cs-slide-gap)) + ${dx}px))`);
+  const go = (index) => {
+    at = Math.min(Math.max(index, 0), pictures.length - 1);
+    back.disabled = at === 0;
+    on.disabled = at === pictures.length - 1;
+    place();
+  };
+  back.addEventListener("click", () => go(at - 1));
+  on.addEventListener("click", () => go(at + 1));
+  let startX = null;
+  let dx = 0;
+  view.addEventListener("pointerdown", (event) => {
+    startX = event.clientX;
+    dx = 0;
+    view.setPointerCapture(event.pointerId);
+    track.classList.add("is-dragging");
+  });
+  view.addEventListener("pointermove", (event) => {
+    if (startX === null) return;
+    dx = event.clientX - startX;
+    place(dx);
+  });
+  const release = () => {
+    if (startX === null) return;
+    startX = null;
+    track.classList.remove("is-dragging");
+    go(Math.abs(dx) > CS_DRAG_PX ? at - Math.sign(dx) : at);
+  };
+  view.addEventListener("pointerup", release);
+  view.addEventListener("pointercancel", release);
+  go(0);
+  return { box };
+}
+
+// The related projects: the next three of the Works page, a row scrolled
+// sideways, each its poster with its name over it; dots under them.
+function relatedBlock(project) {
+  const box = element("div", "cs-related");
+  box.appendChild(element("p", "cs-label", "(Related projects)"));
+  const row = element("div", "cs-related-row");
+  const dots = element("div", "cs-dots");
+  const cards = nextProjects(project, 3).map((next) => {
+    const card = element("a", "cs-card");
+    card.href = projectUrl(next);
+    const image = element("img", "cs-card-picture");
+    image.src = encodeURI(next.poster);
+    image.alt = "";
+    image.loading = "lazy";
+    const name = element("span", "cs-card-name");
+    name.append(...phrase(next.title, "title-display"));
+    card.append(image, name);
+    row.appendChild(card);
+    const dot = element("button", "cs-dot");
+    dot.type = "button";
+    dot.setAttribute("aria-label", `Go to ${plainTitle(next.title)}`);
+    dot.addEventListener("click", () => row.scrollTo({ left: card.offsetLeft - row.offsetLeft, behavior: "smooth" }));
+    dots.appendChild(dot);
+    return card;
+  });
+  const mark = () => {
+    const at = cards.reduce((best, card, k) => (Math.abs(card.offsetLeft - row.offsetLeft - row.scrollLeft) < Math.abs(cards[best].offsetLeft - row.offsetLeft - row.scrollLeft) ? k : best), 0);
+    Array.from(dots.children).forEach((dot, k) => dot.classList.toggle("is-on", k === at));
+  };
+  row.addEventListener("scroll", mark, { passive: true });
+  mark();
+  box.append(row, dots);
+  return box;
+}
+
+// The bar at the screen's foot.
+function barBlock(project) {
+  const bar = element("nav", "cs-bar is-hidden");
+  bar.setAttribute("aria-label", "This project");
+  const back = element("a", "cs-bar-back", "← Back");
+  back.href = "works.html";
+  const name = element("span", "cs-bar-name", plainTitle(project.title));
+  const related = element("a", "cs-bar-related", "Related projects ⊡");
+  related.href = "#related";
+  related.addEventListener("click", (event) => {
+    event.preventDefault();
+    document.querySelector("#related").scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth" });
+  });
+  const contact = element("a", "cs-bar-contact", "Contact us ↗");
+  contact.href = "index.html#contact";
+  const left = element("div", "cs-bar-left");
+  left.append(back, element("span", "cs-bar-sep", "|"), name, element("span", "cs-bar-sep", "|"), related);
+  bar.append(left, contact);
+  return bar;
+}

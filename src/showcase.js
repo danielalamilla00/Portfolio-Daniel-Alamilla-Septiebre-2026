@@ -88,7 +88,7 @@ function element(tag, className, text) {
 const phone = () => window.innerWidth <= MOBILE_MAX_PX;
 
 // A picture of the project's (its two sizes: <base>-1280.webp, -2400.webp).
-function picture({ src, alt }, sizes, className, eager, [width, height] = SC_PICTURE_SIZE) {
+export function picture({ src, alt }, sizes, className, eager, [width, height] = SC_PICTURE_SIZE) {
   const image = element("img", className);
   image.src = encodeURI(`${src}-1280.webp`);
   image.srcset = `${encodeURI(`${src}-1280.webp`)} 1280w, ${encodeURI(`${src}-2400.webp`)} 2400w`;

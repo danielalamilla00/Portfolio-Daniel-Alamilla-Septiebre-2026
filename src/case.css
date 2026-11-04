@@ -1,0 +1,621 @@
+/* A project's page as a case study (src/case.js): sections on two grounds —
+   dark (the page's black, words in cream) and light (cream, words in
+   #141414), each with the web's grain —, coming up over one another; the
+   web's two letters; a bar fixed at the screen's foot. Every rule here has
+   the case's class in front: over project.css's own (".pj p", ".pj"…).
+     --cs-ink    the words' colour on the section's ground
+     --cs-line   the fine lines'
+     --cs-gap    the room at a section's top and foot */
+.pj.cs {
+  --cs-gap: 12vh;
+  padding: 0;
+}
+body.is-case .pj-aura {
+  display: none;
+}
+/* (each at least a screen tall: held, it is all the screen while the next
+   comes up over it) */
+.cs .cs-section {
+  position: relative;
+  min-height: 100svh;
+  padding: var(--cs-gap) var(--page-margin);
+}
+.cs [data-tone="dark"] {
+  --cs-ink: var(--c-cream);
+  --cs-line: rgba(246, 236, 221, 0.2);
+  background-color: #0a0a0a;
+  color: var(--cs-ink);
+}
+.cs [data-tone="light"] {
+  --cs-ink: #141414;
+  --cs-line: rgba(20, 20, 20, 0.2);
+  background-color: #f6ecdd;
+  color: var(--cs-ink);
+}
+/* (on the light, both letters in the dark: Catavalo plain, no gradient) */
+.cs [data-tone="light"] .title-sans,
+.cs [data-tone="light"] .title-display {
+  color: #141414;
+}
+.cs .cs-word {
+  display: inline-block;
+}
+.cs ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* -- the words: big sentences (their words lit one by one, case.js), small
+   labels in brackets, texts */
+.cs .cs-statement {
+  width: 70%;
+  font-size: 3.4vw;
+  font-weight: 400;
+  line-height: 1.08;
+}
+.cs .cs-label {
+  margin-bottom: 1rem;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.cs .cs-copy {
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.55;
+}
+.cs .cs-copy + .cs-copy {
+  margin-top: 1.25rem;
+}
+/* (a label after a text: a new part of it) */
+.cs .cs-aside .cs-copy + .cs-label {
+  margin-top: 2.5rem;
+}
+.cs .cs-aside {
+  width: 25%;
+  margin: 8vh 0 0 auto;
+}
+
+/* -- the cover: the video, the whole screen, clean — a soft shade at the
+   bottom left only, under the name, which is there on the logo's margin */
+.cs .cs-cover {
+  height: 100svh;
+  padding: 0;
+  overflow: hidden;
+}
+.cs .cs-cover-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cs .cs-cover-shade {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(90% 70% at 0% 100%, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.2) 40%, rgba(0, 0, 0, 0) 70%);
+}
+.cs .cs-cover-heading {
+  position: absolute;
+  left: var(--page-margin);
+  bottom: calc(var(--page-margin) + var(--browser-bar));
+}
+.cs .cs-kicker {
+  margin-bottom: 1.25rem;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.cs .cs-cover-title {
+  font-size: 5.5vw;
+  font-weight: 400;
+  line-height: 0.95;
+}
+.cs .cs-cover-line {
+  display: block;
+}
+
+/* -- the statement: its tags and facts, its picture */
+.cs .cs-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--grid-gutter);
+  align-items: end;
+  margin-top: 8vh;
+}
+.cs .cs-tags {
+  font-size: 11px;
+  line-height: 1.9;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.cs .cs-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--grid-gutter);
+  padding-top: 1rem;
+  border-top: 1px solid var(--cs-line);
+}
+.cs .cs-fact dt {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.cs .cs-fact dd {
+  margin-top: 0.4rem;
+  font-size: 14px;
+}
+/* (a picture in its frame, taller than it: it moves inside it, case.js) */
+.cs .cs-frame {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  background-color: #000000;
+}
+.cs .cs-frame .cs-picture {
+  display: block;
+  width: 100%;
+  height: 110%;
+  margin-top: -5%;
+  object-fit: cover;
+}
+/* (it widens as it comes to the screen's middle, cut, and is held there:
+   case.js) */
+.cs .cs-frame.cs-wide {
+  margin-top: 8vh;
+  background-color: transparent;
+}
+
+/* -- a video's round "Play"; its controls once it is watched (case.js) —
+   on the cover (if it has one), at its bottom right, the name out of the
+   controls' way */
+.cs .cs-play {
+  position: absolute;
+  z-index: 3;
+  width: 84px;
+  height: 84px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  background-color: rgba(10, 10, 10, 0.35);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--c-cream);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.25s ease, opacity 0.25s ease;
+}
+.cs .cs-play:hover {
+  background-color: rgba(10, 10, 10, 0.6);
+}
+.cs .cs-controls {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.cs .is-watching .cs-controls {
+  opacity: 1;
+  pointer-events: auto;
+}
+.cs .is-watching > .cs-play {
+  opacity: 0;
+  pointer-events: none;
+}
+.cs .cs-cover > .cs-play {
+  right: var(--page-margin);
+  bottom: calc(var(--page-margin) + var(--browser-bar));
+}
+.cs .cs-cover-heading {
+  transition: opacity 0.4s ease;
+}
+.cs .cs-cover.is-watching .cs-cover-heading {
+  opacity: 0;
+}
+.cs .cs-cover:fullscreen .cs-cover-video {
+  object-fit: contain;
+}
+
+/* (the room under the statement, held, where its picture widens and stays:
+   case.js) */
+.cs .cs-hold-room {
+  position: relative;
+  z-index: 0;
+}
+
+/* -- the dark layer, to the end: its parts a little apart; the aura and the
+   foot at its foot, in it (no room under them, no margins of their own),
+   the related projects over the aura, just above the foot */
+.cs .cs-creative {
+  padding-bottom: 0;
+}
+.cs .cs-creative > .cs-final,
+.cs .cs-creative > .cs-social,
+.cs .cs-creative > .cs-carousel {
+  margin-top: var(--cs-gap);
+}
+.cs .cs-creative > .pj-end {
+  margin-top: var(--cs-gap);
+  padding-inline: 0;
+}
+.cs .pj-end > .cs-related {
+  margin-top: auto; /* (low, over the glow: the aura under the related projects) */
+  text-align: left;
+}
+.cs .pj-end > .pj-foot {
+  margin-top: 0;
+}
+
+/* -- the final result: its label and title; the video in the margins, still
+   (its poster) until pressed, its "Play" in its middle; a line under it */
+.cs .cs-final-title {
+  font-size: 3.4vw;
+  font-weight: 400;
+  line-height: 1.05;
+}
+.cs .cs-final-wrap {
+  position: relative;
+  margin-top: 6vh;
+}
+.cs .cs-final-box {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background-color: #000000;
+  cursor: pointer;
+}
+.cs .is-watching .cs-final-box {
+  cursor: auto;
+}
+.cs .cs-final-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* (in the video's middle) */
+.cs .cs-final-wrap .cs-play {
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+}
+.cs .cs-final-box:fullscreen {
+  aspect-ratio: auto;
+}
+.cs .cs-final-box:fullscreen .cs-final-video {
+  object-fit: contain;
+}
+.cs .cs-final-line {
+  margin-top: 1rem;
+}
+.cs .cs-final-line + .cs-final-wrap {
+  margin-top: 8vh;
+}
+.cs .cs-caption {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+/* -- the cut-downs for social media: their label, title and text; the
+   vertical videos in a row of three, the same height, square corners, each
+   still until pressed, a small "Play" in its middle; a line under each (a
+   phone: a row scrolled sideways, snapping) */
+.cs .cs-social-text {
+  max-width: 44ch;
+  margin-top: 1.5rem;
+}
+.cs .cs-social-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--grid-gutter);
+  margin-top: 6vh;
+}
+.cs .cs-social-item {
+  margin: 0;
+}
+.cs .cs-social-wrap {
+  position: relative;
+}
+.cs .cs-social-box {
+  position: relative;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  background-color: #000000;
+  cursor: pointer;
+}
+.cs .is-watching .cs-social-box {
+  cursor: auto;
+}
+.cs .cs-social-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cs .cs-social-wrap .cs-play {
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+}
+.cs .cs-play.is-small {
+  width: 64px;
+  height: 64px;
+  font-size: 10px;
+}
+.cs .cs-social-box:fullscreen {
+  aspect-ratio: auto;
+}
+.cs .cs-social-box:fullscreen .cs-social-video {
+  object-fit: contain;
+}
+.cs .cs-social-box .cs-controls {
+  gap: 0.75rem;
+  padding-inline: 0.75rem;
+}
+.cs .cs-social-item .cs-caption {
+  margin-top: 0.9rem;
+}
+
+/* -- the creative response: two pictures out of line with each other */
+.cs .cs-pair {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8vh;
+}
+.cs .cs-pair-1 {
+  width: 45%;
+}
+.cs .cs-pair-2 {
+  align-self: flex-end;
+  width: 40%;
+  margin-top: -8vw;
+}
+
+/* -- the carousel: one picture at a time, sliding; its arrows */
+.cs .cs-carousel-view {
+  overflow: hidden;
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+}
+.cs .cs-track {
+  --cs-slide-gap: var(--grid-gutter);
+  display: flex;
+  gap: var(--cs-slide-gap);
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cs .cs-track.is-dragging {
+  transition: none;
+  cursor: grabbing;
+}
+.cs .cs-slide {
+  flex: 0 0 100%;
+}
+.cs .cs-arrows {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.cs .cs-arrow {
+  width: 56px;
+  height: 56px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 18px;
+  cursor: pointer;
+  transition: opacity 0.25s ease, background-color 0.25s ease;
+}
+.cs .cs-arrow:hover {
+  background-color: rgba(246, 236, 221, 0.1);
+}
+.cs .cs-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* -- the related projects: a row scrolled sideways, dots under it */
+.cs .cs-related-row {
+  display: flex;
+  gap: var(--grid-gutter);
+  margin: 1.5rem calc(var(--page-margin) * -1) 0;
+  padding: 0 var(--page-margin);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--page-margin);
+  scrollbar-width: none;
+}
+.cs .cs-related-row::-webkit-scrollbar {
+  display: none;
+}
+.cs .cs-card {
+  position: relative;
+  flex: 0 0 40vw;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  scroll-snap-align: start;
+  color: var(--c-cream);
+  text-decoration: none;
+}
+/* (a shade at its foot, under its name) */
+.cs .cs-card::after {
+  content: "";
+  position: absolute;
+  inset: 40% 0 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0));
+}
+.cs .cs-card-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cs .cs-card:hover .cs-card-picture,
+.cs .cs-card:focus-visible .cs-card-picture {
+  transform: scale(1.03);
+}
+.cs .cs-card-name {
+  position: absolute;
+  z-index: 1;
+  left: 1.25rem;
+  right: 1.25rem;
+  bottom: 1.1rem;
+  font-size: clamp(20px, 1.8vw, 34px);
+  line-height: 1;
+}
+.cs .cs-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+}
+.cs .cs-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background-color: currentColor;
+  color: inherit;
+  opacity: 0.3;
+  cursor: pointer;
+  transition: opacity 0.25s ease;
+}
+.cs .cs-dot.is-on {
+  opacity: 1;
+}
+
+/* -- the foot over the aura, right after (no black between) */
+.cs .pj-end {
+  --pj-end-gap: 0px;
+  padding-inline: var(--page-margin);
+}
+
+/* -- the bar at the screen's foot (not on the cover, nor on the foot): in
+   the colours of the ground under it */
+.cs-bar {
+  position: fixed;
+  z-index: 45;
+  left: var(--page-margin);
+  right: var(--page-margin);
+  bottom: calc(1rem + var(--browser-bar));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--c-cream);
+  transition: color 0.4s ease, opacity 0.4s ease;
+}
+.cs-bar.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.cs-bar.is-light {
+  color: #141414;
+}
+.cs-bar a {
+  color: inherit;
+  text-decoration: none;
+}
+/* (its words on a pane of the ground's colour: they read over a picture too) */
+.cs-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  background-color: rgba(10, 10, 10, 0.55);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: background-color 0.4s ease;
+}
+.cs-bar.is-light .cs-bar-left {
+  background-color: rgba(246, 236, 221, 0.72);
+}
+.cs-bar-sep {
+  opacity: 0.4;
+}
+.cs-bar-contact {
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  background-color: var(--c-cream);
+  color: #141414 !important; /* (its own: over the bar's colour) */
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+.cs-bar.is-light .cs-bar-contact {
+  background-color: #141414;
+  color: var(--c-cream) !important;
+}
+
+/* -- a phone: one column, labels over their texts; the pictures out of line
+   one under the other; the bar, back and "Contact us" */
+@media (max-width: 767px) {
+  .cs .cs-cover-title {
+    font-size: 12vw;
+  }
+  .cs .cs-social-row {
+    display: flex;
+    margin-inline: calc(var(--page-margin) * -1);
+    padding-inline: var(--page-margin);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--page-margin);
+    scrollbar-width: none;
+  }
+  .cs .cs-social-row::-webkit-scrollbar {
+    display: none;
+  }
+  .cs .cs-social-item {
+    flex: 0 0 72%;
+    scroll-snap-align: start;
+  }
+  .cs .cs-statement,
+  .cs .cs-final-title {
+    width: 100%;
+    font-size: 8vw;
+  }
+  .cs .cs-aside {
+    width: 100%;
+    margin-top: 3rem;
+  }
+  .cs .cs-meta {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .cs .cs-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 1.25rem;
+  }
+  .cs .cs-pair-1,
+  .cs .cs-pair-2 {
+    width: 100%;
+  }
+  .cs .cs-pair-2 {
+    margin-top: var(--grid-gutter);
+  }
+  .cs .cs-card {
+    flex-basis: 82%;
+  }
+  .cs .cs-play {
+    width: 64px;
+    height: 64px;
+  }
+  .cs-bar-name,
+  .cs-bar-related,
+  .cs-bar-sep {
+    display: none;
+  }
+}

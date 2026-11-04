@@ -54,8 +54,19 @@ function element(tag, className, text) {
 // The section, at the end of `page`, for `project`'s page, titled `title`
 // (its last word *between asterisks*). What it gives back: its title, its
 // cards and its way back (for a page that brings them in its own way).
-export function projectEnd(project, page, title, { auraScale = 1, auraIntensity = END_AURA_INTENSITY, screen = false } = {}) {
+// (footOnly: the aura and the page's foot alone — a page that shows the
+// projects after it its own way)
+export function projectEnd(project, page, title, { auraScale = 1, auraIntensity = END_AURA_INTENSITY, screen = false, footOnly = false } = {}) {
   const end = element("section", "pj-end");
+  if (footOnly) {
+    const canvas = element("canvas", "pj-end-aura");
+    canvas.setAttribute("aria-hidden", "true");
+    end.classList.add("is-foot-only");
+    end.append(canvas, document.querySelector(".pj-foot"));
+    page.appendChild(end);
+    aura(end, canvas, { scale: auraScale, intensity: auraIntensity, screen: false });
+    return { end };
+  }
   const canvas = element("canvas", "pj-end-aura");
   canvas.setAttribute("aria-hidden", "true");
   const heading = element("h2", "pj-next-heading");
@@ -75,7 +86,7 @@ export function projectEnd(project, page, title, { auraScale = 1, auraIntensity 
   } else end.append(canvas, heading, row, back, foot);
   page.appendChild(end);
   aura(end, canvas, { scale: auraScale, intensity: auraIntensity, screen });
-  return { heading, cards: Array.from(row.children), back };
+  return { end, heading, cards: Array.from(row.children), back };
 }
 
 // A card of the projects after it: its poster, its number and name, and a
