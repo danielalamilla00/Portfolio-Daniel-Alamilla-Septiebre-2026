@@ -1,7 +1,7 @@
 // ---- The projects ---------------------------------------------------------------------
 // One entry per project, in the order of the Works page (works.html,
 // src/works.js), which lists them all. Those that have a page of their own
-// (work.html#<slug>: one template for all of them, src/project.js) carry what
+// (work.html#<slug>: one template for all of them, src/case.js) carry what
 // that page shows; one that does not would be "Coming soon" on the Works page,
 // with no link. Each one's files are in public/proyectos/<slug>/ (Caprabo's,
 // in its old folder); the old projects' and old versions, in archive/ at
@@ -42,28 +42,28 @@
 //   youtube      where it is on YouTube: kept for reference; the page plays
 //                it from there only if it has no video
 //   poster       what shows until it plays (poster.webp: a frame of it)
-//   layout       (optional) "case": its page is a case study (src/case.js),
-//                with what it needs in `case` (see Waapiti's); "showcase":
-//                its page is the other template
-//                (src/showcase.js), with what it needs in `showcase`:
-//                  cover          the picture of its cover ({ src, alt }: src
-//                                 without its "-1280.webp" / "-2400.webp")
+//   layout       "case": every page is a case study (src/case.js), with
+//                what it needs in `case` (a project without it: an error,
+//                never another template):
+//                  pictureSize    its pictures' [width, height]
+//                  coverTitle     its name on the cover, a line each
+//                  coverKicker    small over it: "Client · context"
 //                  coverVideo     (optional) the cover's video ({ video,
 //                                 videoSizes }), if not the project's own
-//                  pictureSize    its pictures' [width, height] (optional:
-//                                 2752 x 1536)
-//                  introBg        (optional) the first sheet's colour, and
-//                                 the video's ground (a palette's var)
-//                  introInk       (optional) "dark": its words in the dark
-//                  blocks         the second sheet's: { label, title
-//                                 (*keyword*), text } (no text: its
-//                                 challenge)
-//                  gallery        three pictures of it in use (the first two
-//                                 side by side after the first block, the
-//                                 third whole after the second) and caption
-//                                 (under the third)
-//                  result         a line of what came of it
-//   event, venue (optional) where it was shown, in a showcase's facts
+//                  statement      the big sentence on the cream
+//                  tags           under it
+//                  picture        the held picture ({ src, alt }: src without
+//                                 its "-1280.webp" / "-2400.webp"): a frame
+//                                 of its video, or a mockup of its own
+//                  creative       the dark layer's big sentence (*keyword*),
+//                                 paragraphs (the creative response), more
+//                                 ([{ label, text }]: its challenge) and
+//                                 pictures (optional: two out of line)
+//                  final          { label, title, videos: [{ line, poster,
+//                                 video?, videoSizes?, ratio? }] }
+//                  social         (optional) its vertical cut-downs
+//                  carousel       its pictures (none under two: none shown)
+//   event, venue (optional) where it was shown (kept for reference)
 // (The three projects at the end of the page are the next three of this list
 // that have a page — after the last, the first ones again.)
 // TO FILL IN: industry (none is known but Hummel's), credits, and the year
@@ -146,7 +146,6 @@ export const PROJECTS = [
       pictureSize: [1920, 1080],
       coverTitle: ["*Hummel*", "Kit Launch Campaign"],
       coverKicker: "Hummel · Valencia Basket × Real Betis",
-      coverPlay: true,
       statement: "One brand, two clubs: a joint campaign presenting the new Hummel kits of Valencia Basket and Real Betis.",
       tags: ["Hummel", "Valencia Basket", "Real Betis", "Kit Launch"],
       // (the main video's frame at 0:06, exactly: mid-shot, sharp)
@@ -200,7 +199,6 @@ export const PROJECTS = [
       pictureSize: [2730, 1536],
       coverTitle: ["*TMM*", "Sensory Sync Content"],
       coverKicker: "TMM · Barcelona",
-      coverPlay: true,
       // (the cover's video: a teaser of the two, not the project's own)
       coverVideo: { video: "/proyectos/tmm-sensory-sync-content/tmm-sensory-sync-teaser", videoSizes: [1440, 1080, 720] },
       statement: "Videos created for Sensory Sync, TMM's immersive showroom, where every screen in the space tells the same story.",
@@ -252,6 +250,28 @@ export const PROJECTS = [
     video: "/proyectos/tmm-halloween-spot/tmm-halloween-spot",
     videoSizes: [1440, 1080, 720],
     youtube: "https://youtu.be/-u5k984d138",
+    layout: "case",
+    case: {
+      pictureSize: [1920, 1080],
+      coverTitle: ["*TMM*", "Halloween Spot"],
+      coverKicker: "TMM · Sensory Sync",
+      // DRAFT (the statement and the creative response's statement and text: to be checked)
+      statement: "A Halloween spot for TMM: a carved pumpkin, a misty forest and type that melts into the season.",
+      tags: ["TMM", "Halloween", "Sensory Sync", "3D"],
+      // (the main video's frame at 3.95s: sharp, mid-shot)
+      picture: { src: "/proyectos/tmm-halloween-spot/mockups/frame-3.95s", alt: "The carved jack-o'-lantern grinning in a misty forest" },
+      creative: {
+        statement: "Playful, never gory: the pumpkin's *grin* and the dripping letters carry the whole mood.",
+        paragraphs: ["A carved jack-o'-lantern turns to face the camera in a misty forest; then the scene gives way to dripping orange type — \"Spooky season at TMM!\" — made for the screens of Sensory Sync."],
+        more: [{ label: "(Challenge)", text: "Keeping a seasonal piece playful rather than gory: the pumpkin's expression and the melting letters carry the mood, while the brand's name stays readable through the drips." }],
+      },
+      final: {
+        label: "(Final result)",
+        title: "The final *spot*",
+        videos: [{ line: "15s spot · Sensory Sync, TMM showroom screens" }],
+      },
+      carousel: [],
+    },
     poster: "/proyectos/tmm-halloween-spot/poster.webp",
     cover: "/proyectos/tmm-halloween-spot/poster.webp",
     preview: "/proyectos/tmm-halloween-spot/preview.mp4",
@@ -272,6 +292,28 @@ export const PROJECTS = [
     credits: null,
     video: "/proyectos/spotify-daylist-social-campaign/spotify-daylist-social-campaign",
     videoSizes: [1080, 720],
+    layout: "case",
+    case: {
+      pictureSize: [1920, 1080],
+      coverTitle: ["*Spotify*", "Daylist Social Campaign"],
+      coverKicker: "Spotify · Social campaign",
+      // DRAFT (the statement and the creative response's statement and text: to be checked)
+      statement: "A mobile-first social ad that turns Spotify's ever-changing Daylist into bold, mood-driven motion.",
+      tags: ["Spotify", "Daylist", "Social Ads", "Motion Design"],
+      // (the main video's frame at 5.19s: sharp, mid-shot)
+      picture: { src: "/proyectos/spotify-daylist-social-campaign/mockups/frame-5.19s", alt: "A phone reading \"electro dance afternoon\", surrounded by decks, headphones and pixel sunglasses" },
+      creative: {
+        statement: "A playlist that rewrites itself, so the ad *keeps changing* too: quick, mood-driven and native to the feed.",
+        paragraphs: ["Each daylist mood — like \"electro dance afternoon\" — gets its own burst of colour and objects around the phone, cut at the pace of the feed so the ad blends in instead of announcing itself."],
+        more: [{ label: "(Challenge)", text: "Daylist is a playlist that rewrites itself throughout the day, so the ad needed to move the same way — quick, mood-driven, never quite the same twice. It had to run as sponsored content and blend into the feed rather than announce itself as an ad." }],
+      },
+      final: {
+        label: "(Final result)",
+        title: "The final *ad*",
+        videos: [{ line: "16s social ad · sponsored content" }],
+      },
+      carousel: [],
+    },
     poster: "/proyectos/spotify-daylist-social-campaign/poster.webp",
     cover: "/proyectos/spotify-daylist-social-campaign/poster.webp",
     preview: "/proyectos/spotify-daylist-social-campaign/preview.mp4",
@@ -292,6 +334,28 @@ export const PROJECTS = [
     credits: null,
     video: "/proyectos/sitges-festival-motion-spot/sitges-festival-motion-spot",
     videoSizes: [1080, 720],
+    layout: "case",
+    case: {
+      pictureSize: [1920, 1080],
+      coverTitle: ["*Sitges*", "Festival Motion Spot"],
+      coverKicker: "Sitges Film Festival · Freaks",
+      // DRAFT (the statement and the creative response's statement and text: to be checked)
+      statement: "A 2D character spot for Sitges, reinterpreting Freaks as a mirror for the festival's own cult audience.",
+      tags: ["Sitges", "Film Festival", "2D Animation", "Rigging"],
+      // (the main video's frame at 11.74s: sharp, mid-shot)
+      picture: { src: "/proyectos/sitges-festival-motion-spot/mockups/frame-11.74s", alt: "The spot's character, a close-up of his frowning face against red" },
+      creative: {
+        statement: "A character who *belongs to the crowd*: different, proud of it, and right at home in Sitges.",
+        paragraphs: ["2D animation and rigging bring a character to life at a retro desk — searching, failing, reacting — celebrating the cult community that defines the spirit of Sitges."],
+        more: [{ label: "(Challenge)", text: "Sitges wanted Freaks reinterpreted as a mirror for its own audience — people who wear being different as a badge of honour. The piece needed a character that felt like it belonged to that crowd, screened in 2024 ahead of the film's restoration." }],
+      },
+      final: {
+        label: "(Final result)",
+        title: "The final *spot*",
+        videos: [{ line: "39s festival spot" }],
+      },
+      carousel: [],
+    },
     poster: "/proyectos/sitges-festival-motion-spot/poster.webp",
     cover: "/proyectos/sitges-festival-motion-spot/poster.webp",
     preview: "/proyectos/sitges-festival-motion-spot/preview.mp4",
@@ -310,6 +374,28 @@ export const PROJECTS = [
     year: YEAR,
     credits: null,
     video: "/projects/caprabo-tienda-1.mp4",
+    layout: "case",
+    case: {
+      pictureSize: [1080, 608],
+      coverTitle: ["*Caprabo*"],
+      coverKicker: "Caprabo · In-store screens",
+      // DRAFT (the statement and the creative response's statement and text: to be checked)
+      statement: "Holographic 3D animations that make supermarket offers float off Caprabo's in-store screens.",
+      tags: ["Caprabo", "Retail", "Holographic", "3D"],
+      // (the main video's frame at 1.43s: sharp, mid-shot)
+      picture: { src: "/proyectos/Caprabo/mockups/frame-1.43s", alt: "A tall in-store screen on a column of a Caprabo supermarket, \"250.000 productes gratis\"" },
+      creative: {
+        statement: "On a flat screen, products that *float*: a holographic depth made to catch the eye mid-aisle.",
+        paragraphs: ["Of all the in-store pieces, the holographic display was the one worth pushing: 3D products animated with a realistic floating effect, made to stand out where a flat screen can't."],
+        more: [{ label: "(Challenge)", text: "Supermarkets aren't built for excitement, and animating offers for in-store screens could easily have stayed that way. The one piece worth pushing further was the holographic display — a chance to make products stand out in a way a flat screen just can't." }],
+      },
+      final: {
+        label: "(Final result)",
+        title: "The final *loop*",
+        videos: [{ line: "In-store screen loop", poster: "/works/posters/caprabo.jpg", ratio: [1, 1] }],
+      },
+      carousel: [],
+    },
     poster: "/works/posters/caprabo.jpg",
     cover: "/works/covers/caprabo.jpg",
     preview: "/proyectos/Caprabo/Tienda/Tienda 1.mp4",
@@ -330,6 +416,28 @@ export const PROJECTS = [
     credits: null,
     video: "/proyectos/fallas-festival-motion-visuals/fallas-festival-motion-visuals",
     videoSizes: [1080, 720],
+    layout: "case",
+    case: {
+      pictureSize: [1920, 1080],
+      coverTitle: ["*Fallas*", "Festival Motion Visuals"],
+      coverKicker: "Fallas · Valencia",
+      // DRAFT (the statement and the creative response's statement and text: to be checked)
+      statement: "Valencia's festival of fire in 2D: the Ofrenda, the Mascletà and the Cremà, set in motion.",
+      tags: ["Fallas", "Valencia", "2D Animation", "Motion Design"],
+      // (the main video's frame at 21s: sharp, mid-shot)
+      picture: { src: "/proyectos/fallas-festival-motion-visuals/mockups/frame-21s", alt: "Two figures resting by a falla in flames as a third climbs the steps above" },
+      creative: {
+        statement: "Fire, music and colour, *drawn flat and bold*: the city's biggest moments, kept loud, never decorative.",
+        paragraphs: ["Key moments of the festival — the Ofrenda, the Mascletà and the Cremà — become flat, bold 2D scenes, with their characters and their fire in the city's colours."],
+        more: [{ label: "(Challenge)", text: "Fallas is fire, music, colour and the whole city out in the street every March — it's not a subtle thing to animate. The challenge was turning key moments like the Ofrenda, the Mascletà and the Cremà into 2D animation without flattening them into decoration." }],
+      },
+      final: {
+        label: "(Final result)",
+        title: "The final *piece*",
+        videos: [{ line: "60s motion piece" }],
+      },
+      carousel: [],
+    },
     poster: "/proyectos/fallas-festival-motion-visuals/poster.webp",
     cover: "/proyectos/fallas-festival-motion-visuals/preview.webp",
     preview: "/proyectos/fallas-festival-motion-visuals/preview.mp4",
@@ -350,6 +458,28 @@ export const PROJECTS = [
     credits: null,
     video: "/proyectos/ron-barcelo-summer-spot/ron-barcelo-summer-spot",
     videoSizes: [720],
+    layout: "case",
+    case: {
+      pictureSize: [1920, 1080],
+      coverTitle: ["*Ron Barceló*", "Summer Spot"],
+      coverKicker: "Ron Barceló · Summer",
+      // DRAFT (the statement and the creative response's statement and text: to be checked)
+      statement: "A short summer spot for Ron Barceló: bold colour and energetic motion from the very first frame.",
+      tags: ["Ron Barceló", "Summer", "Motion Design", "Editing"],
+      // (the main video's frame at 5.5s: sharp, mid-shot)
+      picture: { src: "/proyectos/ron-barcelo-summer-spot/mockups/frame-5.5s", alt: "A sun-drawn circle framed by jungle leaves, in the spot's flat illustrated style" },
+      creative: {
+        statement: "No slow build-up: *summer* hits from the first frame, in colour, movement and heat.",
+        paragraphs: ["A vibrant, sun-soaked atmosphere carried by bold colour and energetic motion — flowers, birds and jungle leaves opening onto the sun."],
+        more: [{ label: "(Challenge)", text: "Ron Barceló wanted something that feels like summer the second it starts playing — colour, movement, heat, no slow build-up." }],
+      },
+      final: {
+        label: "(Final result)",
+        title: "The final *spot*",
+        videos: [{ line: "18s promotional spot" }],
+      },
+      carousel: [],
+    },
     poster: "/proyectos/ron-barcelo-summer-spot/poster.webp",
     cover: "/proyectos/ron-barcelo-summer-spot/poster.webp",
     preview: "/proyectos/ron-barcelo-summer-spot/preview.mp4",
@@ -370,6 +500,28 @@ export const PROJECTS = [
     credits: null,
     video: "/proyectos/bizlunch-app-promo-spot/bizlunch-app-promo-spot",
     videoSizes: [1080, 720],
+    layout: "case",
+    case: {
+      pictureSize: [1920, 1080],
+      coverTitle: ["*BizLunch*", "App Promo Spot"],
+      coverKicker: "BizLunch · App launch",
+      // DRAFT (the statement and the creative response's statement and text: to be checked)
+      statement: "A promo film for BizLunch, the app that matches professionals for business lunches.",
+      tags: ["BizLunch", "App", "Promo", "Motion Design"],
+      // (the main video's frame at 33.45s: sharp, mid-shot)
+      picture: { src: "/proyectos/bizlunch-app-promo-spot/mockups/frame-33.45s", alt: "The BizLunch app on a phone, a list of restaurants to book" },
+      creative: {
+        statement: "From lunch alone at your desk to a *matched meeting*: the app's promise, told in one film.",
+        paragraphs: ["The spot cuts between a real meetup and the screens that make it happen — matching, booking and ratings — so the app feels real, not just a concept."],
+        more: [{ label: "(Challenge)", text: "Nobody's used an app like this before, so the video had to sell the idea itself — going from lunch alone at your desk to a matched meeting — and still show enough of the app (matching, booking, ratings) to make it feel real, not just a concept trailer." }],
+      },
+      final: {
+        label: "(Final result)",
+        title: "The final *film*",
+        videos: [{ line: "1:45 promo film" }],
+      },
+      carousel: [],
+    },
     poster: "/proyectos/bizlunch-app-promo-spot/poster.webp",
     cover: "/proyectos/bizlunch-app-promo-spot/preview.webp",
     preview: "/proyectos/bizlunch-app-promo-spot/preview.mp4",

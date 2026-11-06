@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { ORANGE_PALETTE } from "./palette.js";
 import { canvasPixelRatio } from "./viewport.js";
+import { GRAIN_PLANE } from "./grain.js";
 
 // ---- Experience: a timeline flown over by a paper plane -----------------------
 // The section after the "Still thirsty for more?" screen, inside the black
@@ -146,7 +147,7 @@ const XP_PATH_LEGS = [
 // the gradient goes with it however it turns. Each face is a touch lighter
 // or darker than that with the way it faces (XP_PLANE_SHADE: towards the
 // palette's cream, or the same color deeper; never gray), so it still reads
-// as folded paper; with the titles' grain over it (XP_PLANE_GRAIN, as
+// as folded paper; with the titles' grain over it (grain.js's GRAIN_PLANE, as
 // --more-grain) and thin lighter edges. It leans into its turns (XP_BANK, clamped to
 // XP_BANK_MAX). Where it is and how it is turned come from the scroll alone:
 // when the scroll stops, so does the plane.
@@ -170,7 +171,6 @@ const XP_PLANE_GRADIENT = [
   [1, ORANGE_PALETTE.coral], // the nose
 ];
 const XP_PLANE_SHADE = 0.14; // how much lighter or darker a face gets, 0..1
-const XP_PLANE_GRAIN = 0.28; // the strongest a pixel of grain gets, 0..1
 const XP_DEPTH_SCALE = 0.22; // size change at depth +-1
 const XP_DEPTH_VW = 9; // how deep "1" is, for the turn towards the viewer
 const XP_BANK = 0.022;
@@ -392,7 +392,7 @@ function planeOf(canvas) {
         uTail: { value: keel[0] },
         uNose: { value: nose[0] },
         uShade: { value: XP_PLANE_SHADE },
-        uGrain: { value: XP_PLANE_GRAIN },
+        uGrain: { value: GRAIN_PLANE },
       },
       vertexShader: `
         varying vec3 vView;

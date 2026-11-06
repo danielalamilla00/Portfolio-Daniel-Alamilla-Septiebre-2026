@@ -6,7 +6,9 @@ import { plainTitle } from "./title.js";
 import { nextProjects, projectUrl } from "./data/projects.js";
 import { projectEnd } from "./project-end.js";
 import { setSource, upgrade } from "./video-source.js";
-import { picture } from "./showcase.js";
+import { playButton } from "./play-button.js";
+
+gsap.registerPlugin(ScrollTrigger);
 
 // ---- A project's page, as a case study (projects.js: layout: "case") ---------------
 // The third template for a project's page (work.html), in sections that take
@@ -16,10 +18,10 @@ import { picture } from "./showcase.js";
 // (pinned) while the next comes up over it and covers it. In order:
 //   - the cover (dark): the video, the whole screen, muted, in a loop, clean
 //     (a soft shade at the bottom left only); the name at the bottom left,
-//     small over it the client and the city (and, if the project asks for it,
-//     a round "Play" at its bottom right). Held (from its top, CS_STACK_VH
-//     of scroll), the next section
-//     covers it; nothing on it moves by itself;
+//     small over it the client and the city; nothing to press (the whole
+//     video, with its sound, is the final result's). Held (from its top,
+//     CS_STACK_VH of scroll), the next section covers it; nothing on it
+//     moves by itself;
 //   - the statement (light): a big sentence whose words light up one after
 //     another as it crosses the screen; on the right, lower, "(About the
 //     project)" and its text; its tags and its facts; a picture, at
@@ -86,6 +88,32 @@ function element(tag, className, text) {
   return el;
 }
 
+// What the page shown now has set going outside its own elements — on the
+// window, the document, the screen's size, observers —, all undone when it is
+// left (renderCase's destroy): `scope.abort` for listeners, `scope.undo` for
+// the rest.
+let scope = null;
+const onView = (run) => scope.undo.push(onViewportChange(run));
+function observe(callback, target, options) {
+  const observer = new IntersectionObserver(callback, options);
+  observer.observe(target);
+  scope.undo.push(() => observer.disconnect());
+}
+
+// A picture of the project's (its two sizes: <base>-1280.webp, -2400.webp),
+// `size` its [width, height], from which its box is made before it comes in.
+function picture({ src, alt }, sizes, className, size) {
+  const image = element("img", className);
+  image.src = encodeURI(`${src}-1280.webp`);
+  image.srcset = `${encodeURI(`${src}-1280.webp`)} 1280w, ${encodeURI(`${src}-2400.webp`)} 2400w`;
+  image.sizes = sizes;
+  image.alt = alt;
+  [image.width, image.height] = size;
+  image.loading = "lazy";
+  image.decoding = "async";
+  return image;
+}
+
 // A sentence in the web's two letters, a word at a time (so that its words
 // can light up one by one): its *words between asterisks* in Catavalo
 // (`displayClass`: in the gradient on the dark, .title-display on the light),
@@ -103,8 +131,14 @@ function phrase(text, displayClass) {
 }
 const highlight = (tone) => (tone === "dark" ? "title-gradient" : "title-display");
 
+// What it gives back: what takes the page down again (project.js, another
+// project shown in its place).
 export function renderCase(project) {
   const data = project.case;
+  // (never another template in its place: a project with no case is a mistake in projects.js)
+  if (!data) throw new Error(`projects.js: "${project.slug}" has no case`);
+  const mine = (scope = { abort: new AbortController(), undo: [] });
+  const context = gsap.context(() => {});
   const size = data.pictureSize;
   document.title = `alamilla | ${plainTitle(project.title)}`;
   document.body.classList.add("is-case");
@@ -126,7 +160,7 @@ export function renderCase(project) {
   const frame = (one, sizes, className = "") => {
     const box = element("figure", `cs-frame ${className}`);
     box.style.aspectRatio = `${size[0]} / ${size[1]}`;
-    box.appendChild(picture(one, sizes, "cs-picture", false, size));
+    box.appendChild(picture(one, sizes, "cs-picture", size));
     return box;
   };
 
@@ -141,8 +175,7 @@ export function renderCase(project) {
   coverVideo.poster = encodeURI(project.poster);
   coverVideo.setAttribute("aria-hidden", "true");
   // (its own video, or the one the project gives its cover)
-  const coverFiles = { title: project.title, ...(data.coverVideo || { video: project.video, videoSizes: project.videoSizes }) };
-  setSource(coverVideo, coverFiles, Math.round(window.innerWidth * window.devicePixelRatio));
+  setSource(coverVideo, data.coverVideo || project, Math.round(window.innerWidth * window.devicePixelRatio));
   const heading = element("div", "cs-cover-heading");
   const name = element("h1", "cs-cover-title");
   data.coverTitle.forEach((line) => {
@@ -152,7 +185,6 @@ export function renderCase(project) {
   });
   heading.append(element("p", "cs-kicker", data.coverKicker), name);
   cover.append(coverVideo, element("div", "cs-cover-shade"), heading);
-  if (data.coverPlay) playable(coverFiles, { box: cover, video: coverVideo, playHost: cover, watchHost: cover });
 
   // -- the statement
   const intro = section("light", "intro");
@@ -207,7 +239,8 @@ export function renderCase(project) {
   page.append(cover, intro, room, creative);
   // …and the aura, with the page's foot, at its end (in it: no edge) — and
   // over it, the related projects
-  const end = projectEnd(project, creative, "", { footOnly: true }).end;
+  const ending = projectEnd(creative);
+  const end = ending.end;
   const related = relatedBlock(project);
   related.id = "related";
   end.insertBefore(related, end.querySelector(".pj-foot"));
@@ -216,14 +249,17 @@ export function renderCase(project) {
   document.body.appendChild(bar);
 
   applyGrain();
-  stack(sections);
+  context.add(() => stack(sections));
   watchTones(sections, end, bar);
   playWhileSeen(coverVideo, cover);
   document.fonts.ready.then(() => {
-    page.querySelectorAll(".cs-statement").forEach(lightUp);
-    holdPicture(intro, wide, room);
-    comeIn(page);
-    drift(pairFrames);
+    if (mine.dead) return;
+    context.add(() => {
+      page.querySelectorAll(".cs-statement").forEach(lightUp);
+      holdPicture(intro, wide, room);
+      comeIn(page);
+      drift(pairFrames);
+    });
     ScrollTrigger.refresh();
   });
   // (measured again once the videos and pictures are in)
@@ -234,7 +270,28 @@ export function renderCase(project) {
   };
   page.querySelectorAll("img").forEach((image) => image.addEventListener("load", later, { once: true }));
   page.querySelectorAll("video").forEach((video) => video.addEventListener("loadedmetadata", later, { once: true }));
-  onViewportChange(() => ScrollTrigger.refresh());
+  onView(() => ScrollTrigger.refresh());
+
+  return () => {
+    mine.dead = true;
+    clearTimeout(soon);
+    mine.abort.abort();
+    mine.undo.forEach((undo) => undo());
+    context.revert();
+    // (and what was made later, on a new size: holdPicture())
+    ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+    page.querySelectorAll("video").forEach((video) => {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+    });
+    if (document.fullscreenElement) document.exitFullscreen();
+    ending.destroy();
+    page.replaceChildren();
+    page.classList.remove("cs");
+    bar.remove();
+    document.body.classList.remove("is-case");
+  };
 }
 
 // The cover held from its top, for CS_STACK_VH of scroll, while the
@@ -289,7 +346,7 @@ function holdPicture(statement, picture, room) {
     timeline.to(state, { inset: 0, ease: "none", duration: widenPx, onUpdate: () => set(state.inset) }).to({}, { duration: stillPx + coverPx });
   };
   make();
-  onViewportChange(make);
+  onView(make);
 }
 
 // A big sentence's words, from CS_LIT_FROM to whole, one after another, as it
@@ -323,14 +380,15 @@ function watchTones(boxes, end, bar) {
     queued = true;
     requestAnimationFrame(look);
   };
-  window.addEventListener("scroll", ask, { passive: true });
+  window.addEventListener("scroll", ask, { passive: true, signal: scope.abort.signal });
   ScrollTrigger.addEventListener("refresh", ask);
+  scope.undo.push(() => ScrollTrigger.removeEventListener("refresh", ask));
   look();
 }
 
-// The cover's video: a muted loop moving only while it is seen.
+// A muted loop moving only while `box` is seen.
 function playWhileSeen(video, box) {
-  new IntersectionObserver(([entry]) => (entry.isIntersecting ? video.play().catch(() => {}) : video.pause())).observe(box);
+  observe(([entry]) => (entry.isIntersecting ? video.play().catch(() => {}) : video.pause()), box);
 }
 
 // Coming in, once: labels, texts, tags, facts and cards fading and rising,
@@ -359,15 +417,20 @@ function drift(frames) {
   });
 }
 
-// A video played: a round "Play" (in `playHost`) — pressed, from its start,
-// in a loop, with its sound and controls of its own (play / pause, where it
-// is, sound, full screen: of `box`), `watchHost` marked .is-watching; a
-// bigger file in full screen (video-source.js). What it gives back: the
-// "Play".
+// A video played: the play / pause button (play-button.js) in `playHost` —
+// it, or the video, pressed: from its start, in a loop, with its sound and
+// controls of its own (play / pause, where it is, sound, full screen: of
+// `box`), `watchHost` marked .is-watching; a bigger file in full screen
+// (video-source.js). What it gives back: the button.
 function playable(project, { box: cover, video: first, playHost, watchHost }) {
   let video = first;
-  const play = element("button", "cs-play", "Play");
-  play.type = "button";
+  const play = playButton(playHost, () => video, () => {
+    watchHost.classList.add("is-watching");
+    video.loop = true;
+    video.currentTime = 0;
+    video.muted = false;
+    video.play().catch(() => {});
+  });
   const controls = element("div", "pj-controls cs-controls");
   const toggle = element("button", "pj-control", "Pause");
   const bar = element("div", "pj-bar");
@@ -389,13 +452,6 @@ function playable(project, { box: cover, video: first, playHost, watchHost }) {
   cover.addEventListener("pause", (event) => mine(event) && (toggle.textContent = "Play"), true);
   cover.addEventListener("volumechange", (event) => mine(event) && (sound.textContent = video.muted ? "Sound on" : "Sound off"), true);
   cover.addEventListener("timeupdate", (event) => mine(event) && video.duration && (fill.style.transform = `scaleX(${(video.currentTime / video.duration).toFixed(4)})`), true);
-  play.addEventListener("click", () => {
-    watchHost.classList.add("is-watching");
-    video.loop = true;
-    video.currentTime = 0;
-    video.muted = false;
-    video.play().catch(() => {});
-  });
   toggle.addEventListener("click", () => (video.paused ? video.play().catch(() => {}) : video.pause()));
   sound.addEventListener("click", () => (video.muted = !video.muted));
   const seekTo = (event) => {
@@ -411,18 +467,23 @@ function playable(project, { box: cover, video: first, playHost, watchHost }) {
   });
   if (document.fullscreenEnabled) {
     full.addEventListener("click", () => (document.fullscreenElement ? document.exitFullscreen() : cover.requestFullscreen()));
-    document.addEventListener("fullscreenchange", () => {
-      full.textContent = document.fullscreenElement ? "Exit full screen" : "Full screen";
-      if (document.fullscreenElement === cover) upgrade(video, project, Math.round(window.screen.width * window.devicePixelRatio), (next) => (video = next));
-    });
+    document.addEventListener(
+      "fullscreenchange",
+      () => {
+        full.textContent = document.fullscreenElement ? "Exit full screen" : "Full screen";
+        if (document.fullscreenElement === cover) upgrade(video, project, Math.round(window.screen.width * window.devicePixelRatio), (next) => (video = next));
+      },
+      { signal: scope.abort.signal }
+    );
   } else full.hidden = true;
   return play;
 }
 
 // The final result: its label and title (coming in as the others); its
 // videos (case.final.videos: each its files — the project's, if it gives
-// none — its poster and a line), one under another, each in the margins,
-// still — a sharp frame of it and a round "Play" in its middle — until it,
+// none — its poster and a line), one under another, each centered, as wide
+// as case.css's --case-video-width at the most, 16:9 (one of another shape,
+// one.ratio: whole in it), still — a sharp frame of it and a round "Play" in its middle — until it,
 // or the video, is pressed: then from its start, with its sound, its
 // controls (playable()), in a loop. Only what it needs to start is loaded
 // until then (preload "metadata"); off the screen it stops; a line under
@@ -439,6 +500,8 @@ function finalBlock(project, { label: text, title, videos }) {
     const wrap = element("div", "cs-final-wrap");
     const box = element("div", "cs-final-box");
     const video = element("video", "cs-final-video");
+    // (a video of another shape — one.ratio —: whole in the 16:9 box, black round it)
+    if (one.ratio) video.classList.add("is-whole");
     video.playsInline = true;
     video.preload = "metadata";
     video.poster = encodeURI(one.poster || project.poster);
@@ -446,21 +509,15 @@ function finalBlock(project, { label: text, title, videos }) {
     setSource(video, files, Math.round(window.innerWidth * 0.92 * window.devicePixelRatio));
     box.appendChild(video);
     wrap.appendChild(box);
-    const play = playable(files, { box, video, playHost: wrap, watchHost: wrap });
-    const start = () => {
-      if (wrap.classList.contains("is-watching")) return;
-      play.click();
-    };
-    video.addEventListener("click", start);
-    wrap.addEventListener("click", (event) => event.target === play || (!event.target.closest(".cs-controls") && start()));
+    playable(files, { box, video, playHost: wrap, watchHost: wrap });
     const foot = element("div", "cs-final-line");
     foot.appendChild(element("p", "cs-caption", one.line));
     block.append(wrap, foot);
-    new IntersectionObserver(([entry]) => {
+    observe(([entry]) => {
       if (entry.isIntersecting) return;
       const now = box.querySelector(".cs-final-video:last-of-type") || video;
       now.pause();
-    }).observe(box);
+    }, box);
   });
   return { block };
 }
@@ -494,12 +551,10 @@ function socialBlock(project, { label: text, title, text: words, videos }) {
     setSource(video, files, Math.round(window.innerWidth * (phone() ? 0.72 : 0.3) * window.devicePixelRatio));
     box.appendChild(video);
     wrap.appendChild(box);
-    const play = playable(files, { box, video, playHost: wrap, watchHost: wrap });
-    play.classList.add("is-small");
-    video.addEventListener("click", () => wrap.classList.contains("is-watching") || play.click());
+    playable(files, { box, video, playHost: wrap, watchHost: wrap });
     item.append(wrap, element("figcaption", "cs-caption", one.line));
     row.appendChild(item);
-    new IntersectionObserver(([entry]) => entry.isIntersecting || box.querySelector("video").pause()).observe(box);
+    observe(([entry]) => entry.isIntersecting || box.querySelector("video").pause(), box);
     return wrap;
   });
   // (one at a time: one starting stops the others — whichever file each plays)
@@ -521,7 +576,7 @@ function carouselBlock(pictures, size) {
   pictures.forEach((one) => {
     const slide = element("figure", "cs-frame cs-slide");
     slide.style.aspectRatio = `${size[0]} / ${size[1]}`;
-    const image = picture(one, "92vw", "cs-picture", false, size);
+    const image = picture(one, "92vw", "cs-picture", size);
     image.draggable = false;
     slide.appendChild(image);
     track.appendChild(slide);

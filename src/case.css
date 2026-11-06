@@ -5,13 +5,12 @@
    the case's class in front: over project.css's own (".pj p", ".pj"…).
      --cs-ink    the words' colour on the section's ground
      --cs-line   the fine lines'
-     --cs-gap    the room at a section's top and foot */
+     --cs-gap    the room at a section's top and foot
+     --case-video-width  how wide the dark layer's wide videos get at the
+                 most (the final result's), centered */
 .pj.cs {
   --cs-gap: 12vh;
-  padding: 0;
-}
-body.is-case .pj-aura {
-  display: none;
+  --case-video-width: clamp(320px, 70vw, 1200px);
 }
 /* (each at least a screen tall: held, it is all the screen while the next
    comes up over it) */
@@ -85,12 +84,14 @@ body.is-case .pj-aura {
   padding: 0;
   overflow: hidden;
 }
+/* (only a background: nothing happens when it is pressed) */
 .cs .cs-cover-video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
 }
 .cs .cs-cover-shade {
   position: absolute;
@@ -168,29 +169,63 @@ body.is-case .pj-aura {
   background-color: transparent;
 }
 
-/* -- a video's round "Play"; its controls once it is watched (case.js) —
-   on the cover (if it has one), at its bottom right, the name out of the
-   controls' way */
-.cs .cs-play {
+/* -- a video's play / pause button (play-button.js): in its middle, round,
+   frosted, no words; hidden while it plays until the pointer moves over it.
+   Its icon in its middle (a square viewBox, centered by flex), the triangle
+   2px to the right: it reads as in the middle. With the pointer over its
+   video (.pb-host), and the video not playing: the picture under it grows to
+   1.05 (in its box, which cuts it) and the button to 1.1, a little more
+   opaque; back the same way. */
+.pb {
   position: absolute;
   z-index: 3;
-  width: 84px;
-  height: 84px;
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
-  background-color: rgba(10, 10, 10, 0.35);
+  background-color: rgba(255, 255, 255, 0.25);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
-  color: var(--c-cream);
-  font: inherit;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  color: #ffffff;
+  translate: -50% -50%;
   cursor: pointer;
-  transition: background-color 0.25s ease, opacity 0.25s ease;
+  transition: opacity 0.2s ease, scale 0.6s ease, background-color 0.6s ease;
 }
-.cs .cs-play:hover {
-  background-color: rgba(10, 10, 10, 0.6);
+.pb svg {
+  display: block;
+  flex: none;
+  translate: 2px 0;
+}
+.pb.is-pause svg {
+  translate: 0 0;
+}
+.cs .cs-final-video,
+.cs .cs-social-video {
+  transition: transform 0.6s ease;
+}
+@media (hover: hover) {
+  .pb:hover,
+  .pb-host:not(.is-playing):hover .pb {
+    scale: 1.1;
+    background-color: rgba(255, 255, 255, 0.35);
+  }
+  .cs .pb-host:not(.is-playing):hover :is(.cs-final-video, .cs-social-video) {
+    transform: scale(1.05);
+  }
+}
+.pb:focus-visible {
+  outline: 2px solid var(--c-cream);
+  outline-offset: 3px;
+}
+.pb.is-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 .cs .cs-controls {
   opacity: 0;
@@ -200,23 +235,6 @@ body.is-case .pj-aura {
 .cs .is-watching .cs-controls {
   opacity: 1;
   pointer-events: auto;
-}
-.cs .is-watching > .cs-play {
-  opacity: 0;
-  pointer-events: none;
-}
-.cs .cs-cover > .cs-play {
-  right: var(--page-margin);
-  bottom: calc(var(--page-margin) + var(--browser-bar));
-}
-.cs .cs-cover-heading {
-  transition: opacity 0.4s ease;
-}
-.cs .cs-cover.is-watching .cs-cover-heading {
-  opacity: 0;
-}
-.cs .cs-cover:fullscreen .cs-cover-video {
-  object-fit: contain;
 }
 
 /* (the room under the statement, held, where its picture widens and stays:
@@ -256,6 +274,13 @@ body.is-case .pj-aura {
   font-weight: 400;
   line-height: 1.05;
 }
+/* (every wide video with a "Play" in the dark layer — the final result's:
+   --case-video-width at the most, centered; its title stays on the margin) */
+.cs .cs-final-wrap,
+.cs .cs-final-line {
+  width: min(100%, var(--case-video-width));
+  margin-inline: auto;
+}
 .cs .cs-final-wrap {
   position: relative;
   margin-top: 6vh;
@@ -277,11 +302,8 @@ body.is-case .pj-aura {
   height: 100%;
   object-fit: cover;
 }
-/* (in the video's middle) */
-.cs .cs-final-wrap .cs-play {
-  top: 50%;
-  left: 50%;
-  translate: -50% -50%;
+.cs .cs-final-video.is-whole {
+  object-fit: contain;
 }
 .cs .cs-final-box:fullscreen {
   aspect-ratio: auto;
@@ -337,16 +359,6 @@ body.is-case .pj-aura {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-.cs .cs-social-wrap .cs-play {
-  top: 50%;
-  left: 50%;
-  translate: -50% -50%;
-}
-.cs .cs-play.is-small {
-  width: 64px;
-  height: 64px;
-  font-size: 10px;
 }
 .cs .cs-social-box:fullscreen {
   aspect-ratio: auto;
@@ -495,9 +507,8 @@ body.is-case .pj-aura {
   opacity: 1;
 }
 
-/* -- the foot over the aura, right after (no black between) */
+/* -- the foot over the aura, in the page's margins */
 .cs .pj-end {
-  --pj-end-gap: 0px;
   padding-inline: var(--page-margin);
 }
 
@@ -563,6 +574,10 @@ body.is-case .pj-aura {
 /* -- a phone: one column, labels over their texts; the pictures out of line
    one under the other; the bar, back and "Contact us" */
 @media (max-width: 767px) {
+  .pb {
+    width: 52px;
+    height: 52px;
+  }
   .cs .cs-cover-title {
     font-size: 12vw;
   }
@@ -608,10 +623,6 @@ body.is-case .pj-aura {
   }
   .cs .cs-card {
     flex-basis: 82%;
-  }
-  .cs .cs-play {
-    width: 64px;
-    height: 64px;
   }
   .cs-bar-name,
   .cs-bar-related,

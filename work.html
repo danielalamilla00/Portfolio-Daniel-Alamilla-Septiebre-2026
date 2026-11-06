@@ -9,16 +9,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@100..900&display=swap" rel="stylesheet">
     <!-- The home's stylesheet (the nav, the fonts, the page's variables), then
-         this page's own, and those of a project shown as a showcase or as
-         a case study. -->
+         this page's own and its case study's. -->
     <link rel="stylesheet" href="/src/style.css" />
     <link rel="stylesheet" href="/src/project.css" />
-    <link rel="stylesheet" href="/src/showcase.css" />
     <link rel="stylesheet" href="/src/case.css" />
   </head>
   <body class="project grain">
-    <!-- The aura behind the project's head (src/project-aura.js). -->
-    <canvas class="pj-aura" aria-hidden="true"></canvas>
     <!-- The home's nav; its links go back to the home's sections. -->
     <nav id="site-nav">
       <a class="nav-home" href="index.html"><img class="nav-logo" src="/logo-alamilla-new.svg" alt="Alamilla" /></a>
@@ -35,7 +31,7 @@
       <button class="nav-menu" type="button" aria-expanded="false" aria-controls="site-menu">menu</button>
       <p class="nav-clock"><span>valencia</span> <time id="nav-clock-time"></time></p>
     </nav>
-    <!-- A project: one template for all of them, filled in by src/project.js
+    <!-- A project: its case study (src/case.js), filled in by src/project.js
          from src/data/projects.js, for the project in the address
          (work.html#<slug>). -->
     <main class="pj"></main>

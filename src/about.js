@@ -1,4 +1,4 @@
-import { grainOverlay } from "./grain.js";
+import { grainOverlay, GRAIN_PICTURE } from "./grain.js";
 import { onViewportChange } from "./viewport.js";
 import { whenFontsLoad } from "./ink.js";
 
@@ -69,8 +69,7 @@ const ABOUT_MARQUEE_EASE = 3;
 
 // Grain over the picture (grain.js's, in the form that goes over a picture):
 // a small tile of pixels a touch lighter or darker than what is under them,
-// made once. More of it than the dark backgrounds have.
-const ABOUT_GRAIN = 0.1; // the strongest a pixel gets, 0..1
+// made once. More of it than the dark backgrounds have (GRAIN_PICTURE).
 const ABOUT_GRAIN_TILE = 160; // px
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -92,7 +91,7 @@ export function createAbout(reducedMotion) {
   section.querySelector(".ab-photo img").src = encodeURI(`/${ABOUT_PHOTO}`);
   section.style.setProperty("--ab-photo-height", `${100 + ABOUT_PARALLAX * ABOUT_TRAVEL_VH}vh`);
   section.style.setProperty("--ab-content-height", `${100 + ABOUT_TRAVEL_VH}vh`);
-  section.style.setProperty("--ab-grain", `url(${grainOverlay(ABOUT_GRAIN, ABOUT_GRAIN_TILE)})`);
+  section.style.setProperty("--ab-grain", `url(${grainOverlay(GRAIN_PICTURE, ABOUT_GRAIN_TILE)})`);
   const late = blocks.map((block) => (block.classList.contains("ab-late") ? ABOUT_REVEAL_LATE_VH : 0));
 
   // The big texts' lines with their INK on the margin, not their box: the

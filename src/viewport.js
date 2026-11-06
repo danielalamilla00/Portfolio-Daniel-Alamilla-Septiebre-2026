@@ -24,8 +24,11 @@ function changed() {
 }
 window.addEventListener("resize", changed);
 window.addEventListener("orientationchange", changed);
+// What it gives back: a function that stops it (a project's page left).
 export function onViewportChange(run, always = false) {
-  listeners.push({ run, always });
+  const listener = { run, always };
+  listeners.push(listener);
+  return () => listeners.splice(listeners.indexOf(listener) >>> 0, 1);
 }
 
 // The breakpoints, the stylesheets' own: a phone under 768px wide, a tablet
