@@ -58,7 +58,8 @@
 //                  creative       the dark layer's big sentence (*keyword*),
 //                                 paragraphs (the creative response), more
 //                                 ([{ label, text }]: its challenge) and
-//                                 pictures (optional: two out of line)
+//                                 pictures (optional: two out of line, square; focus:
+//                                 the part kept, an object-position)
 //                  final          { label, title, videos: [{ line, poster,
 //                                 video?, videoSizes?, ratio? }] }
 //                  social         (optional) its vertical cut-downs
@@ -107,8 +108,8 @@ export const PROJECTS = [
           "A ten-second loop that turned the whole showroom into Waapiti AI's stage for the night — one visual identity, adapted to every screen in the space.",
         ],
         pictures: [
-          { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-02", alt: "Guests in front of the reveal on an event screen" },
-          { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-04", alt: "The reveal on a vertical screen in the showroom's window, seen from the street" },
+          { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-02", alt: "Guests in front of the reveal on an event screen", focus: "70% 50%" },
+          { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-04", alt: "The reveal on a vertical screen in the showroom's window, seen from the street", focus: "80% 50%" },
         ],
       },
       final: {
@@ -214,7 +215,7 @@ export const PROJECTS = [
         // (there is no picture of the autumn piece on the LED column: its window display)
         pictures: [
           { src: "/proyectos/tmm-sensory-sync-content/mockups/spheres-02", alt: "The spheres on the curved LED column of the showroom" },
-          { src: "/proyectos/tmm-sensory-sync-content/mockups/autumn-02", alt: "The autumn leaves on a window display facing the street" },
+          { src: "/proyectos/tmm-sensory-sync-content/mockups/autumn-02", alt: "The autumn leaves on a window display facing the street", focus: "85% 50%" },
         ],
       },
       final: {

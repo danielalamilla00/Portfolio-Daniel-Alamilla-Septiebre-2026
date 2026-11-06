@@ -6,8 +6,10 @@
      --cs-ink    the words' colour on the section's ground
      --cs-line   the fine lines'
      --cs-gap    the room at a section's top and foot
-     --case-video-width  how wide the dark layer's wide videos get at the
-                 most (the final result's), centered */
+     --case-video-width  the width of the one column everything of the
+                 cream and the dark sections is in (.cs-col): words, pictures
+                 and videos — the final result's as wide as it; centered
+                 (a phone: the screen less its margins) */
 .pj.cs {
   --cs-gap: 12vh;
   --case-video-width: clamp(320px, 70vw, 1200px);
@@ -18,6 +20,12 @@
   position: relative;
   min-height: 100svh;
   padding: var(--cs-gap) var(--page-margin);
+}
+/* (the one column: what is inside it is laid out in it — its edges the final
+   result's video's) */
+.cs .cs-col {
+  width: min(100%, var(--case-video-width));
+  margin-inline: auto;
 }
 .cs [data-tone="dark"] {
   --cs-ink: var(--c-cream);
@@ -162,11 +170,19 @@
   margin-top: -5%;
   object-fit: cover;
 }
-/* (it widens as it comes to the screen's middle, cut, and is held there:
-   case.js) */
+/* (the held picture: the whole screen, out of the column — --cs-screen,
+   case.js, its width without the scroll bar —; its mask opens to all of it
+   as it comes to the screen's middle, and it is held there: case.js) */
 .cs .cs-frame.cs-wide {
+  width: var(--cs-screen, 100vw);
+  height: 100svh;
   margin-top: 8vh;
+  margin-left: calc(50% - var(--cs-screen, 100vw) / 2);
   background-color: transparent;
+}
+.cs .cs-frame.cs-wide .cs-picture {
+  height: 100%;
+  margin-top: 0;
 }
 
 /* -- a video's play / pause button (play-button.js): in its middle, round,
@@ -250,9 +266,9 @@
 .cs .cs-creative {
   padding-bottom: 0;
 }
-.cs .cs-creative > .cs-final,
-.cs .cs-creative > .cs-social,
-.cs .cs-creative > .cs-carousel {
+.cs .cs-col > .cs-final,
+.cs .cs-col > .cs-social,
+.cs .cs-col > .cs-carousel {
   margin-top: var(--cs-gap);
 }
 .cs .cs-creative > .pj-end {
@@ -267,19 +283,12 @@
   margin-top: 0;
 }
 
-/* -- the final result: its label and title; the video in the margins, still
+/* -- the final result: its label and title; the video as wide as the column, still
    (its poster) until pressed, its "Play" in its middle; a line under it */
 .cs .cs-final-title {
   font-size: 3.4vw;
   font-weight: 400;
   line-height: 1.05;
-}
-/* (every wide video with a "Play" in the dark layer — the final result's:
-   --case-video-width at the most, centered; its title stays on the margin) */
-.cs .cs-final-wrap,
-.cs .cs-final-line {
-  width: min(100%, var(--case-video-width));
-  margin-inline: auto;
 }
 .cs .cs-final-wrap {
   position: relative;
@@ -374,19 +383,22 @@
   margin-top: 0.9rem;
 }
 
-/* -- the creative response: two pictures out of line with each other */
+/* -- the creative response: two square pictures out of line with each
+   other, the first on the left, the second on the right and lower */
 .cs .cs-pair {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-top: 8vh;
 }
-.cs .cs-pair-1 {
-  width: 45%;
-}
+.cs .cs-pair-1,
 .cs .cs-pair-2 {
-  align-self: flex-end;
-  width: 40%;
-  margin-top: -8vw;
+  width: 48%;
+}
+/* (lower by 35% of its height: its width, a square — a margin's % is of the
+   row's width: 0.35 × 48%) */
+.cs .cs-pair-2 {
+  margin-top: 16.8%;
 }
 
 /* -- the carousel: one picture at a time, sliding; its arrows */
@@ -574,6 +586,9 @@
 /* -- a phone: one column, labels over their texts; the pictures out of line
    one under the other; the bar, back and "Contact us" */
 @media (max-width: 767px) {
+  .pj.cs {
+    --case-video-width: 100%;
+  }
   .pb {
     width: 52px;
     height: 52px;
@@ -613,6 +628,9 @@
   .cs .cs-facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     row-gap: 1.25rem;
+  }
+  .cs .cs-pair {
+    flex-direction: column;
   }
   .cs .cs-pair-1,
   .cs .cs-pair-2 {

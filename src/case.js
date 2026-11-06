@@ -26,8 +26,9 @@ gsap.registerPlugin(ScrollTrigger);
 //     another as it crosses the screen; on the right, lower, "(About the
 //     project)" and its text; its tags and its facts; a picture, at
 //     CS_WIDEN_FROM of the width, held once in the screen's middle — one
-//     timeline on that hold: it widens to all of it (CS_HOLD_WIDEN_VH of
-//     scroll), stays whole and still (CS_HOLD_STILL_VH), and only then
+//     timeline on that hold: its mask opens to the whole screen, edge to
+//     edge (CS_HOLD_WIDEN_VH of scroll), the picture in it growing to
+//     CS_HOLD_ZOOM, stays whole and still (CS_HOLD_STILL_VH), and only then
 //   - one dark layer, to the end, comes up over it: the creative response (a
 //     big sentence lighting up the same way; the concept and the result; two
 //     pictures out of line, each moving at its own pace, if it has any); the
@@ -50,10 +51,13 @@ gsap.registerPlugin(ScrollTrigger);
 //                        up over it, in hundredths of the screen's height
 //   CS_LIT_FROM          how lit a big sentence's words are before the scroll
 //                        lights them up (their opacity)
-//   CS_WIDEN_FROM        how much of the width the held picture is at first
+//   CS_WIDEN_FROM        how much of the column's width the held picture's
+//                        mask shows at first
 //   CS_HOLD_WIDEN_VH     the scroll the held picture widens over, and
 //   CS_HOLD_STILL_VH     ...the scroll it then stays whole and still, before
 //                        the dark layer comes up (hundredths of the screen)
+//   CS_HOLD_ZOOM         how big the held picture grows inside its frame as
+//                        it widens (from 1; then it stays so)
 //   CS_REVEAL_*          how words and pictures come in (once, at
 //                        CS_REVEAL_START): from CS_REVEAL_RISE_PX lower, in
 //                        CS_REVEAL_S, one CS_REVEAL_STAGGER_S after another;
@@ -68,6 +72,7 @@ const CS_LIT_FROM = 0.15;
 const CS_WIDEN_FROM = 0.6;
 const CS_HOLD_WIDEN_VH = 70;
 const CS_HOLD_STILL_VH = 30;
+const CS_HOLD_ZOOM = 1.12;
 const CS_REVEAL_START = "top 85%";
 const CS_REVEAL_S = 0.9;
 const CS_REVEAL_STAGGER_S = 0.08;
@@ -152,15 +157,25 @@ export function renderCase(project) {
     return box;
   };
   const label = (text) => element("p", "cs-label", text);
+  // (the one column of the cream and the dark sections: case.css, .cs-col)
+  const column = (...parts) => {
+    const box = element("div", "cs-col");
+    box.append(...parts);
+    return box;
+  };
   const statement = (text, tone) => {
     const big = element("p", "cs-statement");
     big.append(...phrase(text, highlight(tone)));
     return big;
   };
-  const frame = (one, sizes, className = "") => {
+  // (its shape: the pictures' — `shape` another [width, height], or null:
+  // the stylesheet's —; what of the picture it shows: its focus, if it says)
+  const frame = (one, sizes, className = "", shape = size) => {
     const box = element("figure", `cs-frame ${className}`);
-    box.style.aspectRatio = `${size[0]} / ${size[1]}`;
-    box.appendChild(picture(one, sizes, "cs-picture", size));
+    if (shape) box.style.aspectRatio = `${shape[0]} / ${shape[1]}`;
+    const image = picture(one, sizes, "cs-picture", size);
+    if (one.focus) image.style.objectPosition = one.focus;
+    box.appendChild(image);
     return box;
   };
 
@@ -207,31 +222,33 @@ export function renderCase(project) {
   });
   const meta = element("div", "cs-meta");
   meta.append(tags, facts);
-  const wide = frame(data.picture, "92vw", "cs-wide");
-  intro.append(statement(data.statement, "light"), about, meta, wide);
+  // (always its 2400 file, a phone's too: it grows to CS_HOLD_ZOOM in its frame — holdPicture())
+  const wide = frame(data.picture, "1400px", "cs-wide", null);
+  intro.appendChild(column(statement(data.statement, "light"), about, meta, wide));
 
   // -- the dark layer, to the end: the creative response and the result…
   const creative = section("dark", "creative");
   const concept = element("div", "cs-aside");
   concept.append(label("(Creative response)"), ...data.creative.paragraphs.map((text) => element("p", "cs-copy", text)));
   (data.creative.more || []).forEach(({ label: name, text }) => concept.append(label(name), element("p", "cs-copy", text)));
-  creative.append(statement(data.creative.statement, "dark"), concept);
+  const darkColumn = column(statement(data.creative.statement, "dark"), concept);
+  creative.appendChild(darkColumn);
   // …its two pictures out of line, if it has them…
-  const pairFrames = (data.creative.pictures || []).map((one, index) => frame(one, phone() ? "92vw" : "45vw", `cs-pair-${index + 1}`));
+  const pairFrames = (data.creative.pictures || []).map((one, index) => frame(one, phone() ? "92vw" : "48vw", `cs-pair-${index + 1}`, [1, 1]));
   if (pairFrames.length) {
     const pair = element("div", "cs-pair");
     pair.append(...pairFrames);
-    creative.appendChild(pair);
+    darkColumn.appendChild(pair);
   }
   // …the final result…
   const final = finalBlock(project, data.final);
-  creative.appendChild(final.block);
+  darkColumn.appendChild(final.block);
   // …its cut-downs for social media, if it has them…
-  if (data.social && data.social.videos.length) creative.appendChild(socialBlock(project, data.social));
+  if (data.social && data.social.videos.length) darkColumn.appendChild(socialBlock(project, data.social));
 
   // …the carousel (two pictures at the least)…
   const carouselPictures = data.carousel.slice(0, CS_CAROUSEL_MAX);
-  if (carouselPictures.length >= 2) creative.appendChild(carouselBlock(carouselPictures, size).box);
+  if (carouselPictures.length >= 2) darkColumn.appendChild(carouselBlock(carouselPictures, size).box);
   // (room under the statement, where its picture widens and stays: the dark
   // layer comes after it — holdPicture())
   const room = element("div", "cs-hold-room");
@@ -256,7 +273,7 @@ export function renderCase(project) {
     if (mine.dead) return;
     context.add(() => {
       page.querySelectorAll(".cs-statement").forEach(lightUp);
-      holdPicture(intro, wide, room);
+      holdPicture(intro, wide, room, size);
       comeIn(page);
       drift(pairFrames);
     });
@@ -312,26 +329,36 @@ function stack(boxes) {
 }
 
 // The statement held once its picture is in the screen's middle, on one
-// timeline: the picture widens from CS_WIDEN_FROM of its width to all of it
-// (CS_HOLD_WIDEN_VH of scroll), stays whole and still (CS_HOLD_STILL_VH),
+// timeline: its mask opens from CS_WIDEN_FROM of the column's width to the
+// whole screen — the frame is the screen's size, case.css — (CS_HOLD_WIDEN_VH
+// of scroll) — the picture inside its frame growing from 1
+// to CS_HOLD_ZOOM meanwhile —, stays whole and still (CS_HOLD_STILL_VH),
 // and the dark layer — after the room those two take (`room`) — comes up
 // over it until its top gets to the screen's. Made again on a new size.
-function holdPicture(statement, picture, room) {
-  const cut = ((1 - CS_WIDEN_FROM) / 2) * 100;
-  const set = (inset) => (picture.style.clipPath = `inset(0% ${inset.toFixed(3)}% 0% ${inset.toFixed(3)}%)`);
+function holdPicture(statement, picture, room, [width, height]) {
+  const image = picture.querySelector(".cs-picture");
+  const set = (x, y) => (picture.style.clipPath = `inset(${y.toFixed(2)}px ${x.toFixed(2)}px)`);
   let timeline = null;
   const make = () => {
     if (timeline) timeline.scrollTrigger.kill(true), timeline.kill();
+    // (the whole screen: its width without the scroll bar — case.css)
+    statement.closest(".pj").style.setProperty("--cs-screen", `${document.documentElement.clientWidth}px`);
     const vh = window.innerHeight / 100;
     const widenPx = CS_HOLD_WIDEN_VH * vh;
     const stillPx = CS_HOLD_STILL_VH * vh;
     room.style.height = `${widenPx + stillPx}px`;
-    if (reducedMotion) return set(0);
+    if (reducedMotion) return set(0, 0), gsap.set(image, { scale: CS_HOLD_ZOOM });
+    // (where the mask starts: CS_WIDEN_FROM of the column's width, as tall as
+    // the picture is at the column's — no taller than the screen —, in the
+    // middle of the frame)
+    const column = picture.parentElement.clientWidth;
+    const from = { x: (picture.offsetWidth - CS_WIDEN_FROM * column) / 2, y: Math.max((picture.offsetHeight - (column * height) / width) / 2, 0) };
     // (the dark layer's way up: from under the statement's foot, after the
     // room, to the screen's top — measured with the picture in the middle)
     const coverPx = statement.offsetHeight - (picture.offsetTop + picture.offsetHeight / 2) + window.innerHeight / 2;
-    const state = { inset: cut };
-    set(cut);
+    const state = { ...from };
+    set(from.x, from.y);
+    gsap.set(image, { scale: 1 });
     timeline = gsap.timeline({
       scrollTrigger: {
         trigger: picture,
@@ -343,7 +370,10 @@ function holdPicture(statement, picture, room) {
         scrub: CS_SCRUB,
       },
     });
-    timeline.to(state, { inset: 0, ease: "none", duration: widenPx, onUpdate: () => set(state.inset) }).to({}, { duration: stillPx + coverPx });
+    timeline
+      .to(state, { x: 0, y: 0, ease: "none", duration: widenPx, onUpdate: () => set(state.x, state.y) })
+      .to(image, { scale: CS_HOLD_ZOOM, ease: "none", duration: widenPx }, 0)
+      .to({}, { duration: stillPx + coverPx });
   };
   make();
   onView(make);
@@ -403,6 +433,7 @@ function comeIn(page) {
   page.querySelectorAll(".cs-frame").forEach((frame) => {
     const image = frame.querySelector(".cs-picture");
     gsap.from(frame, { opacity: 0, duration: CS_REVEAL_S, ease: "power3.out", scrollTrigger: { trigger: frame, start: CS_REVEAL_START, once: true } });
+    if (frame.classList.contains("cs-wide")) return;
     gsap.from(image, { scale: CS_REVEAL_SCALE, duration: CS_REVEAL_S * 1.4, ease: "power3.out", scrollTrigger: { trigger: frame, start: CS_REVEAL_START, once: true } });
     if (!frame.closest(".cs-carousel")) gsap.fromTo(image, { yPercent: -CS_INNER_PARALLAX }, { yPercent: CS_INNER_PARALLAX, ease: "none", scrollTrigger: { trigger: frame, start: "top bottom", end: "bottom top", scrub: CS_SCRUB } });
   });
