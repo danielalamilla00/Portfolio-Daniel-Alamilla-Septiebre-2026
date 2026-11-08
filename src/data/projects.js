@@ -161,14 +161,17 @@ export const PROJECTS = [
         title: "The final *spot*",
         videos: [{ line: "Kit launch spot · Valencia Basket × Real Betis", poster: "/proyectos/hummel-kit-launch-campaign/poster.webp" }],
       },
-      // TO FILL IN: the three 9:16 cut-downs (not in source-videos yet) — each
-      // { line, video: "/proyectos/hummel-kit-launch-campaign/social-0N",
-      // videoSizes: [1080, 720] (by width: 1080x1920, 720x1280), poster }
+      // (the three 9:16 cuts: videoSizes by width — 1080x1920, 720x1280; posters at 6.35s, 2.267s, 2.1s)
       social: {
-        label: "(Social media)",
-        title: "Made for *social*",
-        text: "The campaign was also designed for social media, with three vertical 9:16 cut-downs built for Instagram and TikTok.",
-        videos: [],
+        label: "(Vertical cuts)",
+        title: "Made for *vertical*",
+        text: "The campaign was adapted into three vertical 9:16 pieces for social media, keeping the same look and rhythm as the main spot.",
+        videos: [1, 2, 3].map((n) => ({
+          line: `Vertical cut 0${n}`,
+          video: `/proyectos/hummel-kit-launch-campaign/vertical/hummel-vertical-0${n}`,
+          videoSizes: [1080, 720],
+          poster: `/proyectos/hummel-kit-launch-campaign/vertical/hummel-vertical-0${n}-poster.webp`,
+        })),
       },
       carousel: [],
     },

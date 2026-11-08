@@ -221,8 +221,7 @@
 .pb.is-pause svg {
   translate: 0 0;
 }
-.cs .cs-final-video,
-.cs .cs-social-video {
+.cs .cs-final-video {
   transition: transform 0.6s ease;
 }
 @media (hover: hover) {
@@ -231,7 +230,7 @@
     scale: 1.1;
     background-color: rgba(255, 255, 255, 0.35);
   }
-  .cs .pb-host:not(.is-playing):hover :is(.cs-final-video, .cs-social-video) {
+  .cs .pb-host:not(.is-playing):hover .cs-final-video {
     transform: scale(1.05);
   }
 }
@@ -334,8 +333,8 @@
 
 /* -- the cut-downs for social media: their label, title and text; the
    vertical videos in a row of three, the same height, square corners, each
-   still until pressed, a small "Play" in its middle; a line under each (a
-   phone: a row scrolled sideways, snapping) */
+   playing by itself, muted — nothing to press: no pointer on them —; a line
+   under each (a phone: a row scrolled sideways, snapping) */
 .cs .cs-social-text {
   max-width: 44ch;
   margin-top: 1.5rem;
@@ -343,24 +342,17 @@
 .cs .cs-social-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--grid-gutter);
+  gap: 16px;
   margin-top: 6vh;
 }
 .cs .cs-social-item {
   margin: 0;
-}
-.cs .cs-social-wrap {
-  position: relative;
 }
 .cs .cs-social-box {
   position: relative;
   aspect-ratio: 9 / 16;
   overflow: hidden;
   background-color: #000000;
-  cursor: pointer;
-}
-.cs .is-watching .cs-social-box {
-  cursor: auto;
 }
 .cs .cs-social-video {
   position: absolute;
@@ -368,16 +360,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-.cs .cs-social-box:fullscreen {
-  aspect-ratio: auto;
-}
-.cs .cs-social-box:fullscreen .cs-social-video {
-  object-fit: contain;
-}
-.cs .cs-social-box .cs-controls {
-  gap: 0.75rem;
-  padding-inline: 0.75rem;
+  pointer-events: none;
 }
 .cs .cs-social-item .cs-caption {
   margin-top: 0.9rem;
@@ -609,7 +592,7 @@
     display: none;
   }
   .cs .cs-social-item {
-    flex: 0 0 72%;
+    flex: 0 0 75vw;
     scroll-snap-align: start;
   }
   .cs .cs-statement,

@@ -430,6 +430,10 @@ function comeIn(page) {
   page.querySelectorAll(".cs-aside, .cs-tags, .cs-facts, .cs-related-row, .cs-final-head, .cs-social-head").forEach((block) => {
     gsap.from(Array.from(block.children), { ...from, stagger: CS_REVEAL_STAGGER_S, scrollTrigger: { trigger: block, start: CS_REVEAL_START, once: true } });
   });
+  // (the vertical videos: fading in only, nothing else moving them)
+  page.querySelectorAll(".cs-social-row").forEach((row) => {
+    gsap.from(Array.from(row.children), { opacity: 0, duration: CS_REVEAL_S, ease: "power3.out", stagger: CS_REVEAL_STAGGER_S, scrollTrigger: { trigger: row, start: CS_REVEAL_START, once: true } });
+  });
   page.querySelectorAll(".cs-frame").forEach((frame) => {
     const image = frame.querySelector(".cs-picture");
     gsap.from(frame, { opacity: 0, duration: CS_REVEAL_S, ease: "power3.out", scrollTrigger: { trigger: frame, start: CS_REVEAL_START, once: true } });
@@ -452,7 +456,7 @@ function drift(frames) {
 // it, or the video, pressed: from its start, in a loop, with its sound and
 // controls of its own (play / pause, where it is, sound, full screen: of
 // `box`), `watchHost` marked .is-watching; a bigger file in full screen
-// (video-source.js). What it gives back: the button.
+// (video-source.js).
 function playable(project, { box: cover, video: first, playHost, watchHost }) {
   let video = first;
   const play = playButton(playHost, () => video, () => {
@@ -507,7 +511,6 @@ function playable(project, { box: cover, video: first, playHost, watchHost }) {
       { signal: scope.abort.signal }
     );
   } else full.hidden = true;
-  return play;
 }
 
 // The final result: its label and title (coming in as the others); its
@@ -556,11 +559,9 @@ function finalBlock(project, { label: text, title, videos }) {
 // The cut-downs for social media: a label, a title and a line of text (coming
 // in as the others); the vertical videos (case.social.videos: each its files,
 // <video>-<width>.mp4: 1080 is 1080x1920, 720 is 720x1280 — its poster and a
-// line), a row of
-// them (a phone: scrolled sideways, snapping), each still — its poster and a
-// small round "Play" — until it, or the video, is pressed: then from its
-// start, with its sound and controls (playable()); one plays at a time (the
-// others stop). Off the screen they stop. What it gives back: the block.
+// line), a row of them (a phone: scrolled sideways, snapping), each playing
+// by itself, muted, in a loop, while it is on the screen — nothing to press,
+// as the cover's. What it gives back: the block.
 function socialBlock(project, { label: text, title, text: words, videos }) {
   const block = element("div", "cs-social");
   const head = element("div", "cs-social-head");
@@ -568,32 +569,24 @@ function socialBlock(project, { label: text, title, text: words, videos }) {
   heading.append(...phrase(title, "title-gradient"));
   head.append(element("p", "cs-label", text), heading, element("p", "cs-copy cs-social-text", words));
   const row = element("div", "cs-social-row");
-  const wraps = videos.map((one) => {
-    const files = { title: project.title, video: one.video, videoSizes: one.videoSizes };
+  videos.forEach((one) => {
     const item = element("figure", "cs-social-item");
-    const wrap = element("div", "cs-social-wrap");
     const box = element("div", "cs-social-box");
     const video = element("video", "cs-social-video");
+    video.muted = true;
+    video.defaultMuted = true;
+    video.loop = true;
     video.playsInline = true;
     video.preload = "metadata";
     video.poster = encodeURI(one.poster);
     video.setAttribute("aria-label", `${plainTitle(project.title)}: ${one.line}`);
     // (its file by its width on the screen: a third of the row's, or most of a phone's)
-    setSource(video, files, Math.round(window.innerWidth * (phone() ? 0.72 : 0.3) * window.devicePixelRatio));
+    setSource(video, one, Math.round(window.innerWidth * (phone() ? 0.75 : 0.3) * window.devicePixelRatio));
     box.appendChild(video);
-    wrap.appendChild(box);
-    playable(files, { box, video, playHost: wrap, watchHost: wrap });
-    item.append(wrap, element("figcaption", "cs-caption", one.line));
+    item.append(box, element("figcaption", "cs-caption", one.line));
     row.appendChild(item);
-    observe(([entry]) => entry.isIntersecting || box.querySelector("video").pause(), box);
-    return wrap;
+    playWhileSeen(video, box);
   });
-  // (one at a time: one starting stops the others — whichever file each plays)
-  row.addEventListener(
-    "play",
-    (event) => wraps.forEach((wrap) => wrap.contains(event.target) || wrap.querySelector("video").pause()),
-    true
-  );
   block.append(head, row);
   return block;
 }
