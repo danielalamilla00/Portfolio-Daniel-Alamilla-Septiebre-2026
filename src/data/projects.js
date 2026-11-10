@@ -3,9 +3,9 @@
 // src/works.js), which lists them all. Those that have a page of their own
 // (work.html#<slug>: one template for all of them, src/case.js) carry what
 // that page shows; one that does not would be "Coming soon" on the Works page,
-// with no link. Each one's files are in public/proyectos/<slug>/ (Caprabo's,
-// in its old folder); the old projects' and old versions, in archive/ at
-// the project's root (not published, not in git).
+// with no link. Each one's files are in public/proyectos/<slug>/; the old
+// projects' and old versions, in archive/ at the project's root (not
+// published, not in git).
 //
 //   title        its name: on its page (giant, at the top), its row on the
 //                Works page and its card at the end of the others. In the
@@ -61,7 +61,8 @@
 //                                 pictures (optional: two out of line, square; focus:
 //                                 the part kept, an object-position)
 //                  final          { label, title, videos: [{ line, poster,
-//                                 video?, videoSizes?, ratio? }] }
+//                                 video?, videoSizes? }], grid? (square
+//                                 videos, in a grid) }
 //                  social         (optional) its vertical cut-downs
 //                  carousel       its pictures (none under two: none shown)
 //   event, venue (optional) where it was shown (kept for reference)
@@ -124,6 +125,57 @@ export const PROJECTS = [
     poster: "/proyectos/waapiti-ai-3d-logo-reveal/poster-v2.webp",
     cover: "/proyectos/waapiti-ai-3d-logo-reveal/poster-v2.webp",
     preview: "/proyectos/waapiti-ai-3d-logo-reveal/preview-v2.mp4",
+  },
+  {
+    slug: "caprabo-3d-hologram-content",
+    title: "*Caprabo* 3D Hologram Content",
+    description: "A series of 3D animations created for the holographic fans of Caprabo L'Illa, in Barcelona — from seasonal campaigns to coffee and loyalty-card promos, floating in mid-air above the aisles.",
+    tagline: "3D animations for the holographic fans of Caprabo L'Illa in Barcelona.",
+    category: CATEGORY,
+    idea: "Caprabo's store at L'Illa Diagonal, in Barcelona, features holographic fans hanging from the ceiling across the shop floor. I created a series of 3D animations designed specifically for them: short, looping pieces that appear to float in the air and catch shoppers' attention as they walk the aisles — from coffee and loyalty-card promotions to seasonal campaigns for Christmas and Three Kings' Day.",
+    challenge: "Creating content that works on a round, see-through display: no backgrounds, strong silhouettes, high contrast and short loops that stay readable from a distance in a busy, brightly lit supermarket.",
+    client: "Caprabo",
+    industry: null,
+    display: "Holographic fans · Caprabo L'Illa, Barcelona",
+    role: "Motion Designer",
+    tools: "Cinema 4D, After Effects",
+    year: "2026",
+    credits: null,
+    // (the mockups' compilation, 10s: the cover's; no 1440 — its original is 1080p)
+    video: "/proyectos/caprabo-3d-hologram-content/caprabo-3d-hologram-content",
+    videoSizes: [1080, 720],
+    layout: "case",
+    case: {
+      pictureSize: [1920, 1080],
+      coverTitle: ["*Caprabo*", "3D Hologram Content"],
+      coverKicker: "Caprabo · L'Illa, Barcelona",
+      statement: "3D animations that float in mid-air above the aisles of Caprabo L'Illa, in Barcelona.",
+      tags: ["Caprabo", "Holographic fans", "3D animation", "Retail"],
+      // (the mockups' compilation at 1.492s: "Super Caprabo" on a fan hanging from the ceiling)
+      picture: { src: "/proyectos/caprabo-3d-hologram-content/mockups/frame-1.49s", alt: "\"Super Caprabo\" in 3D, floating on a holographic fan hanging from the ceiling of Caprabo L'Illa" },
+      creative: {
+        statement: "Designed for *black*: every piece lives on a dark canvas, so only the product and the message appear to float in the store.",
+        paragraphs: ["On a holographic fan, black is transparent. Each animation was built around a single hero object — a coffee cup, a loyalty card, a tortell, Santa's sleigh — with bold 3D type and particles, centred and moving in a circle so it reads from any angle below."],
+        more: [{ label: "(Challenge)", text: "Creating content that works on a round, see-through display: no backgrounds, strong silhouettes, high contrast and short loops that stay readable from a distance in a busy, brightly lit supermarket." }],
+      },
+      // (the five square animations, 1080x1080 / 720x720 — Reis and Santa with their sound)
+      final: {
+        label: "(Final result)",
+        title: "The final *animations*",
+        grid: true,
+        videos: [
+          ["cafe", "Coffee — Així de bo"],
+          ["globos", "Super Caprabo"],
+          ["reis", "Three Kings — Tortell"],
+          ["santa", "Christmas — Santa"],
+          ["soc-del-club", "Loyalty card — Soc del Club"],
+        ].map(([name, line]) => ({ line, video: `/proyectos/caprabo-3d-hologram-content/animations/${name}`, videoSizes: [1080, 720], poster: `/proyectos/caprabo-3d-hologram-content/animations/${name}-poster.webp` })),
+      },
+      carousel: [],
+    },
+    poster: "/proyectos/caprabo-3d-hologram-content/poster.webp",
+    cover: "/proyectos/caprabo-3d-hologram-content/poster.webp",
+    preview: "/proyectos/caprabo-3d-hologram-content/caprabo-3d-hologram-content-720.mp4",
   },
   {
     slug: "hummel-kit-launch-campaign",
@@ -365,46 +417,6 @@ export const PROJECTS = [
     preview: "/proyectos/sitges-festival-motion-spot/preview.mp4",
   },
   {
-    slug: "caprabo",
-    title: "*Caprabo*",
-    description: "Motion content designed for the screens inside Caprabo supermarkets, bringing fresh products and offers to life in store.",
-    category: CATEGORY,
-    idea: "Holographic 3D animations with a realistic floating effect.",
-    challenge: "Supermarkets aren't built for excitement, and animating offers for in-store screens could easily have stayed that way. The one piece worth pushing further was the holographic display — a chance to make products stand out in a way a flat screen just can't.",
-    client: "Caprabo",
-    industry: null,
-    role: "Motion Designer",
-    tools: "Cinema 4D, After Effects",
-    year: YEAR,
-    credits: null,
-    video: "/projects/caprabo-tienda-1.mp4",
-    layout: "case",
-    case: {
-      pictureSize: [1080, 608],
-      coverTitle: ["*Caprabo*"],
-      coverKicker: "Caprabo · In-store screens",
-      // DRAFT (the statement and the creative response's statement and text: to be checked)
-      statement: "Holographic 3D animations that make supermarket offers float off Caprabo's in-store screens.",
-      tags: ["Caprabo", "Retail", "Holographic", "3D"],
-      // (the main video's frame at 1.43s: sharp, mid-shot)
-      picture: { src: "/proyectos/Caprabo/mockups/frame-1.43s", alt: "A tall in-store screen on a column of a Caprabo supermarket, \"250.000 productes gratis\"" },
-      creative: {
-        statement: "On a flat screen, products that *float*: a holographic depth made to catch the eye mid-aisle.",
-        paragraphs: ["Of all the in-store pieces, the holographic display was the one worth pushing: 3D products animated with a realistic floating effect, made to stand out where a flat screen can't."],
-        more: [{ label: "(Challenge)", text: "Supermarkets aren't built for excitement, and animating offers for in-store screens could easily have stayed that way. The one piece worth pushing further was the holographic display — a chance to make products stand out in a way a flat screen just can't." }],
-      },
-      final: {
-        label: "(Final result)",
-        title: "The final *loop*",
-        videos: [{ line: "In-store screen loop", poster: "/works/posters/caprabo.jpg", ratio: [1, 1] }],
-      },
-      carousel: [],
-    },
-    poster: "/works/posters/caprabo.jpg",
-    cover: "/works/covers/caprabo.jpg",
-    preview: "/proyectos/Caprabo/Tienda/Tienda 1.mp4",
-  },
-  {
     slug: "fallas-festival-motion-visuals",
     title: "*Fallas* Festival Motion Visuals",
     description: "A motion piece celebrating Valencia's Fallas, mixing fire, colour and craft into a festive visual rhythm.",
@@ -536,6 +548,7 @@ export const PROJECTS = [
 // goes on to work.html#<new>); one of a project that is gone, to the Works
 // page.
 export const MOVED = {
+  caprabo: "caprabo-3d-hologram-content",
   hummel: "hummel-kit-launch-campaign",
   "hummel-betis": "hummel-kit-launch-campaign",
   "hummel-valencia-basket": "hummel-kit-launch-campaign",

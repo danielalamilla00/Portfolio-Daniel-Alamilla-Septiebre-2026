@@ -516,43 +516,57 @@ function playable(project, { box: cover, video: first, playHost, watchHost }) {
 // The final result: its label and title (coming in as the others); its
 // videos (case.final.videos: each its files — the project's, if it gives
 // none — its poster and a line), one under another, each centered, as wide
-// as case.css's --case-video-width at the most, 16:9 (one of another shape,
-// one.ratio: whole in it), still — a sharp frame of it and a round "Play" in its middle — until it,
-// or the video, is pressed: then from its start, with its sound, its
-// controls (playable()), in a loop. Only what it needs to start is loaded
-// until then (preload "metadata"); off the screen it stops; a line under
-// it. What it gives back: the block.
-function finalBlock(project, { label: text, title, videos }) {
+// as case.css's --case-video-width at the most, 16:9 — or, `grid`, square
+// ones in a grid in that width (three a row, the last row centered; two on
+// a tablet, one on a phone), one playing at a time —; each still — a sharp
+// frame of it and a round "Play" in its middle — until it, or the video, is
+// pressed: then from its start, with its sound, its controls (playable()),
+// in a loop. Only what it needs to start is loaded until then (preload
+// "metadata"); off the screen it stops; a line under it. What it gives back:
+// the block.
+function finalBlock(project, { label: text, title, videos, grid = false }) {
   const block = element("div", "cs-final");
   const head = element("div", "cs-final-head");
   const heading = element("h2", "cs-final-title");
   heading.append(...phrase(title, "title-gradient"));
   head.append(element("p", "cs-label", text), heading);
   block.appendChild(head);
+  const list = grid ? element("div", "cs-final-grid") : block;
+  if (grid) block.appendChild(list);
   videos.forEach((one) => {
     const files = { title: project.title, video: one.video || project.video, videoSizes: one.videoSizes || project.videoSizes };
     const wrap = element("div", "cs-final-wrap");
     const box = element("div", "cs-final-box");
     const video = element("video", "cs-final-video");
-    // (a video of another shape — one.ratio —: whole in the 16:9 box, black round it)
-    if (one.ratio) video.classList.add("is-whole");
     video.playsInline = true;
     video.preload = "metadata";
     video.poster = encodeURI(one.poster || project.poster);
     video.setAttribute("aria-label", `${plainTitle(project.title)}: ${one.line}`);
-    setSource(video, files, Math.round(window.innerWidth * 0.92 * window.devicePixelRatio));
+    // (its file by its width on the screen: the column's, or a grid's cell)
+    setSource(video, files, Math.round(window.innerWidth * (grid && !phone() ? 0.25 : 0.92) * window.devicePixelRatio));
     box.appendChild(video);
     wrap.appendChild(box);
     playable(files, { box, video, playHost: wrap, watchHost: wrap });
     const foot = element("div", "cs-final-line");
     foot.appendChild(element("p", "cs-caption", one.line));
-    block.append(wrap, foot);
+    if (grid) {
+      const item = element("figure", "cs-final-item");
+      item.append(wrap, foot);
+      list.appendChild(item);
+    } else block.append(wrap, foot);
     observe(([entry]) => {
       if (entry.isIntersecting) return;
       const now = box.querySelector(".cs-final-video:last-of-type") || video;
       now.pause();
     }, box);
   });
+  // (a grid: one at a time — one starting stops the others, whichever file each plays)
+  if (grid)
+    list.addEventListener(
+      "play",
+      (event) => list.querySelectorAll(".cs-final-video").forEach((video) => video === event.target || video.pause()),
+      true
+    );
   return { block };
 }
 
