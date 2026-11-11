@@ -129,7 +129,7 @@ export const PROJECTS = [
   {
     slug: "caprabo-3d-hologram-content",
     title: "*Caprabo* 3D Hologram Content",
-    description: "A series of 3D animations created for the holographic fans of Caprabo L'Illa, in Barcelona — from seasonal campaigns to coffee and loyalty-card promos, floating in mid-air above the aisles.",
+    description: "3D animations for the holographic fans of Caprabo L'Illa, Barcelona — seasonal campaigns and in-store promos floating in mid-air above the aisles.",
     tagline: "3D animations for the holographic fans of Caprabo L'Illa in Barcelona.",
     category: CATEGORY,
     idea: "Caprabo's store at L'Illa Diagonal, in Barcelona, features holographic fans hanging from the ceiling across the shop floor. I created a series of 3D animations designed specifically for them: short, looping pieces that appear to float in the air and catch shoppers' attention as they walk the aisles — from coffee and loyalty-card promotions to seasonal campaigns for Christmas and Three Kings' Day.",
