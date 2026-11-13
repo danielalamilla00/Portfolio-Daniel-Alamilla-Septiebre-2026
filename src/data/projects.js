@@ -60,9 +60,16 @@
 //                                 ([{ label, text }]: its challenge) and
 //                                 pictures (optional: two out of line, square; focus:
 //                                 the part kept, an object-position)
-//                  final          { label, title, videos: [{ line, poster,
-//                                 video?, videoSizes? }], grid? (square
-//                                 videos, in a grid) }
+//                  final          { videos: [{ line, poster, video?,
+//                                 videoSizes?, cursorLabel?, preview?
+//                                 ([from, to]: its muted preview's part) }],
+//                                 holdVh? (each
+//                                 one's hold: 150 if none) }: each video
+//                                 the whole screen, one after another, the
+//                                 cursor's words its cursorLabel (the
+//                                 project's name if none) — or { label,
+//                                 title, grid: true, videos }: square ones in
+//                                 a grid, under that label and title
 //                  social         (optional) its vertical cut-downs
 //                  carousel       its pictures (none under two: none shown)
 //   event, venue (optional) where it was shown (kept for reference)
@@ -114,8 +121,6 @@ export const PROJECTS = [
         ],
       },
       final: {
-        label: "(Final result)",
-        title: "The final *reveal*",
         videos: [{ line: "10s loop · Sensory Sync, AfterISE 2026", poster: "/proyectos/waapiti-ai-3d-logo-reveal/final-poster.webp" }],
       },
       carousel: [
@@ -125,6 +130,55 @@ export const PROJECTS = [
     poster: "/proyectos/waapiti-ai-3d-logo-reveal/poster-v2.webp",
     cover: "/proyectos/waapiti-ai-3d-logo-reveal/poster-v2.webp",
     preview: "/proyectos/waapiti-ai-3d-logo-reveal/preview-v2.mp4",
+  },
+  {
+    slug: "waapiti-product-videos",
+    title: "*Waapiti* Product Videos",
+    description: "A series of motion videos explaining Waapiti's key features — from AI tagging and MCP to IPTV and interactive screensavers — in one shared visual language.",
+    tagline: "A series of product videos for Waapiti, the digital signage platform.",
+    category: CATEGORY,
+    idea: "Waapiti is a digital signage platform that lets businesses manage the content on all their screens from one place. I created a series of product videos to launch and explain its key features — Waapiti AI, the MCP connection, IPTV multicast and the interactive screensaver — turning technical tools into short, clear stories for clients and social media.",
+    challenge: "Explaining technical features — AI tagging, MCP, IPTV — to a non-technical audience in under a minute, while keeping each piece simple, readable and on brand.",
+    client: "Waapiti",
+    industry: "Digital signage",
+    role: "Motion Designer",
+    tools: "After Effects",
+    year: "2026",
+    credits: null,
+    // (the teaser: a dry-cut shot of each video's platform — AI 14.0-16.5s, MCP 16.0-18.1s, IPTV 20.8-22.4s,
+    // Screensaver 16.5-19.4s —; no 1440: the originals are 1080p)
+    video: "/proyectos/waapiti-product-videos/waapiti-product-videos-teaser",
+    videoSizes: [1080, 720],
+    layout: "case",
+    case: {
+      pictureSize: [1920, 1080],
+      coverTitle: ["*Waapiti*", "Product Videos"],
+      coverKicker: "Waapiti · Digital signage",
+      statement: "Four features, one visual language: product videos that make digital signage simple to understand.",
+      tags: ["Waapiti", "Digital signage", "Product video", "UI motion"],
+      // (Waapiti AI at 16.6s: the platform — Media Content, its tagged contents — and Waapiti AI's panel)
+      picture: { src: "/proyectos/waapiti-product-videos/mockups/frame-16.6s", alt: "The Waapiti platform's Media Content page, four contents tagged \"promotion\" by Waapiti AI in its side panel" },
+      creative: {
+        statement: "Every feature told in seconds: kinetic type, clean UI and the brand's warm palette.",
+        paragraphs: ["Each video follows the same system: a short question or claim in bold kinetic typography, highlighted keywords in Waapiti's coral, UI animated step by step and a clean brand close. The look stays consistent across the series, so every new feature feels part of the same family."],
+        more: [{ label: "(Challenge)", text: "Explaining technical features — AI tagging, MCP, IPTV — to a non-technical audience in under a minute, while keeping each piece simple, readable and on brand." }],
+      },
+      // (the four videos, the whole screen one after another; a shorter hold than the others': four of them;
+      // each one's preview, a part of its platform — not its intro —, but IPTV's: its first 4s)
+      final: {
+        holdVh: 100,
+        videos: [
+          ["waapiti-ai", "Waapiti AI", "Waapiti AI", [14.0, 17.3]],
+          ["mcp", "MCP", "MCP", [14.4, 18.2]],
+          ["iptv", "IPTV multicast", "IPTV", [0, 4.0]],
+          ["screensaver", "Interactive screensaver", "Screensaver", [15.8, 20.8]],
+        ].map(([name, line, cursorLabel, preview]) => ({ line, cursorLabel, preview, video: `/proyectos/waapiti-product-videos/videos/${name}`, videoSizes: [1080, 720], poster: `/proyectos/waapiti-product-videos/videos/${name}-poster.webp` })),
+      },
+      carousel: [],
+    },
+    poster: "/proyectos/waapiti-product-videos/waapiti-product-videos-teaser-poster.webp",
+    cover: "/proyectos/waapiti-product-videos/waapiti-product-videos-teaser-poster.webp",
+    preview: "/proyectos/waapiti-product-videos/waapiti-product-videos-teaser-720.mp4",
   },
   {
     slug: "caprabo-3d-hologram-content",
@@ -209,8 +263,6 @@ export const PROJECTS = [
         more: [{ label: "(Challenge)", text: "Telling two clubs — and two different sports — in a single piece, giving each team its own moment without losing a common campaign look." }],
       },
       final: {
-        label: "(Final result)",
-        title: "The final *spot*",
         videos: [{ line: "Kit launch spot · Valencia Basket × Real Betis", poster: "/proyectos/hummel-kit-launch-campaign/poster.webp" }],
       },
       // (the three 9:16 cuts: videoSizes by width — 1080x1920, 720x1280; posters at 6.35s, 2.267s, 2.1s)
@@ -274,11 +326,9 @@ export const PROJECTS = [
         ],
       },
       final: {
-        label: "(Final result)",
-        title: "The final *videos*",
         videos: [
-          { line: "Brand reveal — Born from light", poster: "/proyectos/tmm-sensory-sync-content/spheres-final-poster.webp" },
-          { line: "Seasonal — Autumn for every sense", video: "/proyectos/tmm-sensory-sync-content/autumn", videoSizes: [1440, 1080, 720], poster: "/proyectos/tmm-sensory-sync-content/autumn-final-poster.webp" },
+          { cursorLabel: "Brand reveal", line: "Brand reveal — Born from light", poster: "/proyectos/tmm-sensory-sync-content/spheres-final-poster.webp" },
+          { cursorLabel: "Autumn", line: "Seasonal — Autumn for every sense", video: "/proyectos/tmm-sensory-sync-content/autumn", videoSizes: [1440, 1080, 720], poster: "/proyectos/tmm-sensory-sync-content/autumn-final-poster.webp" },
         ],
       },
       carousel: [],
@@ -322,8 +372,6 @@ export const PROJECTS = [
         more: [{ label: "(Challenge)", text: "Keeping a seasonal piece playful rather than gory: the pumpkin's expression and the melting letters carry the mood, while the brand's name stays readable through the drips." }],
       },
       final: {
-        label: "(Final result)",
-        title: "The final *spot*",
         videos: [{ line: "15s spot · Sensory Sync, TMM showroom screens" }],
       },
       carousel: [],
@@ -364,8 +412,6 @@ export const PROJECTS = [
         more: [{ label: "(Challenge)", text: "Daylist is a playlist that rewrites itself throughout the day, so the ad needed to move the same way — quick, mood-driven, never quite the same twice. It had to run as sponsored content and blend into the feed rather than announce itself as an ad." }],
       },
       final: {
-        label: "(Final result)",
-        title: "The final *ad*",
         videos: [{ line: "16s social ad · sponsored content" }],
       },
       carousel: [],
@@ -406,8 +452,6 @@ export const PROJECTS = [
         more: [{ label: "(Challenge)", text: "Sitges wanted Freaks reinterpreted as a mirror for its own audience — people who wear being different as a badge of honour. The piece needed a character that felt like it belonged to that crowd, screened in 2024 ahead of the film's restoration." }],
       },
       final: {
-        label: "(Final result)",
-        title: "The final *spot*",
         videos: [{ line: "39s festival spot" }],
       },
       carousel: [],
@@ -448,8 +492,6 @@ export const PROJECTS = [
         more: [{ label: "(Challenge)", text: "Fallas is fire, music, colour and the whole city out in the street every March — it's not a subtle thing to animate. The challenge was turning key moments like the Ofrenda, the Mascletà and the Cremà into 2D animation without flattening them into decoration." }],
       },
       final: {
-        label: "(Final result)",
-        title: "The final *piece*",
         videos: [{ line: "60s motion piece" }],
       },
       carousel: [],
@@ -490,8 +532,6 @@ export const PROJECTS = [
         more: [{ label: "(Challenge)", text: "Ron Barceló wanted something that feels like summer the second it starts playing — colour, movement, heat, no slow build-up." }],
       },
       final: {
-        label: "(Final result)",
-        title: "The final *spot*",
         videos: [{ line: "18s promotional spot" }],
       },
       carousel: [],
@@ -532,8 +572,6 @@ export const PROJECTS = [
         more: [{ label: "(Challenge)", text: "Nobody's used an app like this before, so the video had to sell the idea itself — going from lunch alone at your desk to a matched meeting — and still show enough of the app (matching, booking, ratings) to make it feel real, not just a concept trailer." }],
       },
       final: {
-        label: "(Final result)",
-        title: "The final *film*",
         videos: [{ line: "1:45 promo film" }],
       },
       carousel: [],

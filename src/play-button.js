@@ -16,7 +16,8 @@ const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden=
 // `host`: what the button sits in, and what is pressed or hovered (the video
 // and all over it but its controls); `video()`: the video playing now (a
 // bigger file may take its place); `start()`: the first press. What it gives
-// back: the button.
+// back: the button, and `reset()`, which takes it back to before that first
+// press (a full-screen final result back to its muted preview, case.js).
 export function playButton(host, video, start) {
   const button = document.createElement("button");
   button.type = "button";
@@ -76,5 +77,11 @@ export function playButton(host, video, start) {
   host.addEventListener("pause", (event) => event.target === video() && draw(), true);
   button.addEventListener("focus", wake);
   draw();
-  return button;
+  return {
+    button,
+    reset() {
+      started = false;
+      draw();
+    },
+  };
 }

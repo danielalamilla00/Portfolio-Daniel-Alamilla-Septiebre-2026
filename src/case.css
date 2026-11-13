@@ -101,10 +101,24 @@
   object-fit: cover;
   pointer-events: none;
 }
+/* (over the video, under the name and the nav: a black veil over all of it
+   and a black fade at its top, under the nav, so that the nav and the name
+   read on a light video too — whichever the project's, as its video
+   changes —, and the soft shade at the bottom left)
+     --hero-overlay-opacity        the veil's black
+     --hero-top-gradient-opacity   the black at the top, fading out at 30% */
+.cs .cs-cover {
+  --hero-overlay-opacity: 0.25;
+  --hero-top-gradient-opacity: 0.35;
+}
 .cs .cs-cover-shade {
   position: absolute;
   inset: 0;
-  background: radial-gradient(90% 70% at 0% 100%, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.2) 40%, rgba(0, 0, 0, 0) 70%);
+  background:
+    linear-gradient(to bottom, rgba(0, 0, 0, var(--hero-top-gradient-opacity)) 0%, rgba(0, 0, 0, 0) 30%),
+    linear-gradient(rgba(0, 0, 0, var(--hero-overlay-opacity)), rgba(0, 0, 0, var(--hero-overlay-opacity))),
+    radial-gradient(90% 70% at 0% 100%, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.2) 40%, rgba(0, 0, 0, 0) 70%);
+  pointer-events: none;
 }
 .cs .cs-cover-heading {
   position: absolute;
@@ -156,7 +170,8 @@
   margin-top: 0.4rem;
   font-size: 14px;
 }
-/* (a picture in its frame, taller than it: it moves inside it, case.js) */
+/* (a picture in its frame, which cuts it: it comes in through a mask, the
+   picture in it from bigger — case.js, reveal(); will-change while they move) */
 .cs .cs-frame {
   position: relative;
   margin: 0;
@@ -166,9 +181,14 @@
 .cs .cs-frame .cs-picture {
   display: block;
   width: 100%;
-  height: 110%;
-  margin-top: -5%;
+  height: 100%;
   object-fit: cover;
+}
+.cs .cs-frame.is-revealing {
+  will-change: clip-path;
+}
+.cs .cs-frame.is-revealing .cs-picture {
+  will-change: transform;
 }
 /* (the held picture: the whole screen, out of the column — --cs-screen,
    case.js, its width without the scroll bar —; its mask opens to all of it
@@ -179,10 +199,6 @@
   margin-top: 8vh;
   margin-left: calc(50% - var(--cs-screen, 100vw) / 2);
   background-color: transparent;
-}
-.cs .cs-frame.cs-wide .cs-picture {
-  height: 100%;
-  margin-top: 0;
 }
 
 /* -- a video's play / pause button (play-button.js): in its middle, round,
@@ -259,9 +275,8 @@
   z-index: 0;
 }
 
-/* -- the dark layer, to the end: its parts a little apart; the aura and the
-   foot at its foot, in it (no room under them, no margins of their own),
-   the related projects over the aura, just above the foot */
+/* -- the dark layer, to the end: its parts a little apart; the end and the
+   page's foot at its foot, in it (no room under them) */
 .cs .cs-creative {
   padding-bottom: 0;
 }
@@ -270,16 +285,148 @@
 .cs .cs-col > .cs-carousel {
   margin-top: var(--cs-gap);
 }
-.cs .cs-creative > .pj-end {
+
+/* -- the final result, the whole screen (case.js, fullFinals()): edge to
+   edge, out of the column (--cs-screen: the screen's width without the
+   scroll bar); its videos one over another, each coming up from below
+   over the one before, clean; a mouse's pointer is the "Play" cursor over
+   them (.cs-cursor), a finger has the round button and the words under it
+   (.cs-full-hint); the last one's foot fades to the page's black
+   (.cs-finals-fade, case.js: CS_FINAL_FADE_VH) */
+.cs .cs-finals {
+  position: relative;
+  width: var(--cs-screen, 100vw);
+  height: 100svh;
   margin-top: var(--cs-gap);
-  padding-inline: 0;
+  margin-left: calc(50% - var(--cs-screen, 100vw) / 2);
+  overflow: hidden;
+  background-color: #000000;
 }
-.cs .pj-end > .cs-related {
-  margin-top: auto; /* (low, over the glow: the aura under the related projects) */
-  text-align: left;
+.cs .cs-finals.is-mouse,
+.cs .cs-finals.is-mouse * {
+  cursor: none;
 }
-.cs .pj-end > .pj-foot {
-  margin-top: 0;
+.cs .cs-full {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  overflow: hidden;
+  background-color: #000000;
+  will-change: transform;
+}
+.cs .cs-full-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cs .cs-full-hint {
+  position: absolute;
+  z-index: 3;
+  top: calc(50% + 44px);
+  left: 0;
+  right: 0;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--c-cream);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.cs .cs-full-hint.is-hidden {
+  opacity: 0;
+}
+.cs .cs-finals-fade {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40vh;
+  background: linear-gradient(to bottom, rgba(10, 10, 10, 0), #0a0a0a);
+  pointer-events: none;
+}
+
+/* -- the "Play" cursor (case.js, playCursor()): three pieces, each fixed
+   and hung right from the body, following the pointer — the halo (purple,
+   soft, a little later), the circle (an iridescent gradient, a fine
+   see-through rim and a soft shadow so it reads on white, a dark play in
+   it) and, by its right side, the video's name in white blended by
+   difference (dark on a light picture, light on a dark one). Each comes and
+   goes growing and fading (its inner piece: the outer one is moved). Never
+   on a screen that is only touched. */
+.cs-cursor {
+  position: fixed;
+  z-index: 70;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.cs-cursor-inner {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  scale: 0.6;
+  transition: opacity 0.3s ease, scale 0.3s ease;
+}
+.cs-cursor.is-on .cs-cursor-inner {
+  opacity: 1;
+  scale: 1;
+}
+.cs-cursor-halo .cs-cursor-inner {
+  left: -26px;
+  top: -26px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background-color: rgba(138, 84, 255, 0.55);
+  filter: blur(16px);
+}
+.cs-cursor-halo.is-on .cs-cursor-inner {
+  opacity: 0.5;
+}
+.cs-cursor-ring .cs-cursor-inner {
+  left: -20px;
+  top: -20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  background: conic-gradient(from 210deg, #a6f1e0, #cbb8ff, #ffc8e4, #fff2b3, #ffffff, #a6f1e0);
+  box-shadow: 0 0 0 0.5px rgba(20, 16, 40, 0.18), 0 2px 10px rgba(20, 16, 40, 0.22);
+  color: #1d1630;
+}
+.cs-cursor-ring svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  translate: 1px 0;
+}
+.cs-cursor-word {
+  mix-blend-mode: difference;
+}
+.cs-cursor-word .cs-cursor-inner {
+  left: 29px;
+  top: 0;
+  translate: 0 -50%;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #ffffff;
+  white-space: nowrap;
+}
+@media (hover: none) {
+  .cs-cursor {
+    display: none;
+  }
 }
 
 /* -- the final result: its label and title; the video as wide as the column, still
@@ -459,81 +606,129 @@
   cursor: default;
 }
 
-/* -- the related projects: a row scrolled sideways, dots under it */
-.cs .cs-related-row {
-  display: flex;
-  gap: var(--grid-gutter);
-  margin: 1.5rem calc(var(--page-margin) * -1) 0;
-  padding: 0 var(--page-margin);
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: var(--page-margin);
-  scrollbar-width: none;
+/* -- the end (case.js, endBlock()): the other projects as a carousel, the
+   whole screen's width; the card in the middle big, its name over its
+   picture; the ones at its sides smaller, on the same foot, showing at the
+   edges (all as big as the one in the middle, made smaller: --cs-more-w);
+   under it a row — "(Latest projects)" on the logo's margin, a line for
+   each in the middle, "Explore all cases" on the clock's —; then the
+   page's foot */
+.cs .cs-end {
+  margin-inline: calc(var(--page-margin) * -1);
+  padding-top: 8vh;
 }
-.cs .cs-related-row::-webkit-scrollbar {
-  display: none;
-}
-.cs .cs-card {
+.cs .cs-more-stage {
   position: relative;
-  flex: 0 0 40vw;
+  height: calc(var(--cs-more-w, 45vw) * 9 / 16);
+  overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+}
+.cs .cs-more-stage.is-dragging {
+  cursor: grabbing;
+}
+.cs .cs-more-card {
+  position: absolute;
+  bottom: 0;
+  left: calc(50% - var(--cs-more-w, 45vw) / 2);
+  width: var(--cs-more-w, 45vw);
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  scroll-snap-align: start;
+  background-color: #000000;
   color: var(--c-cream);
   text-decoration: none;
+  transform-origin: 50% 100%;
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease;
 }
-/* (a shade at its foot, under its name) */
-.cs .cs-card::after {
+.cs .cs-more-stage.is-dragging .cs-more-card,
+.cs .cs-more-card.is-jump {
+  transition: none;
+}
+.cs .cs-more-card.is-far {
+  opacity: 0;
+  pointer-events: none;
+}
+/* (a shade over its picture, under its name) */
+.cs .cs-more-card::after {
   content: "";
   position: absolute;
-  inset: 40% 0 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0));
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.28);
+  pointer-events: none;
 }
-.cs .cs-card-picture {
+.cs .cs-more-picture {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.cs .cs-card:hover .cs-card-picture,
-.cs .cs-card:focus-visible .cs-card-picture {
-  transform: scale(1.03);
+.cs .cs-more-card.is-active:hover .cs-more-picture,
+.cs .cs-more-card.is-active:focus-visible .cs-more-picture {
+  transform: scale(1.04);
 }
-.cs .cs-card-name {
+.cs .cs-more-name {
   position: absolute;
   z-index: 1;
-  left: 1.25rem;
-  right: 1.25rem;
-  bottom: 1.1rem;
-  font-size: clamp(20px, 1.8vw, 34px);
-  line-height: 1;
-}
-.cs .cs-dots {
+  inset: 0;
   display: flex;
+  flex-wrap: wrap;
+  align-content: center;
   justify-content: center;
-  gap: 0.6rem;
-  margin-top: 1.5rem;
+  padding: 0 8%;
+  font-size: clamp(24px, 3vw, 56px);
+  line-height: 1.05;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.4s ease;
 }
-.cs .cs-dot {
-  width: 8px;
-  height: 8px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background-color: currentColor;
-  color: inherit;
-  opacity: 0.3;
-  cursor: pointer;
-  transition: opacity 0.25s ease;
+.cs .cs-more-name .title-display {
+  white-space: normal;
 }
-.cs .cs-dot.is-on {
+.cs .cs-more-card.is-active .cs-more-name {
   opacity: 1;
 }
-
-/* -- the foot over the aura, in the page's margins */
-.cs .pj-end {
-  padding-inline: var(--page-margin);
+.cs .cs-more-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  padding: 2.5rem var(--page-margin) 0;
+}
+.cs .cs-more-row .cs-label {
+  margin: 0;
+}
+.cs .cs-more-lines {
+  display: flex;
+  gap: 4px;
+}
+/* (a fine line; what is pressed, taller) */
+.cs .cs-more-line {
+  width: 28px;
+  height: 18px;
+  padding: 8px 0;
+  border: 0;
+  background-color: var(--c-cream);
+  background-clip: content-box;
+  opacity: 0.3;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+.cs .cs-more-line.is-on {
+  opacity: 1;
+}
+.cs .cs-more-all {
+  justify-self: end;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-cream);
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+.cs .cs-more-all:hover {
+  opacity: 0.6;
 }
 
 /* -- the bar at the screen's foot (not on the cover, nor on the foot): in
@@ -583,20 +778,8 @@
 .cs-bar-sep {
   opacity: 0.4;
 }
-.cs-bar-contact {
-  padding: 0.75rem 1.25rem;
-  border-radius: 999px;
-  background-color: var(--c-cream);
-  color: #141414 !important; /* (its own: over the bar's colour) */
-  transition: background-color 0.4s ease, color 0.4s ease;
-}
-.cs-bar.is-light .cs-bar-contact {
-  background-color: #141414;
-  color: var(--c-cream) !important;
-}
-
 /* -- a phone: one column, labels over their texts; the pictures out of line
-   one under the other; the bar, back and "Contact us" */
+   one under the other; the bar, back alone */
 @media (max-width: 767px) {
   .pj.cs {
     --case-video-width: 100%;
@@ -651,8 +834,16 @@
   .cs .cs-pair-2 {
     margin-top: var(--grid-gutter);
   }
-  .cs .cs-card {
-    flex-basis: 82%;
+  .cs .cs-more-name {
+    font-size: 7vw;
+  }
+  .cs .cs-more-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .cs .cs-more-lines {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: center;
   }
   .cs-bar-name,
   .cs-bar-related,

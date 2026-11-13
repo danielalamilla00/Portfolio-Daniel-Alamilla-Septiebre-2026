@@ -34,3 +34,7 @@ function show() {
 }
 show();
 window.addEventListener("hashchange", show);
+// (the foot's "Back to top": the page's, whichever project it shows)
+document.querySelector(".pj-top").addEventListener("click", () =>
+  window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })
+);

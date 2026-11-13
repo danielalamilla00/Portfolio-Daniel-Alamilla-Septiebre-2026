@@ -1,6 +1,6 @@
 /* A project's page (work.html, src/project.js), around its case study
    (case.css): the page's black with the web's grain (body.grain), the nav,
-   a video's own controls, the end over the aura and the foot. */
+   a video's own controls and the foot. */
 body.project {
   margin: 0;
   background-color: #0a0a0a;
@@ -90,35 +90,32 @@ body.project #site-nav {
   transform: scaleX(0);
 }
 
-/* -- the end (project-end.js): at least a screen tall, what is over the aura
-   at its foot, the aura coming up from below (its canvas at the section's
-   foot, as wide as the screen); all in cream */
-.pj-end {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  min-height: 100vh;
-}
-.pj-end > * {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-}
-.pj-end > .pj-end-aura {
-  position: absolute;
-  z-index: 0;
-  bottom: 0;
-  display: block;
-  pointer-events: none;
-}
-
-/* -- the foot */
+/* -- the foot (at the end of a case study: case.js): the credit on the
+   logo's margin, "Back to top" on the clock's */
 .pj-foot {
   display: flex;
-  justify-content: center;
-  margin-top: auto;
-  padding: 4rem 0 2.5rem;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 4rem var(--page-margin) 2.5rem;
+  font-size: 13px;
+}
+.pj-top {
+  padding: 0.5rem 0;
+  border: 0;
+  background: none;
+  color: var(--c-cream);
+  font: inherit;
+  letter-spacing: var(--tracking-sans);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+.pj-top:hover {
+  opacity: 0.6;
+}
+.pj-top:focus-visible {
+  outline: 1px solid var(--c-cream);
+  outline-offset: 3px;
 }
 
 /* -- a phone: the controls closer together */
