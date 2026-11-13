@@ -145,7 +145,7 @@ export const PROJECTS = [
     tools: "After Effects",
     year: "2026",
     credits: null,
-    // (the teaser: a dry-cut shot of each video's platform — AI 14.0-16.5s, MCP 16.0-18.1s, IPTV 20.8-22.4s,
+    // (the teaser: a dry-cut shot of each video's platform — AI 14.0-16.5s, MCP 16.0-18.1s, IPTV 0-4.0s,
     // Screensaver 16.5-19.4s —; no 1440: the originals are 1080p)
     video: "/proyectos/waapiti-product-videos/waapiti-product-videos-teaser",
     videoSizes: [1080, 720],
