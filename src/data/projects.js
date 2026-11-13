@@ -88,8 +88,8 @@ export const PROJECTS = [
     description: "A 3D logo reveal for Waapiti AI at AfterISE 2026: a technological eye made of light filaments, designed to play across every screen of TMM's Sensory Sync showroom.",
     tagline: "A technological eye for Waapiti AI, created for AfterISE at TMM's Sensory Sync showroom.",
     category: CATEGORY,
-    idea: "During ISE 2026 in Barcelona, TMM hosted an AfterISE at Sensory Sync, its immersive showroom. For the night, Waapiti AI — a digital signage company — needed a brand moment that could live across every screen in the space, from the main LED wall to columns and meeting-room displays.",
-    challenge: "The piece had to work on very different displays in the same room — a large LED wall, a curved LED column and standard screens — and hold attention in a busy networking event. That meant a strong, centred composition that reads at any size or shape, and a loop short enough to catch people as they walk past.",
+    idea: "During ISE 2026, TMM hosted an AfterISE at Sensory Sync, its showroom in Barcelona. Waapiti AI, a digital signage company, wanted a brand moment that worked on every screen in the room, from the main LED wall to the columns and meeting-room displays.",
+    challenge: "The same piece had to work on a large LED wall, a curved LED column and standard screens, in the middle of a busy event. The answer was a centred composition that reads at any size and a short loop that catches people walking past.",
     client: "Waapiti AI",
     industry: null,
     role: "Motion Designer",
@@ -106,15 +106,12 @@ export const PROJECTS = [
       pictureSize: [2752, 1536],
       coverTitle: ["*Waapiti AI*", "3D Logo Reveal"],
       coverKicker: "Waapiti AI · Barcelona",
-      statement: "A technological eye for Waapiti AI, created for AfterISE 2026 at TMM's Sensory Sync showroom.",
+      statement: "A 3D logo reveal for Waapiti AI, shown at TMM's showroom during AfterISE 2026.",
       tags: ["Waapiti AI", "ISE 2026", "Sensory Sync", "3D Logo Reveal"],
       picture: { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-01", alt: "The Waapiti AI reveal on a large screen at an evening event" },
       creative: {
         statement: "*Thousands of light filaments* open like an iris and reveal the brand at its centre — a screen that looks back at you.",
-        paragraphs: [
-          "Digital signage is, above all, about being seen. The idea was to turn the brand into a technological eye: thousands of filaments of violet and pink light pull towards a single point, open like an iris and reveal Waapiti AI at its centre. A screen that looks back at you.",
-          "A ten-second loop that turned the whole showroom into Waapiti AI's stage for the night — one visual identity, adapted to every screen in the space.",
-        ],
+        paragraphs: ["Digital signage is about being seen, so the logo became an eye. Thousands of violet and pink light filaments pull towards the centre, open like an iris and reveal the brand."],
         pictures: [
           { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-02", alt: "Guests in front of the reveal on an event screen", focus: "70% 50%" },
           { src: "/proyectos/waapiti-ai-3d-logo-reveal/mockups/mockup-04", alt: "The reveal on a vertical screen in the showroom's window, seen from the street", focus: "80% 50%" },
@@ -137,8 +134,8 @@ export const PROJECTS = [
     description: "A series of motion videos explaining Waapiti's key features — from AI tagging and MCP to IPTV and interactive screensavers — in one shared visual language.",
     tagline: "A series of product videos for Waapiti, the digital signage platform.",
     category: CATEGORY,
-    idea: "Waapiti is a digital signage platform that lets businesses manage the content on all their screens from one place. I created a series of product videos to launch and explain its key features — Waapiti AI, the MCP connection, IPTV multicast and the interactive screensaver — turning technical tools into short, clear stories for clients and social media.",
-    challenge: "Explaining technical features — AI tagging, MCP, IPTV — to a non-technical audience in under a minute, while keeping each piece simple, readable and on brand.",
+    idea: "Waapiti is a digital signage platform for managing the content on all of a company's screens. I made a series of videos to launch and explain its main features: Waapiti AI, MCP, Sync Displays, IPTV multicast and the interactive screensaver.",
+    challenge: "Explaining technical tools like AI tagging, MCP or screen synchronisation to people who aren't technical, quickly and on brand.",
     client: "Waapiti",
     industry: "Digital signage",
     role: "Motion Designer",
@@ -154,14 +151,14 @@ export const PROJECTS = [
       pictureSize: [1920, 1080],
       coverTitle: ["*Waapiti*", "Product Videos"],
       coverKicker: "Waapiti · Digital signage",
-      statement: "Four features, one visual language: product videos that make digital signage simple to understand.",
+      statement: "A series of product videos that explain Waapiti's features in under a minute.",
       tags: ["Waapiti", "Digital signage", "Product video", "UI motion"],
       // (Waapiti AI at 16.6s: the platform — Media Content, its tagged contents — and Waapiti AI's panel)
       picture: { src: "/proyectos/waapiti-product-videos/mockups/frame-16.6s", alt: "The Waapiti platform's Media Content page, four contents tagged \"promotion\" by Waapiti AI in its side panel" },
       creative: {
         statement: "Every feature told in seconds: kinetic type, clean UI and the brand's warm palette.",
-        paragraphs: ["Each video follows the same system: a short question or claim in bold kinetic typography, highlighted keywords in Waapiti's coral, UI animated step by step and a clean brand close. The look stays consistent across the series, so every new feature feels part of the same family."],
-        more: [{ label: "(Challenge)", text: "Explaining technical features — AI tagging, MCP, IPTV — to a non-technical audience in under a minute, while keeping each piece simple, readable and on brand." }],
+        paragraphs: ["All the videos share the same system: a short question in kinetic type, key words highlighted in coral, the interface animated step by step and a clean brand ending. That keeps every new feature part of the same series."],
+        more: [{ label: "(Challenge)", text: "Explaining technical tools like AI tagging, MCP or screen synchronisation to people who aren't technical, quickly and on brand." }],
       },
       // (the four videos, the whole screen one after another; a shorter hold than the others': four of them;
       // each one's preview, a part of its platform — not its intro —, but IPTV's: its first 4s)
@@ -186,8 +183,8 @@ export const PROJECTS = [
     description: "3D animations for the holographic fans of Caprabo L'Illa, Barcelona — seasonal campaigns and in-store promos floating in mid-air above the aisles.",
     tagline: "3D animations for the holographic fans of Caprabo L'Illa in Barcelona.",
     category: CATEGORY,
-    idea: "Caprabo's store at L'Illa Diagonal, in Barcelona, features holographic fans hanging from the ceiling across the shop floor. I created a series of 3D animations designed specifically for them: short, looping pieces that appear to float in the air and catch shoppers' attention as they walk the aisles — from coffee and loyalty-card promotions to seasonal campaigns for Christmas and Three Kings' Day.",
-    challenge: "Creating content that works on a round, see-through display: no backgrounds, strong silhouettes, high contrast and short loops that stay readable from a distance in a busy, brightly lit supermarket.",
+    idea: "The Caprabo store at L'Illa Diagonal has holographic fans hanging from the ceiling. I made a series of short 3D loops for them, from coffee and loyalty-card promos to Christmas and Three Kings' Day campaigns.",
+    challenge: "Content for a round, see-through display in a bright supermarket: no backgrounds, strong silhouettes, high contrast and loops short enough to read in passing.",
     client: "Caprabo",
     industry: null,
     display: "Holographic fans · Caprabo L'Illa, Barcelona",
@@ -203,14 +200,14 @@ export const PROJECTS = [
       pictureSize: [1920, 1080],
       coverTitle: ["*Caprabo*", "3D Hologram Content"],
       coverKicker: "Caprabo · L'Illa, Barcelona",
-      statement: "3D animations that float in mid-air above the aisles of Caprabo L'Illa, in Barcelona.",
+      statement: "3D animations for the holographic fans hanging above the aisles of Caprabo L'Illa, in Barcelona.",
       tags: ["Caprabo", "Holographic fans", "3D animation", "Retail"],
       // (the mockups' compilation at 1.492s: "Super Caprabo" on a fan hanging from the ceiling)
       picture: { src: "/proyectos/caprabo-3d-hologram-content/mockups/frame-1.49s", alt: "\"Super Caprabo\" in 3D, floating on a holographic fan hanging from the ceiling of Caprabo L'Illa" },
       creative: {
         statement: "Designed for *black*: every piece lives on a dark canvas, so only the product and the message appear to float in the store.",
-        paragraphs: ["On a holographic fan, black is transparent. Each animation was built around a single hero object — a coffee cup, a loyalty card, a tortell, Santa's sleigh — with bold 3D type and particles, centred and moving in a circle so it reads from any angle below."],
-        more: [{ label: "(Challenge)", text: "Creating content that works on a round, see-through display: no backgrounds, strong silhouettes, high contrast and short loops that stay readable from a distance in a busy, brightly lit supermarket." }],
+        paragraphs: ["On a holographic fan, black is transparent, so only the product appears to float. Each piece is built around one object (a coffee cup, a loyalty card, a tortell, Santa's sleigh) with bold 3D type and particles."],
+        more: [{ label: "(Challenge)", text: "Content for a round, see-through display in a bright supermarket: no backgrounds, strong silhouettes, high contrast and loops short enough to read in passing." }],
       },
       // (the five square animations, 1080x1080 / 720x720 — Reis and Santa with their sound)
       final: {
@@ -237,8 +234,8 @@ export const PROJECTS = [
     description: "A joint campaign for Hummel uniting Valencia Basket and Real Betis, presenting both new kits under one shared visual story.",
     tagline: "Joint campaign uniting Valencia Basket and Real Betis under one brand.",
     category: "Sports Campaign",
-    idea: "Hummel dresses two of Spain's most passionate clubs: Valencia Basket and Real Betis. For the launch of their new kits, the brand needed a single campaign that could present both shirts together, with a shared visual language that respected each club's identity.",
-    challenge: "Telling two clubs — and two different sports — in a single piece, giving each team its own moment without losing a common campaign look.",
+    idea: "Hummel makes the kits for Valencia Basket and Real Betis. For the new season, the brand wanted a single campaign that presented both shirts together while keeping each club's identity.",
+    challenge: "Telling two clubs from two different sports in one piece, giving each team its moment without losing a shared campaign look.",
     client: "Hummel",
     industry: "Sportswear",
     role: "Motion Designer",
@@ -253,14 +250,14 @@ export const PROJECTS = [
       pictureSize: [1920, 1080],
       coverTitle: ["*Hummel*", "Kit Launch Campaign"],
       coverKicker: "Hummel · Valencia Basket × Real Betis",
-      statement: "One brand, two clubs: a joint campaign presenting the new Hummel kits of Valencia Basket and Real Betis.",
+      statement: "One campaign to launch the new Hummel kits of Valencia Basket and Real Betis.",
       tags: ["Hummel", "Valencia Basket", "Real Betis", "Kit Launch"],
       // (the main video's frame at 0:06, exactly: mid-shot, sharp)
       picture: { src: "/proyectos/hummel-kit-launch-campaign/mockups/frame-6s", alt: "Real Betis's new Hummel shirt, its crest and stripes under a hard light" },
       creative: {
         statement: "Two shirts, one *story*: the kits take the stage as the hero of every shot.",
-        paragraphs: ["The campaign puts the kits at the centre: dramatic light, close-up details of fabric and crest, and bold Hummel typography that ties both clubs together in one rhythm."],
-        more: [{ label: "(Challenge)", text: "Telling two clubs — and two different sports — in a single piece, giving each team its own moment without losing a common campaign look." }],
+        paragraphs: ["The kits are the protagonists: dramatic light, close-ups of fabric and crest, and bold Hummel typography that ties both clubs together."],
+        more: [{ label: "(Challenge)", text: "Telling two clubs from two different sports in one piece, giving each team its moment without losing a shared campaign look." }],
       },
       final: {
         videos: [{ line: "Kit launch spot · Valencia Basket × Real Betis", poster: "/proyectos/hummel-kit-launch-campaign/poster.webp" }],
@@ -269,7 +266,7 @@ export const PROJECTS = [
       social: {
         label: "(Vertical cuts)",
         title: "Made for *vertical*",
-        text: "The campaign was adapted into three vertical 9:16 pieces for social media, keeping the same look and rhythm as the main spot.",
+        text: "Three vertical 9:16 versions for social media, with the same look and pace as the main spot.",
         videos: [1, 2, 3].map((n) => ({
           line: `Vertical cut 0${n}`,
           video: `/proyectos/hummel-kit-launch-campaign/vertical/hummel-vertical-0${n}`,
@@ -289,8 +286,8 @@ export const PROJECTS = [
     description: "3D videos created for every screen of TMM's Sensory Sync showroom — a brand reveal made of glowing spheres and a seasonal autumn piece.",
     tagline: "Videos for TMM's Sensory Sync immersive showroom.",
     category: CATEGORY,
-    idea: "Sensory Sync is TMM's immersive showroom in Barcelona, where clients experience screens, light and sound before they reach their own stores and events. I create the videos that bring the space to life — from TMM's own brand reveal to seasonal pieces that keep the showroom changing through the year — designed to play across the main LED wall, the curved LED column and the window displays facing the street.",
-    challenge: "Every video had to work at once on a wide LED wall, a curved column and vertical window screens, and fit a space where people work and meet: calm enough for the room, striking enough to stop people walking past the window.",
+    idea: "Sensory Sync is TMM's showroom in Barcelona. Clients come to see screens, light and sound working together before taking them to their own stores and events. I make the content that runs on it: the TMM brand reveal and seasonal pieces that change through the year.",
+    challenge: "Each video has to work on a wide LED wall, a curved column and vertical window screens at the same time, in a room where people also work and meet.",
     client: "TMM",
     industry: null,
     display: "Sensory Sync",
@@ -309,16 +306,13 @@ export const PROJECTS = [
       coverKicker: "TMM · Barcelona",
       // (the cover's video: a teaser of the two, not the project's own)
       coverVideo: { video: "/proyectos/tmm-sensory-sync-content/tmm-sensory-sync-teaser", videoSizes: [1440, 1080, 720] },
-      statement: "Videos created for Sensory Sync, TMM's immersive showroom, where every screen in the space tells the same story.",
+      statement: "3D videos for Sensory Sync, the screen showroom TMM uses to show clients what they can build.",
       tags: ["TMM", "Sensory Sync", "3D", "Digital Signage"],
       picture: { src: "/proyectos/tmm-sensory-sync-content/mockups/spheres-04", alt: "The spheres on the main LED wall of TMM's Sensory Sync showroom, a meeting at the round table in front of it" },
       creative: {
         statement: "One brand, many senses: light that gathers into a logo, and leaves that rise with the wind.",
-        paragraphs: [
-          "The Multisensory Makers bring many senses together into one experience. The brand reveal tells exactly that: a single point of light multiplies into soft, glowing spheres that drift and gather into the TMM letters.",
-          "For autumn, the same idea turns seasonal: a carpet of 3D leaves is lifted by the wind and swirls into the logo, while the copy speaks to the senses — 'Es veu en cada color. S'escolta en cada fulla.'",
-        ],
-        more: [{ label: "(Challenge)", text: "Every video had to work at once on a wide LED wall, a curved column and vertical window screens, and fit a space where people work and meet: calm enough for the room, striking enough to stop people walking past the window." }],
+        paragraphs: ["For the brand reveal, a single light turns into glowing spheres that gather into the TMM letters. For autumn, a carpet of 3D leaves is lifted by the wind and swirls into the logo, with copy about colour and sound: 'Es veu en cada color. S'escolta en cada fulla.'"],
+        more: [{ label: "(Challenge)", text: "Each video has to work on a wide LED wall, a curved column and vertical window screens at the same time, in a room where people also work and meet." }],
         // (there is no picture of the autumn piece on the LED column: its window display)
         pictures: [
           { src: "/proyectos/tmm-sensory-sync-content/mockups/spheres-02", alt: "The spheres on the curved LED column of the showroom" },
