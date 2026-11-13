@@ -9,3 +9,4 @@ source-videos/
 *-2160.mp4
 *-before-*.mp4
 *.mov
+/backup/
