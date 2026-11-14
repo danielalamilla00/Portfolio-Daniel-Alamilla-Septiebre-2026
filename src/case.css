@@ -82,13 +82,79 @@
 }
 
 /* -- the cover: the video, the whole screen, nothing over it; pressed, it
-   opens on the whole screen (.cs-player). The web's cursor over it is its
-   "Play" one (cursor.js). */
+   opens on the whole screen (.cs-player). With a mouse, the pointer's own
+   hidden over it: a play in its place (case.js, playCursor()). */
 .cs .cs-cover {
   height: 100svh;
   padding: 0;
   overflow: hidden;
   cursor: pointer;
+}
+.cs .cs-cover.has-play-cursor {
+  cursor: none;
+}
+/* -- the play over the cover (case.js, playCursor(): where the pointer is,
+   its transform): a cream circle of 44px with a play in it, growing in from
+   nothing (0.35s, power3.out), and "Play" up at its right, coming in with
+   it; back to nothing in 0.3s where the cover is not under it */
+.cs-play-cursor {
+  --cs-play-ease: cubic-bezier(0.215, 0.61, 0.355, 1); /* = power3.out */
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.cs-play-cursor-ball {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  translate: -50% -50%;
+  background-color: #f6ecdd;
+  color: #0a0a0a;
+  scale: 0;
+  transition: scale 0.3s ease;
+}
+.cs-play-cursor.is-on .cs-play-cursor-ball {
+  scale: 1;
+  transition: scale 0.35s var(--cs-play-ease);
+}
+.cs-play-cursor-ball svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+  translate: 1px 0;
+}
+/* ("Play": its foot at the circle's top right, a little out of it) */
+.cs-play-cursor-label {
+  position: absolute;
+  left: 26px;
+  top: -22px;
+  translate: 0 -50%;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #f6ecdd;
+  opacity: 0;
+  transform: translate(-6px, 6px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.cs-play-cursor.is-on .cs-play-cursor-label {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.35s var(--cs-play-ease), transform 0.35s var(--cs-play-ease);
 }
 .cs .cs-cover-video {
   position: absolute;

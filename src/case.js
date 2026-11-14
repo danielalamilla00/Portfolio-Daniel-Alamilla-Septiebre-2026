@@ -16,9 +16,9 @@ gsap.registerPlugin(ScrollTrigger);
 // two grounds — dark (the page's black, words in cream) and light (cream,
 // words in #141414), each with the web's grain. In order:
 //   - the cover (dark), fixed: the project's video, the whole screen, muted,
-//     in a loop, nothing over it (but the nav). Over it the web's cursor is
-//     its "Play" one (cursor.js); pressed (or tapped), the video opens the whole
-//     screen, from its start, with its sound and its own bar (openPlayer());
+//     in a loop, nothing over it (but the nav); with a mouse, the pointer
+//     over it is a play (playCursor()); pressed (or tapped), the video opens
+//     the whole screen, from its start, with its sound and its own bar (openPlayer());
 //     closed, the cover's loop goes on. It stays alone for CS_COVER_HOLD_VH of
 //     scroll; then its video stops and
 //   - the cream (light) comes up over it, CS_STACK_VH of scroll: a big
@@ -59,6 +59,8 @@ gsap.registerPlugin(ScrollTrigger);
 //   CS_SCRUB             the scroll-driven moves' damping (the web's: scrub 1)
 //   CS_PLAYER_IDLE_MS    the video open on the whole screen: its bar hides
 //                        after the pointer has been still this long
+//   CS_PLAY_LERP         the play over the cover: the share of the way left
+//                        to the pointer it goes each frame (at 60fps)
 //   CS_MORE_*_VW         the other projects' carousel: the card in the middle
 //                        and the ones at its sides, wide (a phone's), the
 //                        room between them
@@ -80,6 +82,8 @@ const CS_REVEAL_STAGGER_S = 0.08;
 const CS_REVEAL_RISE_PX = 40;
 const CS_SCRUB = 1;
 const CS_PLAYER_IDLE_MS = 2000;
+const CS_PLAY_LERP = 0.18;
+const ICON_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.8 5.2v13.6a.8.8 0 0 0 1.2.7l10.9-6.8a.8.8 0 0 0 0-1.4L7 4.5A.8.8 0 0 0 5.8 5.2Z" fill="currentColor"/></svg>';
 const CS_MORE_ACTIVE_VW = 45;
 const CS_MORE_SIDE_VW = 22;
 const CS_MORE_ACTIVE_PHONE_VW = 80;
@@ -287,8 +291,8 @@ export function renderCase(project) {
   };
 }
 
-// The cover's video: muted, in a loop. The web's cursor over it is its
-// "Play" one (cursor.js: data-cursor); pressed — or tapped —, the video opens on the whole screen
+// The cover's video: muted, in a loop (with a mouse, a play over it:
+// playCursor()); pressed — or tapped —, the video opens on the whole screen
 // (openPlayer()), and the loop stops until it is closed. What it gives back:
 // what stops the loop and lets it go on (holdCover(): the cream coming up
 // over it).
@@ -296,7 +300,6 @@ function coverVideo(project, cover, video) {
   let under = false; // (the cream over it: the loop stopped)
   let watching = false;
   const loop = () => !under && !watching && video.play().catch(() => {});
-  cover.dataset.cursor = "video";
   cover.addEventListener("click", () => {
     watching = true;
     video.pause();
@@ -305,6 +308,7 @@ function coverVideo(project, cover, video) {
       loop();
     });
   });
+  playCursor(cover);
   loop();
   return {
     stop: () => {
@@ -316,6 +320,71 @@ function coverVideo(project, cover, video) {
       loop();
     },
   };
+}
+
+// The pointer over the cover, with a mouse: its own hidden there (case.css)
+// and, in its place, a cream circle with a play in it and "Play" up at its
+// right, following the pointer (CS_PLAY_LERP of the way left each frame: the
+// same feel at any frame rate). It grows in where the cover itself is under
+// the pointer — not the cream come up over it, the nav's links or the video
+// open on the whole screen — and shrinks away where it is not, the
+// pointer's own there (case.css). Never on a screen that is only touched.
+function playCursor(cover) {
+  if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+  const cursor = element("div", "cs-play-cursor");
+  cursor.setAttribute("aria-hidden", "true");
+  cursor.innerHTML = `<span class="cs-play-cursor-ball">${ICON_PLAY}</span><span class="cs-play-cursor-label">Play</span>`;
+  document.body.appendChild(cursor);
+  cover.classList.add("has-play-cursor");
+  const pointer = { x: 0, y: 0 };
+  const at = { x: 0, y: 0 };
+  let known = false; // (where the pointer is: once it has moved on the page)
+  let over = false;
+  let frame = 0;
+  let then = 0;
+  const place = () => (cursor.style.transform = `translate3d(${at.x.toFixed(2)}px, ${at.y.toFixed(2)}px, 0)`);
+  const show = (on) => {
+    // (coming in where the pointer is, not from where it was left)
+    if (on && !over) Object.assign(at, pointer), place();
+    over = on;
+    cursor.classList.toggle("is-on", on);
+  };
+  const look = () => {
+    if (!known) return;
+    const under = document.elementFromPoint(pointer.x, pointer.y);
+    show(Boolean(under) && cover.contains(under));
+  };
+  const tick = (now) => {
+    const frames = then ? Math.min((now - then) / (1000 / 60), 30) : 1;
+    then = now;
+    const ease = 1 - (1 - CS_PLAY_LERP) ** frames;
+    at.x += (pointer.x - at.x) * ease;
+    at.y += (pointer.y - at.y) * ease;
+    const still = Math.hypot(pointer.x - at.x, pointer.y - at.y) < 0.1;
+    if (still) Object.assign(at, pointer);
+    place();
+    frame = still ? 0 : requestAnimationFrame(tick);
+  };
+  const signal = scope.abort.signal;
+  window.addEventListener("pointermove", (event) => {
+    if (event.pointerType !== "mouse") return;
+    pointer.x = event.clientX;
+    pointer.y = event.clientY;
+    known = true;
+    look();
+    if (!frame) then = 0, (frame = requestAnimationFrame(tick));
+  }, { signal });
+  document.documentElement.addEventListener("pointerleave", () => {
+    known = false;
+    show(false);
+  }, { signal });
+  // (the page moved under a still pointer, or changed under it: looked at again)
+  window.addEventListener("scroll", look, { passive: true, signal });
+  window.addEventListener("click", () => setTimeout(look), { capture: true, signal });
+  scope.undo.push(() => {
+    cancelAnimationFrame(frame);
+    cursor.remove();
+  });
 }
 
 // The project's video on the whole screen: a layer of the page's black over
@@ -665,7 +734,6 @@ function endBlock(project, box) {
   const cards = others.map((next, index) => {
     const card = element("a", "cs-more-card");
     card.href = projectUrl(next);
-    card.dataset.cursor = "grow"; // (cursor.js)
     // (dragged, it moves the carousel: never the browser's own drag of a link)
     card.draggable = false;
     const image = element("img", "cs-more-picture");

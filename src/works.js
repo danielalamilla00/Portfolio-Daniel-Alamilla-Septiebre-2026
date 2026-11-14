@@ -9,7 +9,6 @@ import { plainTitle } from "./title.js";
 import { createHeadlines, alignHeadlines, whenHeadlineInkChanges } from "./headline.js";
 import { onViewportChange } from "./viewport.js";
 import { setupPageTransition } from "./page-transition.js";
-import { setupCursor } from "./cursor.js";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -65,7 +64,6 @@ const fineMouse = window.matchMedia("(hover: hover) and (pointer: fine)");
 
 applyPalette();
 setupMenu(); // (and the page's grain: body.grain)
-setupCursor();
 setupPageTransition(document.querySelector(".wk"));
 
 // -- the head's headline --------------------------------------------------------------
@@ -150,7 +148,6 @@ const grid = document.querySelector(".wk-grid");
 const cards = PROJECTS.map((project, index) => {
   const card = element("a", "wk-card");
   card.href = projectUrl(project);
-  card.dataset.cursor = "grow"; // (cursor.js)
   const media = element("span", "wk-media");
   const image = element("img", "wk-poster");
   image.alt = "";

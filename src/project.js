@@ -2,7 +2,6 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { applyPalette } from "./palette.js";
 import { startNavClock } from "./clock.js";
 import { setupMenu } from "./menu.js";
-import { setupCursor } from "./cursor.js";
 import { PROJECTS, MOVED } from "./data/projects.js";
 import { renderCase } from "./case.js";
 import { setupPageTransition, transitionWithin } from "./page-transition.js";
@@ -21,7 +20,6 @@ import { setupPageTransition, transitionWithin } from "./page-transition.js";
 applyPalette();
 startNavClock();
 setupMenu();
-setupCursor();
 // (a new project starts at its top, never where the last one was left —
 // nor where the browser would put it back, going back to it: through
 // ScrollTrigger, which otherwise sets the browser's own back at every refresh)
