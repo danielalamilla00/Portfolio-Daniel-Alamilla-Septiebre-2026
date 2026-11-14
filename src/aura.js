@@ -81,13 +81,16 @@ export function createAura(pageRgb) {
 // An aura on a canvas of its own, with its own small renderer: Works' head
 // (works.js) and a project's end (case.js). `size(width, height)`: the
 // canvas's, in CSS px; `uniforms`: createAura()'s — where it is, how big, how
-// opaque —, set before `draw()`; `dispose()`: its GPU context let go.
+// opaque —, set before `draw()`; `dispose()`: its GPU context let go — a
+// draw after it does nothing (a page's tweens, undone after it, set their
+// start back and draw once more: case.js).
 export function createAuraCanvas(canvas, pageRgb) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
   const aura = createAura(pageRgb);
   const scene = new THREE.Scene();
   scene.add(aura.mesh);
   const camera = new THREE.Camera(); // the quad places itself (aura.vert.glsl)
+  let disposed = false;
   return {
     uniforms: aura.uniforms,
     size(width, height) {
@@ -96,8 +99,9 @@ export function createAuraCanvas(canvas, pageRgb) {
       aura.uniforms.uViewport.value.set(width, height);
       aura.uniforms.uPixelRatio.value = renderer.getPixelRatio();
     },
-    draw: () => renderer.render(scene, camera),
+    draw: () => disposed || renderer.render(scene, camera),
     dispose() {
+      disposed = true;
       aura.mesh.geometry.dispose();
       aura.mesh.material.dispose();
       renderer.dispose();
