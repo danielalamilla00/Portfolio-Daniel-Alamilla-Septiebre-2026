@@ -107,7 +107,7 @@ body {
    left/right use var(--page-margin), the same gutter the nav sits in — but
    that only aligns the BOXES. The exact ink-to-logo/ink-to-clock alignment
    and the bottom gap under the "g" are measured and corrected in JS
-   (updateHeadlineAlignment in main.js, re-run on resize and once webfonts
+   (alignHeadlines in headline.js, re-run on resize and once webfonts
    load): it overrides .hw-sans's `left`, .hw-display's `right` and this
    rule's `bottom`, so the values here are just the pre-JS starting point. */
 .headline-word {
@@ -117,7 +117,7 @@ body {
      the headline (its ink is aligned by JS, see above). */
   width: calc(100vw - 2 * var(--page-margin));
   bottom: 3vh;
-  translate: 0 calc(-1 * var(--browser-bar)); /* clear of a phone's browser bar (type.css); main.js measures it without */
+  translate: 0 calc(-1 * var(--browser-bar)); /* clear of a phone's browser bar (type.css); headline.js measures it without */
   height: 26.04vw; /* tight to "Designer"'s own nominal box-bottom (13.54vw + 12.5vw) — just a bounding reference for GSAP's scale-from-center pivot, not a clip boundary */
   /* Above the orange (#sphere-canvas, behind this whole section): both
      words sit ON it. */
@@ -129,7 +129,7 @@ body {
      cut the "g" descender or the blur's spread. */
   --hw-bleed: 6vw;
 }
-/* Focus (main.js, setupHeadlineFocus): stacked copies of the headline —
+/* Focus (headline.js, setupHeadlineFocus): stacked copies of the headline —
    one sharp, the rest blurred — each masked along x so that together they
    always add up to exactly one headline, sharp inside the focus bands.
    plus-lighter adds the copies instead of stacking them, so cross-fading
@@ -137,7 +137,7 @@ body {
    prefers-reduced-motion) there is just the one sharp, unmasked copy.
    A .hw-layer is a strip 220vw wide carrying that copy's mask (--hw-mask):
    one sharp band per --hw-period, with a band centered 110vw from the
-   strip's left edge (= HEADLINE_STRIP_WINDOW_VW in main.js). The strip is
+   strip's left edge (= HEADLINE_STRIP_WINDOW_VW in headline.js). The strip is
    slid and stretched with a transform (compositor only, no repaint) and
    .hw-layer-content takes the inverse, so the text doesn't move. The
    variables are set from JS on .headline-word.
@@ -197,9 +197,9 @@ body {
   font-weight: 500;
   letter-spacing: var(--tracking-sans);
 }
-/* Both lines letter by letter (main.js splits them for the thickening-
+/* Both lines letter by letter (headline.js splits them for the thickening-
    by-proximity effect and sets each letter's weight/outline inline from a
-   variable). inline-block costs the font's kerning, which main.js measures
+   variable). inline-block costs the font's kerning, which headline.js measures
    and puts back as --kern, so at rest every letter sits exactly where the
    plain text did. --grow is the extra room a "Designer" letter takes on
    each side while its outline is on (0 at rest, and always for
@@ -248,7 +248,9 @@ body {
    The scroll's exit (opacity + y, main.js) goes on the outer box, the
    entrance on load on the <p> inside: never two things on one transform.
    Contact (.ct) has the same two blocks over the same headline; there they
-   come in when the section gets to its place (.is-entered, contact.js). */
+   come in when the section gets to its place (.is-entered, contact.js).
+   Works' head (.wk-hero, works.html) has the first of them, which comes in
+   as the page opens, as the hero's do. */
 .hero-intro {
   --hero-intro-size: clamp(0.85rem, 1.05vw, 1.2rem);
   --hero-intro-weight: 300;
@@ -288,7 +290,7 @@ body {
 }
 /* A phone: the two blocks one under the other at the top, as wide as the
    page, at 15px — the second right under the first (--hero-intro-stack: the
-   first's height, which main.js measures). */
+   first's height, which headline.js measures). */
 @media (max-width: 767px) {
   .hero-intro {
     --hero-intro-size: 15px;
@@ -307,7 +309,8 @@ body {
   }
 }
 #hero-section .hero-intro p,
-.ct.is-entered .hero-intro p {
+.ct.is-entered .hero-intro p,
+.wk-hero .hero-intro p {
   animation: hero-intro-in 0.8s cubic-bezier(0.215, 0.61, 0.355, 1) 0.3s both; /* = power2.out */
 }
 #hero-section .hero-intro-right p,
@@ -322,7 +325,8 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   #hero-section .hero-intro p,
-  .ct.is-entered .hero-intro p {
+  .ct.is-entered .hero-intro p,
+  .wk-hero .hero-intro p {
     animation-name: hero-intro-fade;
   }
 }
@@ -1405,9 +1409,11 @@ html.is-grid body::after {
   --ct-contact-scale: 1.25;
   font-size: calc(var(--hero-intro-size) * var(--ct-contact-scale));
 }
-/* (a phone, where the two are stacked at the top: under the section's label) */
+/* (a phone, where the two are stacked at the top: under the section's label
+   — and on Works' head, which has the same label) */
 @media (max-width: 767px) {
-  .ct .hero-intro {
+  .ct .hero-intro,
+  .wk-hero .hero-intro {
     --hero-intro-left-top: 8.75rem;
   }
 }
@@ -1986,4 +1992,139 @@ html.is-grid body::after {
 }
 #site-nav.is-menu-open .nav-logo {
   filter: brightness(0) invert(1);
+}
+
+/* ---- The web's cursor (src/cursor.js) ---------------------------------------------------
+   With a mouse, the pointer's own hidden everywhere and, in its place, two
+   pieces fixed over everything, moved by cursor.js (their transform: the
+   pointer's point is their 0, 0): a full circle of CURSOR px, cream with a
+   black dot in its middle (.is-light, on a light ground: black with a cream
+   one), and behind it a soft orange halo. Over a video that plays
+   (data-cursor="video") the circle grows to 44px with a small play in it,
+   "Play" comes in up at its right in its colour, and the halo goes; over a
+   card that opens a project (data-cursor="grow") it only grows to 28px. Both
+   ways back to the plain one in 0.3s. */
+html.has-cursor,
+html.has-cursor * {
+  cursor: none !important;
+}
+.cursor,
+.cursor-halo {
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.cursor.is-on,
+.cursor-halo.is-on {
+  opacity: 1;
+}
+.cursor-halo.is-gone {
+  opacity: 0;
+}
+/* (the video open on the whole screen, its bar gone with the pointer still: gone too) */
+body:has(.cs-player.is-idle) .cursor,
+body:has(.cs-player.is-idle) .cursor-halo {
+  opacity: 0;
+}
+.cursor-halo::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: -20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: radial-gradient(circle closest-side, rgba(255, 138, 42, 0.4), rgba(255, 138, 42, 0));
+}
+.cursor {
+  --cursor-size: 14px;
+  --cursor-ink: #f6ecdd;
+  --cursor-ground: #0a0a0a;
+  --cursor-ease: cubic-bezier(0.215, 0.61, 0.355, 1); /* = power3.out */
+}
+.cursor.is-light {
+  --cursor-ink: #0a0a0a;
+  --cursor-ground: #f6ecdd;
+}
+.cursor[data-mode="grow"] {
+  --cursor-size: 28px;
+}
+.cursor[data-mode="video"] {
+  --cursor-size: 44px;
+}
+.cursor-ball {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--cursor-size);
+  height: var(--cursor-size);
+  border-radius: 50%;
+  translate: -50% -50%;
+  background-color: var(--cursor-ink);
+  color: var(--cursor-ground);
+  transition: width 0.3s ease, height 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+}
+.cursor[data-mode="grow"] .cursor-ball,
+.cursor[data-mode="video"] .cursor-ball {
+  transition-duration: 0.35s, 0.35s, 0.3s, 0.3s;
+  transition-timing-function: var(--cursor-ease), var(--cursor-ease), ease, ease;
+}
+.cursor-dot {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background-color: currentColor;
+  transition: opacity 0.2s ease;
+}
+.cursor-play {
+  position: absolute;
+  display: flex;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.cursor-play svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+  translate: 1px 0;
+}
+.cursor[data-mode="video"] .cursor-dot {
+  opacity: 0;
+}
+.cursor[data-mode="video"] .cursor-play {
+  opacity: 1;
+  transition-delay: 0.1s;
+}
+/* "Play": its foot at the circle's top right, a little out of it */
+.cursor-label {
+  position: absolute;
+  left: 26px;
+  top: -22px;
+  translate: 0 -50%;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--cursor-ink);
+  opacity: 0;
+  transform: translate(-6px, 6px);
+  transition: opacity 0.3s ease, transform 0.3s ease, color 0.3s ease;
+}
+.cursor[data-mode="video"] .cursor-label {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.35s var(--cursor-ease), transform 0.35s var(--cursor-ease), color 0.3s ease;
 }

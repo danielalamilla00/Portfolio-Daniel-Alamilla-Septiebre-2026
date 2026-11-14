@@ -12,8 +12,20 @@
          this page's own. -->
     <link rel="stylesheet" href="/src/style.css" />
     <link rel="stylesheet" href="/src/works.css" />
+    <!-- Between Works and a project's page (src/page-transition.css, .js):
+         arriving by the transition where the browser has none of its own,
+         the content hidden from the first frame until it comes in. -->
+    <link rel="stylesheet" href="/src/page-transition.css" />
+    <script>
+      try {
+        if (sessionStorage.getItem("pt-arriving")) {
+          sessionStorage.removeItem("pt-arriving");
+          document.documentElement.classList.add("pt-in");
+        }
+      } catch (e) {}
+    </script>
   </head>
-  <body class="works">
+  <body class="works grain">
     <!-- The home's nav; its links go back to the home's sections. -->
     <nav id="site-nav">
       <a class="nav-home" href="index.html"><img class="nav-logo" src="/logo-alamilla-new.svg" alt="Alamilla" /></a>
@@ -30,13 +42,31 @@
       <button class="nav-menu" type="button" aria-expanded="false" aria-controls="site-menu">menu</button>
       <p class="nav-clock"><span>valencia</span> <time id="nav-clock-time"></time></p>
     </nav>
-    <!-- Every project, one row each, across the page: src/works.js builds
-         the rows from src/data/projects.js and moves them, over the aura
-         (its canvas: still, behind them). -->
-    <main class="wk" aria-label="Works">
-      <h1 class="wk-heading">Works</h1>
-      <canvas class="wk-aura" aria-hidden="true"></canvas>
-      <div class="wk-rows"></div>
+    <!-- Behind the head, going up with it: the aura (src/works.js draws it). -->
+    <canvas class="wk-aura" aria-hidden="true"></canvas>
+    <main class="wk">
+      <!-- The head, a screen: Contact's composition, with its own classes
+           (style.css; the headline: src/headline.js) — the label, the words
+           under it and, at the bottom, the headline of two lines. -->
+      <section class="wk-hero" aria-label="Featured works">
+        <p class="more-label">(Selected work)</p>
+        <div class="hero-intro hero-intro-left">
+          <p>Selected work from the last few years. Digital signage for showrooms and retail, 3D logo reveals, product animations and campaigns for brands like Hummel, Caprabo, Spotify and Waapiti. Hover to preview, click to see the full project.</p>
+        </div>
+        <h1 class="headline-word">
+          <span class="hw-layer">
+            <span class="hw-layer-content">
+              <span class="hw-layer-inner">
+                <span class="hw-sans">Featured</span>
+                <span class="hw-display">works</span>
+              </span>
+            </span>
+          </span>
+        </h1>
+      </section>
+      <!-- Every project, a card each on a grid of two columns: src/works.js
+           builds them from src/data/projects.js. -->
+      <div class="wk-grid"></div>
       <p class="site-credit wk-credit">&copy; 2026 Daniel Alamilla</p>
     </main>
     <script type="module" src="/src/works.js"></script>

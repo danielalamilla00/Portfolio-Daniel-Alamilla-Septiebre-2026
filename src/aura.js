@@ -3,13 +3,15 @@ import vertexShader from "./shaders/aura.vert.glsl?raw";
 import fragmentShader from "./shaders/aura.frag.glsl?raw";
 import { ORANGE_PALETTE, hexToRgb } from "./palette.js";
 import { GRAIN } from "./grain.js";
+import { canvasPixelRatio } from "./viewport.js";
 
 // ---- The aura's gradient ------------------------------------------------------
 // One blurred radial gradient (src/shaders/aura.frag.glsl): the background
 // of the creativity phase. main.js gets a full-screen quad from createAura()
 // and drives its uniforms (updateAura): where it is, how big, how opaque.
 // Its colors, the softness of its rim and its final shape live here; its
-// grain is the web's (grain.js). (The Contact section has the same one upside down: contact.js.)
+// grain is the web's (grain.js). (The Contact section has the same one upside down: contact.js; so
+// does a project's end, and Works' head the other way: createAuraCanvas.)
 // Palette, inside -> out. The colors themselves live in palette.js.
 const AURA_COLOR_CENTER_A = ORANGE_PALETTE.yellowOrangeLight; // warm, very bright yellow-orange at the center
 const AURA_COLOR_CENTER_B = ORANGE_PALETTE.yellowOrange;
@@ -74,4 +76,32 @@ export function createAura(pageRgb) {
   );
   mesh.frustumCulled = false; // positioned in clip space by its vertex shader
   return { mesh, uniforms };
+}
+
+// An aura on a canvas of its own, with its own small renderer: Works' head
+// (works.js) and a project's end (case.js). `size(width, height)`: the
+// canvas's, in CSS px; `uniforms`: createAura()'s — where it is, how big, how
+// opaque —, set before `draw()`; `dispose()`: its GPU context let go.
+export function createAuraCanvas(canvas, pageRgb) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+  const aura = createAura(pageRgb);
+  const scene = new THREE.Scene();
+  scene.add(aura.mesh);
+  const camera = new THREE.Camera(); // the quad places itself (aura.vert.glsl)
+  return {
+    uniforms: aura.uniforms,
+    size(width, height) {
+      renderer.setPixelRatio(canvasPixelRatio());
+      renderer.setSize(width, height, false);
+      aura.uniforms.uViewport.value.set(width, height);
+      aura.uniforms.uPixelRatio.value = renderer.getPixelRatio();
+    },
+    draw: () => renderer.render(scene, camera),
+    dispose() {
+      aura.mesh.geometry.dispose();
+      aura.mesh.material.dispose();
+      renderer.dispose();
+      renderer.forceContextLoss();
+    },
+  };
 }

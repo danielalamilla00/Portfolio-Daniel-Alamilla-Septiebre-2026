@@ -1,8 +1,8 @@
 // ---- The ink of a text ----------------------------------------------------------------
 // Where the visible ink of a piece of text really is, read from the pixels
 // of its own rasterized glyphs: what a text is aligned by when its box is not
-// enough (the hero's and Contact's headlines against the logo and the clock,
-// main.js; the titles of the Works page from margin to margin, works.js).
+// enough (the headlines — the hero's, Contact's and Works' — against the
+// logo and the clock: headline.js).
 // Neither a Range's box (advance widths and the font's generic ascent and
 // descent) nor canvas measureText()'s actualBoundingBox* (measured: off by
 // several px at these sizes) is the ink.

@@ -1,0 +1,75 @@
+/* ---- Between Works and a project's page (src/page-transition.js) ------------------
+   Going from one to the other — a card, "Explore all cases", the nav's
+   "projects", the browser's back —, the page's content (.wk, .pj) blurs to
+   12px and fades out (0.6s, power2.inOut), then the new one comes in the
+   other way (0.7s). Only the content: the background (the aura, the black
+   and its grain) is the root's, and cross-fades, sharp; the nav stays. With
+   the browser's own view transitions between pages where it has them; where
+   it has not, page-transition.js does the same with GSAP (html.pt-in: the
+   new page's content hidden until then). Both pages' black under all of it:
+   never a white frame. */
+@view-transition {
+  navigation: auto;
+}
+html:has(body.works),
+html:has(body.project) {
+  background-color: #0a0a0a;
+}
+.wk {
+  view-transition-name: works-page;
+}
+.pj {
+  view-transition-name: project-page;
+}
+#site-nav {
+  view-transition-name: site-nav;
+}
+/* (power2.inOut) */
+::view-transition-group(works-page),
+::view-transition-group(project-page) {
+  animation: none;
+}
+::view-transition-old(works-page),
+::view-transition-old(project-page) {
+  animation: pt-out 0.6s cubic-bezier(0.455, 0.03, 0.515, 0.955) both;
+}
+::view-transition-new(works-page),
+::view-transition-new(project-page) {
+  animation: pt-in 0.7s cubic-bezier(0.455, 0.03, 0.515, 0.955) 0.6s both;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.6s;
+}
+::view-transition-group(site-nav),
+::view-transition-old(site-nav),
+::view-transition-new(site-nav) {
+  animation: none;
+}
+::view-transition-old(site-nav) {
+  display: none;
+}
+@keyframes pt-out {
+  to {
+    filter: blur(12px);
+    opacity: 0;
+  }
+}
+@keyframes pt-in {
+  from {
+    filter: blur(12px);
+    opacity: 0;
+  }
+}
+html.pt-in .wk,
+html.pt-in .pj {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(works-page),
+  ::view-transition-old(project-page),
+  ::view-transition-new(works-page),
+  ::view-transition-new(project-page) {
+    animation: none;
+  }
+}

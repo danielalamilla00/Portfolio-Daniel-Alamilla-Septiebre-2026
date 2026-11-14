@@ -13,6 +13,18 @@
     <link rel="stylesheet" href="/src/style.css" />
     <link rel="stylesheet" href="/src/project.css" />
     <link rel="stylesheet" href="/src/case.css" />
+    <!-- Between Works and a project's page (src/page-transition.css, .js):
+         arriving by the transition where the browser has none of its own,
+         the content hidden from the first frame until it comes in. -->
+    <link rel="stylesheet" href="/src/page-transition.css" />
+    <script>
+      try {
+        if (sessionStorage.getItem("pt-arriving")) {
+          sessionStorage.removeItem("pt-arriving");
+          document.documentElement.classList.add("pt-in");
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body class="project grain">
     <!-- The home's nav; its links go back to the home's sections. -->

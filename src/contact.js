@@ -47,8 +47,9 @@ export const CONTACT_SHOWN_VH = CONTACT_PINNED_VH + CONTACT_END_HOLD_VH / 4;
 // enough, the top of the canvas fades out instead: .is-cut in style.css).
 const CONTACT_AURA_CENTER = [0, 0];
 const CONTACT_AURA_RADIUS = 1;
-const CONTACT_AURA_INTENSITY = 1;
-const CONTACT_AURA_FROM_INTENSITY = 0.75;
+// (exported: a project's end has the same, case.js)
+export const CONTACT_AURA_INTENSITY = 1;
+export const CONTACT_AURA_FROM_INTENSITY = 0.75;
 const CONTACT_AURA_PAD_PX = 2;
 const CONTACT_BLACK = [10, 10, 10]; // the panel's (--more-black in style.css)
 
