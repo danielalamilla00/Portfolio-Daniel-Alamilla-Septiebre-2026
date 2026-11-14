@@ -49,6 +49,8 @@ gsap.registerPlugin(ScrollTrigger);
 //                        lights them up (their opacity)
 //   CS_HOLD_WIDEN_VH     the scroll the held picture widens over,
 //   CS_HOLD_STILL_VH     ...and the scroll it then stays whole and still
+//   CS_WIDE_FADE_VH      ...and, going up, the scroll its foot takes to go
+//                        to the page's black (case.css: .cs-wide-fade)
 //   CS_REVEAL_FROM(_PHONE)  how much of its size the held picture shows at
 //                        first, in its middle, its shape (a phone's)
 //   CS_REVEAL_ZOOM       how big the picture is inside its mask as it starts
@@ -73,6 +75,7 @@ const CS_STACK_VH = 100;
 const CS_LIT_FROM = 0.15;
 const CS_HOLD_WIDEN_VH = 70;
 const CS_HOLD_STILL_VH = 30;
+const CS_WIDE_FADE_VH = 25;
 const CS_REVEAL_FROM = 0.35;
 const CS_REVEAL_FROM_PHONE = 0.6;
 const CS_REVEAL_ZOOM = 1.35;
@@ -209,6 +212,10 @@ export function renderCase(project) {
   // (always its 2400 file, a phone's too: it is CS_REVEAL_ZOOM in its frame at first — holdPicture())
   const wide = element("figure", "cs-frame cs-wide");
   wide.appendChild(picture(data.picture, "1400px", "cs-picture", data.pictureSize));
+  // (its foot going to the page's black, with its grain: holdPicture())
+  const fade = element("div", "cs-wide-fade grain");
+  fade.setAttribute("aria-hidden", "true");
+  wide.appendChild(fade);
   const column = element("div", "cs-col");
   column.append(statement, about, meta, wide);
   intro.appendChild(column);
@@ -253,7 +260,7 @@ export function renderCase(project) {
     if (mine.dead) return;
     context.add(() => {
       page.querySelectorAll(".cs-statement").forEach(lightUp);
-      holdPicture(intro, wide);
+      holdPicture(intro, wide, creative || end);
       endAura(end);
       comeIn(page);
     });
@@ -528,17 +535,25 @@ function holdCover(cover, intro, player) {
 // is the screen's size, case.css; CS_HOLD_WIDEN_VH of scroll) — the picture
 // inside it going from CS_REVEAL_ZOOM down to 1 meanwhile — and stays whole
 // and still (CS_HOLD_STILL_VH); the page is that much longer (the pin's
-// spacing), and then the cream goes up with the rest, the next section right
-// under it. Made again on a new size.
-function holdPicture(intro, wide) {
+// spacing), and then the cream goes up with the rest, `next` (the next
+// section) right under it. As it does, the picture's foot goes to the page's
+// black — no line where it ends —, from nothing to all of it in the first
+// CS_WIDE_FADE_VH of scroll, right with the scroll as the picture is (both
+// ways; no scrub: a damped one, scrolled back past it fast, can stop short
+// of nothing): never while it is held. Made again on a new size.
+function holdPicture(intro, wide, next) {
   const image = wide.querySelector(".cs-picture");
+  const fade = wide.querySelector(".cs-wide-fade");
   const set = (off) => (wide.style.clipPath = `inset(${off.toFixed(3)}% ${off.toFixed(3)}%)`);
+  const darken = (self) => (fade.style.opacity = self.progress.toFixed(4));
   let timeline = null;
+  let fadeIn = null;
   const make = () => {
     if (timeline) timeline.scrollTrigger.kill(true), timeline.kill();
+    if (fadeIn) fadeIn.kill();
     // (the whole screen: its width without the scroll bar — case.css)
     intro.closest(".pj").style.setProperty("--cs-screen", `${document.documentElement.clientWidth}px`);
-    if (reducedMotion) return set(0), gsap.set(image, { scale: 1 });
+    if (reducedMotion) return set(0), gsap.set(image, { scale: 1 }), gsap.set(fade, { opacity: 1 });
     const vh = window.innerHeight / 100;
     const widenPx = CS_HOLD_WIDEN_VH * vh;
     const stillPx = CS_HOLD_STILL_VH * vh;
@@ -554,6 +569,8 @@ function holdPicture(intro, wide) {
       .to(state, { off: 0, ease: "none", duration: widenPx, onUpdate: () => set(state.off) })
       .to(image, { scale: 1, ease: "none", duration: widenPx }, 0)
       .to({}, { duration: stillPx });
+    // (made after the pin: where `next` is counts its spacing)
+    fadeIn = ScrollTrigger.create({ trigger: next, start: "top bottom", end: `+=${CS_WIDE_FADE_VH * vh}`, onUpdate: darken, onRefresh: darken });
   };
   make();
   onView(make);

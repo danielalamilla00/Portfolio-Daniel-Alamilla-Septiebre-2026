@@ -90,7 +90,8 @@
   overflow: hidden;
   cursor: pointer;
 }
-.cs .cs-cover.has-play-cursor {
+.cs .cs-cover.has-play-cursor,
+.cs .cs-cover.has-play-cursor * {
   cursor: none;
 }
 /* -- the play over the cover (case.js, playCursor(): where the pointer is,
@@ -394,6 +395,28 @@
   margin-top: 8vh;
   margin-left: calc(50% - var(--cs-screen, 100vw) / 2);
   background-color: transparent;
+}
+/* (its foot, going up: the page's black with its grain — .grain —, the
+   section under it, coming over the picture's lower part softly, all of it
+   at its very foot; case.js, holdPicture(), how much of it) */
+.cs .cs-wide-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 50%;
+  background-color: #0a0a0a;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.06) 20%, rgba(0, 0, 0, 0.2) 40%, rgba(0, 0, 0, 0.45) 60%, rgba(0, 0, 0, 0.75) 80%, rgba(0, 0, 0, 0.94) 92%, #000000 100%);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.06) 20%, rgba(0, 0, 0, 0.2) 40%, rgba(0, 0, 0, 0.45) 60%, rgba(0, 0, 0, 0.75) 80%, rgba(0, 0, 0, 0.94) 92%, #000000 100%);
+  opacity: 0;
+  pointer-events: none;
+}
+/* (the sections after the cream a hair over its foot: where it falls on a
+   fraction of a pixel, the cream behind the picture would show through the
+   edges' blend as a light line; there the fade is all black) */
+.cs .cs-creative,
+.cs .cs-end {
+  margin-top: -2px;
 }
 /* -- the dark layer (a project with its pieces: case.js): its creative
    response, in the column, and its pieces in a grid under it */
