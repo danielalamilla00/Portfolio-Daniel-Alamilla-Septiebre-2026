@@ -1,6 +1,6 @@
 // ---- Which file of a project's video to play ---------------------------------------
 // A project's video is in several sizes (projects.js: video, the files' path
-// up to their size, and videoSizes, the heights there are: 1440 at the
+// up to their size, and videoSizes, the heights there are: 1080 at the
 // most), each an MP4 in H.264 — what every browser plays: <path>-<size>.mp4.
 // The one played is the size the video is shown at asks for — in device
 // pixels, its width × devicePixelRatio (VS_BANDS) — or the biggest there is
@@ -10,7 +10,6 @@
 //   VS_BANDS       [from px wide, the height asked for], biggest first
 //   VS_LEAD_S      how far ahead of the one playing the bigger one waits
 const VS_BANDS = [
-  [1300, 1440],
   [900, 1080],
   [0, 720],
 ];

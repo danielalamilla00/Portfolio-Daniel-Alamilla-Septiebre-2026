@@ -118,12 +118,12 @@ function observe(callback, target, options) {
   scope.undo.push(() => observer.disconnect());
 }
 
-// A picture of the project's (its two sizes: <base>-1280.webp, -2400.webp),
+// A picture of the project's (its two sizes: <base>-1280.webp, -1920.webp),
 // `size` its [width, height], from which its box is made before it comes in.
 function picture({ src, alt }, sizes, className, size) {
   const image = element("img", className);
   image.src = encodeURI(`${src}-1280.webp`);
-  image.srcset = `${encodeURI(`${src}-1280.webp`)} 1280w, ${encodeURI(`${src}-2400.webp`)} 2400w`;
+  image.srcset = `${encodeURI(`${src}-1280.webp`)} 1280w, ${encodeURI(`${src}-1920.webp`)} 1920w`;
   image.sizes = sizes;
   image.alt = alt;
   [image.width, image.height] = size;
@@ -209,7 +209,7 @@ export function renderCase(project) {
   });
   const meta = element("div", "cs-meta");
   meta.append(tags, facts);
-  // (always its 2400 file, a phone's too: it is CS_REVEAL_ZOOM in its frame at first — holdPicture())
+  // (always its 1920 file, a phone's too: it is CS_REVEAL_ZOOM in its frame at first — holdPicture())
   const wide = element("figure", "cs-frame cs-wide");
   wide.appendChild(picture(data.picture, "1400px", "cs-picture", data.pictureSize));
   // (its foot going to the page's black, with its grain: holdPicture())

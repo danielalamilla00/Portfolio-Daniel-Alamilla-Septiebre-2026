@@ -22,8 +22,9 @@ gsap.registerPlugin(ScrollTrigger);
 // on a grid of two equal columns inside the page's margins (works.css; one,
 // up to MOBILE_MAX_PX wide). A card: its poster (16:9), its name, what it is
 // (two lines at most) and its kind (type). With a mouse, the pointer over a
-// card plays its video over the poster — the 720 file, muted, in a loop, its
-// file asked for the first time only —, fading in (works.css); the pointer
+// card plays its video over the poster — its -hover.mp4 (projects.js: its
+// first 8 s, 720, no sound), muted, in a loop, its file asked for the first
+// time only —, fading in (works.css); the pointer
 // gone, it stops, goes back to its start and the poster is there again. A
 // finger: the poster only.
 // How the cards come in: each, once its top is WK_ENTER_START down the
@@ -174,7 +175,7 @@ function playOnHover(card, media, project) {
       video.preload = "none";
       video.setAttribute("aria-hidden", "true");
       video.addEventListener("playing", () => card.classList.toggle("is-playing", card.matches(":hover")));
-      video.src = encodeURI(`${project.video}-720.mp4`);
+      video.src = encodeURI(`${project.video}-hover.mp4`);
       media.appendChild(video);
     }
     video.play().catch(() => {}); // (not allowed to: the poster stays)

@@ -25,13 +25,15 @@
 //                it was made for
 //   video        the project itself, its web version: the path of its files
 //                up to their size (src/video-source.js: <video>-<size>.mp4,
-//                H.264, made from its original in source-videos/)
-//   videoSizes   the heights it is in (1440, 1080, 720: none bigger than its
-//                original's); the one played is the one the size it is shown
-//                at asks for
-//   poster       what shows until it plays (a frame of it): also its
-//                card's picture on the Works page, where its video's 720 file
-//                plays over it under the pointer
+//                H.264, CRF 22, faststart, made from its original in
+//                source-videos/); and <video>-hover.mp4, its first 8 s at
+//                720, CRF 26, no sound: what its Works card plays
+//   videoSizes   the heights it is in (1080, 720: none bigger than its
+//                original's, none over 1080); the one played is the one the
+//                size it is shown at asks for
+//   poster       what shows until it plays (a frame of it; WebP, 1920 wide
+//                at the most): also its card's picture on the Works page,
+//                where its -hover.mp4 plays over it under the pointer
 //   youtube, event, venue (optional) where it is / was shown (kept for
 //                reference)
 //   case         what its page shows:
@@ -39,7 +41,7 @@
 //                  statement      the big sentence on the cream
 //                  tags           under it
 //                  picture        the held picture ({ src, alt }: src without
-//                                 its "-1280.webp" / "-2400.webp"): a frame
+//                                 its "-1280.webp" / "-1920.webp"): a frame
 //                                 of its video, or a mockup of its own
 //                  creative       (optional) the dark layer after it: its big
 //                                 sentence (*keyword*), paragraphs (the
@@ -67,7 +69,6 @@ const waapiti = (name, rest, { video, picture, alt, statement, tags, ...texts })
   title: `*Waapiti* ${rest}`,
   ...WAAPITI,
   ...texts,
-  // (no 1440: the originals are 1080p)
   video: `/proyectos/waapiti-product-videos/videos/${video}`,
   videoSizes: [1080, 720],
   poster: `/proyectos/waapiti-product-videos/videos/${video}-poster.webp`,
@@ -102,7 +103,7 @@ export const PROJECTS = [
     event: "AfterISE · ISE 2026, Barcelona",
     venue: "Sensory Sync · TMM showroom",
     video: "/proyectos/waapiti-ai-3d-logo-reveal/waapiti-ai-3d-logo-reveal",
-    videoSizes: [1440, 1080, 720],
+    videoSizes: [1080, 720],
     youtube: "https://youtu.be/hiAC1CUjSS0",
     poster: "/proyectos/waapiti-ai-3d-logo-reveal/poster-v2.webp",
     case: {
@@ -123,7 +124,7 @@ export const PROJECTS = [
     role: "Motion Designer",
     tools: "Cinema 4D, After Effects",
     year: "2026",
-    // (the holograms' compilation, 10s: its mockups, one after another; no 1440 — its original is 1080p)
+    // (the holograms' compilation, 10s: its mockups, one after another)
     video: "/proyectos/caprabo-3d-hologram-content/caprabo-3d-hologram-content",
     videoSizes: [1080, 720],
     poster: "/proyectos/caprabo-3d-hologram-content/poster.webp",
@@ -198,7 +199,7 @@ export const PROJECTS = [
     // DRAFT (statement, idea: from the old TMM Sensory Sync Content's)
     idea: "Sensory Sync is TMM's showroom in Barcelona, where clients see screens, light and sound working together before taking them to their own stores and events. The brand reveal opens every visit, on the main LED wall, the curved column and the window screens at once.",
     video: "/proyectos/tmm-sensory-sync-content/spheres",
-    videoSizes: [1440, 1080, 720],
+    videoSizes: [1080, 720],
     youtube: "https://youtu.be/7pxdlWAiUOQ",
     poster: "/proyectos/tmm-sensory-sync-content/spheres-final-poster.webp",
     case: {
@@ -253,7 +254,7 @@ export const PROJECTS = [
     // DRAFT (statement, idea: from the old TMM Sensory Sync Content's)
     idea: "A seasonal piece for the screens of Sensory Sync, TMM's showroom in Barcelona. The leaves rise and swirl into the TMM logo, with copy about colour and sound: 'Es veu en cada color. S'escolta en cada fulla.'",
     video: "/proyectos/tmm-sensory-sync-content/autumn",
-    videoSizes: [1440, 1080, 720],
+    videoSizes: [1080, 720],
     poster: "/proyectos/tmm-sensory-sync-content/autumn-final-poster.webp",
     case: {
       pictureSize: [2400, 1350],
@@ -310,7 +311,7 @@ export const PROJECTS = [
     tools: "Cinema 4D, After Effects, Kling",
     year: "2026",
     video: "/proyectos/tmm-halloween-spot/tmm-halloween-spot",
-    videoSizes: [1440, 1080, 720],
+    videoSizes: [1080, 720],
     youtube: "https://youtu.be/-u5k984d138",
     poster: "/proyectos/tmm-halloween-spot/poster.webp",
     case: {
