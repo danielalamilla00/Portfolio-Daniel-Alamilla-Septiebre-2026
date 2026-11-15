@@ -1,0 +1,93 @@
+/* ---- Between the web's pages (src/transition.js) -----------------------------------
+   Every page starts under a veil (index.html, works.html, work.html: the
+   first thing in their body): fixed over the content and under the nav,
+   it blurs what is behind it (backdrop-filter, --pt-blur) and covers it with
+   the page's black and its grain (.pt-veil-ink, --pt-ink). All of it from
+   the first frame: never a white one, nothing of the page before it comes
+   in. transition.js takes it away (the page coming in) and puts it back
+   (a page going out to another): only the content goes blurred and
+   transparent, the background and the grain on it stay sharp — they are the
+   veil's own then —, the nav stays as it is. Nothing of the page itself is
+   touched: its fixed and pinned parts stay where they are.
+   The browser's back and forward, where it has transitions of its own
+   between pages: the page left blurs out (0.6s, power2.inOut) over the next
+   one's first frame — its veil, all black —, the nav as it is; then the next
+   one comes in from under its veil. A link goes out with the veil, so the
+   browser's own is let go then (transition.js). */
+@view-transition {
+  navigation: auto;
+}
+html {
+  background-color: #0a0a0a;
+}
+.pt-veil {
+  --pt-blur: 12px;
+  --pt-ink: 1;
+  position: fixed;
+  z-index: 48; /* under the nav (50) and its menu (49) */
+  inset: 0;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(var(--pt-blur));
+  backdrop-filter: blur(var(--pt-blur));
+}
+.pt-veil-ink {
+  position: absolute;
+  inset: 0;
+  background-color: #0a0a0a;
+  opacity: var(--pt-ink);
+}
+/* (no blur where motion is to be reduced: the black only) */
+@media (prefers-reduced-motion: reduce) {
+  .pt-veil {
+    --pt-blur: 0px;
+  }
+}
+/* (gone: nothing over the page; and if its script never comes, it goes
+   by itself, so the page is never left under it) */
+.pt-veil.is-gone {
+  visibility: hidden;
+}
+.pt-veil:not(.is-driven) {
+  animation: pt-veil-failsafe 0.4s ease 4s both;
+}
+@keyframes pt-veil-failsafe {
+  to {
+    visibility: hidden;
+    opacity: 0;
+  }
+}
+/* The browser's own, going back or forward: the page left blurs out over
+   the next one (its veil); the nav, the same on both, as it is. */
+::view-transition-old(root) {
+  animation: pt-out 0.6s cubic-bezier(0.455, 0.03, 0.515, 0.955) both; /* power2.inOut */
+}
+::view-transition-new(root) {
+  animation: none;
+}
+#site-nav {
+  view-transition-name: site-nav;
+}
+::view-transition-group(site-nav),
+::view-transition-old(site-nav),
+::view-transition-new(site-nav) {
+  animation: none;
+}
+::view-transition-old(site-nav) {
+  display: none;
+}
+@keyframes pt-out {
+  to {
+    filter: blur(12px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root) {
+    animation: pt-fade 0.3s ease both;
+  }
+  @keyframes pt-fade {
+    to {
+      opacity: 0;
+    }
+  }
+}

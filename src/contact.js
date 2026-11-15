@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { createAura, auraFinalShape } from "./aura.js";
 import { onViewportChange, canvasPixelRatio } from "./viewport.js";
+import { whenShown } from "./transition.js";
 
 // ---- Contact --------------------------------------------------------------------
 // The last screen (.ct), in the same black panel as the sections before it.
@@ -164,8 +165,11 @@ export function createContact(reducedMotion) {
   }
   layout();
   onViewportChange(layout);
-  if (window.requestIdleCallback) window.requestIdleCallback(readyAura, { timeout: 4000 });
-  else setTimeout(readyAura, 2000); // Safari
+  // (once the page has come in: transition.js)
+  whenShown(() => {
+    if (window.requestIdleCallback) window.requestIdleCallback(readyAura, { timeout: 4000 });
+    else setTimeout(readyAura, 2000); // Safari
+  });
   // showing(): some of it is on screen (main.js keeps its headline's focus going).
   return { update, showing: () => up > 0 };
 }

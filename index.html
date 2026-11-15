@@ -9,8 +9,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/src/style.css" />
+    <!-- Between the web's pages (src/transition.css, .js): the veil every
+         page starts under (the first thing in the body), and the browser's
+         own transition, going back or forward, kept for transition.js — it
+         can come before that script. -->
+    <link rel="stylesheet" href="/src/transition.css" />
+    <script>
+      addEventListener("pagereveal", function (event) { window.ptArrival = event.viewTransition; if (event.viewTransition) event.viewTransition.ready.catch(function () {}); }, { once: true });
+    </script>
   </head>
   <body class="grain">
+    <!-- The veil (src/transition.css): the page's black and grain over the
+         content until it comes in, and again as it goes to another page. -->
+    <div class="pt-veil" aria-hidden="true"><div class="pt-veil-ink grain"></div></div>
     <!-- Where the nav's "home" link lands: the top of the page, the hero. -->
     <span class="page-anchor" id="home" aria-hidden="true"></span>
     <!-- The Three.js canvas (orange, then aura): fixed to the viewport

@@ -8,7 +8,7 @@ import { PROJECTS, projectUrl } from "./data/projects.js";
 import { plainTitle } from "./title.js";
 import { createHeadlines, alignHeadlines, whenHeadlineInkChanges } from "./headline.js";
 import { onViewportChange } from "./viewport.js";
-import { setupPageTransition } from "./page-transition.js";
+import { setupTransition } from "./transition.js";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -65,7 +65,7 @@ const fineMouse = window.matchMedia("(hover: hover) and (pointer: fine)");
 
 applyPalette();
 setupMenu(); // (and the page's grain: body.grain)
-setupPageTransition(document.querySelector(".wk"));
+setupTransition();
 
 // -- the head's headline --------------------------------------------------------------
 const head = document.querySelector(".wk-hero");

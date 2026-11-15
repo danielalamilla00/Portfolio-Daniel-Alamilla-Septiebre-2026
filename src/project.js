@@ -4,7 +4,7 @@ import { startNavClock } from "./clock.js";
 import { setupMenu } from "./menu.js";
 import { PROJECTS, MOVED } from "./data/projects.js";
 import { renderCase } from "./case.js";
-import { setupPageTransition, transitionWithin } from "./page-transition.js";
+import { setupTransition, transitionWithin } from "./transition.js";
 
 // ---- A project's page --------------------------------------------------------------
 // work.html#<slug>: the project of src/data/projects.js whose slug is in the
@@ -16,7 +16,7 @@ import { setupPageTransition, transitionWithin } from "./page-transition.js";
 // page goes back to its top and the new one is put up. An address of no
 // project: the Works page. Coming from Works (or going back to it), and from
 // a project to another — the links of its end's carousel —, the content
-// blurs out and the next comes in (page-transition.js).
+// blurs out and the next comes in (transition.js).
 applyPalette();
 startNavClock();
 setupMenu();
@@ -38,20 +38,20 @@ function show() {
   ScrollTrigger.refresh();
 }
 show();
-window.addEventListener("hashchange", show);
+// (the browser's back or forward to another project: the same transition)
+window.addEventListener("hashchange", () => transitionWithin(show));
 // (back to it from the browser's memory, as it was left: from its top again)
 window.addEventListener("pageshow", (event) => {
   if (!event.persisted) return;
   window.scrollTo(0, 0);
   ScrollTrigger.refresh();
 });
-const content = document.querySelector(".pj");
-setupPageTransition(content);
+setupTransition();
 document.addEventListener("click", (event) => {
   const link = event.target.closest("a[href^='work.html#']");
   if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   event.preventDefault();
-  transitionWithin(content, () => {
+  transitionWithin(() => {
     window.history.pushState(null, "", link.getAttribute("href").slice("work.html".length));
     show();
   });

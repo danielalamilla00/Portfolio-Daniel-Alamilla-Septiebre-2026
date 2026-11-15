@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { ORANGE_PALETTE } from "./palette.js";
 import { canvasPixelRatio } from "./viewport.js";
 import { GRAIN_PLANE } from "./grain.js";
+import { whenShown } from "./transition.js";
 
 // ---- Experience: a timeline flown over by a paper plane -----------------------
 // The section after the "Still thirsty for more?" screen, inside the black
@@ -793,11 +794,17 @@ function createWide(panel) {
   }
 
   layout();
-  const idle = window.requestIdleCallback ? window.requestIdleCallback(readyPlane, { timeout: 3000 }) : setTimeout(readyPlane, 1500); // (Safari has no idle callback)
+  // (once the page has come in: transition.js)
+  let idle = null;
+  whenShown(() => {
+    if (!dead) idle = window.requestIdleCallback ? window.requestIdleCallback(readyPlane, { timeout: 3000 }) : setTimeout(readyPlane, 1500); // (Safari has no idle callback)
+  });
   function destroy() {
     dead = true;
-    if (window.cancelIdleCallback) window.cancelIdleCallback(idle);
-    else clearTimeout(idle);
+    if (idle !== null) {
+      if (window.cancelIdleCallback) window.cancelIdleCallback(idle);
+      else clearTimeout(idle);
+    }
     if (kit) kit.clear();
     canvas.classList.remove("is-behind");
     items.forEach((item) => item.el.remove());

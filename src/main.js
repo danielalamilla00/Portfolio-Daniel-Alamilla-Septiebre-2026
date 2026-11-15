@@ -15,6 +15,7 @@ import { createAbout, ABOUT_SCROLL_VH } from "./about.js";
 import { createContact, CONTACT_SCROLL_VH, CONTACT_SHOWN_VH } from "./contact.js";
 import { onViewportChange, canvasPixelRatio, MOBILE_MAX_PX } from "./viewport.js";
 import { setupMenu } from "./menu.js";
+import { setupTransition } from "./transition.js";
 
 gsap.registerPlugin(ScrollTrigger);
 // The window changing size is looked after here (viewport.js; the end of this
@@ -24,6 +25,7 @@ ScrollTrigger.config({ ignoreMobileResize: true, autoRefreshEvents: "visibilityc
 applyPalette(); // the palette as --c-* variables, for style.css
 if (new URLSearchParams(window.location.search).has("grid")) document.documentElement.classList.add("is-grid"); // the page's grid, drawn (style.css)
 setupMenu(); // the nav's links as a whole screen, on a tablet and a phone
+setupTransition(); // coming in, and going to the web's other pages (transition.js)
 
 // Webfonts and video metadata can still change layout after the first
 // ScrollTrigger measurement; re-measure once everything has loaded so the

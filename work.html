@@ -13,20 +13,19 @@
     <link rel="stylesheet" href="/src/style.css" />
     <link rel="stylesheet" href="/src/project.css" />
     <link rel="stylesheet" href="/src/case.css" />
-    <!-- Between Works and a project's page (src/page-transition.css, .js):
-         arriving by the transition where the browser has none of its own,
-         the content hidden from the first frame until it comes in. -->
-    <link rel="stylesheet" href="/src/page-transition.css" />
+    <!-- Between the web's pages (src/transition.css, .js): the veil every
+         page starts under (the first thing in the body), and the browser's
+         own transition, going back or forward, kept for transition.js — it
+         can come before that script. -->
+    <link rel="stylesheet" href="/src/transition.css" />
     <script>
-      try {
-        if (sessionStorage.getItem("pt-arriving")) {
-          sessionStorage.removeItem("pt-arriving");
-          document.documentElement.classList.add("pt-in");
-        }
-      } catch (e) {}
+      addEventListener("pagereveal", function (event) { window.ptArrival = event.viewTransition; if (event.viewTransition) event.viewTransition.ready.catch(function () {}); }, { once: true });
     </script>
   </head>
   <body class="project grain">
+    <!-- The veil (src/transition.css): the page's black and grain over the
+         content until it comes in, and again as it goes to another page. -->
+    <div class="pt-veil" aria-hidden="true"><div class="pt-veil-ink grain"></div></div>
     <!-- The home's nav; its links go back to the home's sections. -->
     <nav id="site-nav">
       <a class="nav-home" href="index.html"><img class="nav-logo" src="/logo-alamilla-new.svg" alt="Alamilla" /></a>
